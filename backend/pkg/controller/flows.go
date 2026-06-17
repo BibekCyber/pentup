@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"sort"
@@ -32,6 +33,23 @@ type FlowController interface {
 		prvtype provider.ProviderType,
 		functions *tools.Functions,
 	) (FlowWorker, error)
+	// CreateFlowForDomain spawns a child flow for a domain orchestration: it
+	// looks up the template text, runs it as the flow input, and links the new
+	// flow to the domain and template. It enforces the same per-user flow quota
+	// as CreateFlow, returning a *QuotaError so the domain spawn loop can
+	// truncate gracefully instead of failing the whole domain.
+	CreateFlowForDomain(
+		ctx context.Context,
+		userID int64,
+		domainID int64,
+		templateID int64,
+		prvname provider.ProviderName,
+		prvtype provider.ProviderType,
+	) (FlowWorker, error)
+	// CountActiveFlowsForUser returns how many flows the user currently has in
+	// an active status (created/running/waiting). Used for quota checks and the
+	// quota-usage query that powers the spawn confirmation screen.
+	CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error)
 	CreateAssistant(
 		ctx context.Context,
 		userID int64,
@@ -141,6 +159,10 @@ func (fc *flowController) CreateFlow(
 	fc.mx.Lock()
 	defer fc.mx.Unlock()
 
+	if err := fc.checkUserFlowQuota(ctx, userID); err != nil {
+		return nil, err
+	}
+
 	fw, err := NewFlowWorker(ctx, newFlowWorkerCtx{
 		userID:    userID,
 		input:     input,
@@ -169,6 +191,93 @@ func (fc *flowController) CreateFlow(
 	}
 
 	fc.flows[fw.GetFlowID()] = fw
+
+	return fw, nil
+}
+
+// checkUserFlowQuota rejects flow creation when the user is already at the
+// per-user concurrent-flow cap. Callers must hold fc.mx so concurrent spawn
+// attempts cannot race past the limit.
+func (fc *flowController) checkUserFlowQuota(ctx context.Context, userID int64) error {
+	count, err := fc.db.CountActiveFlowsForUser(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to count active flows for user %d: %w", userID, err)
+	}
+
+	if int(count) >= fc.cfg.MaxConcurrentFlowsPerUser {
+		logrus.WithContext(ctx).WithFields(logrus.Fields{
+			"user_id": userID,
+			"active":  count,
+			"limit":   fc.cfg.MaxConcurrentFlowsPerUser,
+		}).Warn("flow creation rejected: per-user concurrency quota exceeded")
+		return &QuotaError{Quota: QuotaFlows, Current: int(count), Max: fc.cfg.MaxConcurrentFlowsPerUser}
+	}
+
+	return nil
+}
+
+func (fc *flowController) CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error) {
+	return fc.db.CountActiveFlowsForUser(ctx, userID)
+}
+
+func (fc *flowController) CreateFlowForDomain(
+	ctx context.Context,
+	userID int64,
+	domainID int64,
+	templateID int64,
+	prvname provider.ProviderName,
+	prvtype provider.ProviderType,
+) (FlowWorker, error) {
+	fc.mx.Lock()
+	defer fc.mx.Unlock()
+
+	if err := fc.checkUserFlowQuota(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	template, err := fc.db.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
+		ID:     templateID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
+	}
+
+	fw, err := NewFlowWorker(ctx, newFlowWorkerCtx{
+		userID:  userID,
+		input:   template.Text,
+		prvname: prvname,
+		prvtype: prvtype,
+		flowWorkerCtx: flowWorkerCtx{
+			db:     fc.db,
+			cfg:    fc.cfg,
+			docker: fc.docker,
+			provs:  fc.provs,
+			subs:   fc.subs,
+			flowProviderControllers: flowProviderControllers{
+				mlc:  fc.mlc,
+				aslc: fc.aslc,
+				alc:  fc.alc,
+				slc:  fc.slc,
+				tlc:  fc.tlc,
+				vslc: fc.vslc,
+				sc:   fc.sc,
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create flow worker for domain %d: %w", domainID, err)
+	}
+
+	fc.flows[fw.GetFlowID()] = fw
+
+	if err := fc.db.SetFlowDomain(ctx, database.SetFlowDomainParams{
+		ID:         fw.GetFlowID(),
+		DomainID:   sql.NullInt64{Int64: domainID, Valid: true},
+		TemplateID: sql.NullInt64{Int64: templateID, Valid: true},
+	}); err != nil {
+		return nil, fmt.Errorf("failed to link flow %d to domain %d: %w", fw.GetFlowID(), domainID, err)
+	}
 
 	return fw, nil
 }

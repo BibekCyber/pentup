@@ -5,6 +5,8 @@
 !.env.example
 !backend/cmd/installer/files/links/.env
 
+docs
+
 backend/tmp
 backend/build
 

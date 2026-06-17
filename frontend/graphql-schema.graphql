@@ -355,6 +355,9 @@ fragment flowTemplateFragment on FlowTemplate {
     userId
     title
     text
+    targetTypes
+    defaultTemplate
+    systemOwned
     createdAt
     updatedAt
 }
@@ -929,6 +932,12 @@ query flowTemplate($templateId: ID!) {
     }
 }
 
+query flowTemplatesByTargetType($targetType: TargetType!) {
+    flowTemplatesByTargetType(targetType: $targetType) {
+        ...flowTemplateFragment
+    }
+}
+
 mutation createFlowTemplate($input: CreateFlowTemplateInput!) {
     createFlowTemplate(input: $input) {
         ...flowTemplateFragment
@@ -937,6 +946,12 @@ mutation createFlowTemplate($input: CreateFlowTemplateInput!) {
 
 mutation updateFlowTemplate($templateId: ID!, $input: UpdateFlowTemplateInput!) {
     updateFlowTemplate(templateId: $templateId, input: $input) {
+        ...flowTemplateFragment
+    }
+}
+
+mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!, $defaultTemplate: Boolean) {
+    updateFlowTemplateTargetTypes(templateId: $templateId, targetTypes: $targetTypes, defaultTemplate: $defaultTemplate) {
         ...flowTemplateFragment
     }
 }
@@ -1231,5 +1246,70 @@ subscription flowTemplateUpdated {
 subscription flowTemplateDeleted {
     flowTemplateDeleted {
         ...flowTemplateFragment
+    }
+}
+
+# ==================== Domain Orchestration ====================
+
+fragment domainFragment on Domain {
+    id
+    name
+    targetType
+    status
+    detectionMetadata
+    createdAt
+    updatedAt
+    flows {
+        ...flowFragment
+    }
+}
+
+query domains {
+    domains {
+        ...domainFragment
+    }
+}
+
+query domain($id: ID!) {
+    domain(id: $id) {
+        ...domainFragment
+    }
+}
+
+query quotaUsage {
+    quotaUsage {
+        flowsCurrent
+        flowsMax
+        domainsCurrent
+        domainsMax
+        flowsPerDomainMax
+    }
+}
+
+mutation createDomain($input: CreateDomainInput!) {
+    createDomain(input: $input) {
+        ...domainFragment
+    }
+}
+
+mutation deleteDomain($id: ID!) {
+    deleteDomain(id: $id)
+}
+
+subscription domainCreated {
+    domainCreated {
+        ...domainFragment
+    }
+}
+
+subscription domainUpdated {
+    domainUpdated {
+        ...domainFragment
+    }
+}
+
+subscription domainDeleted {
+    domainDeleted {
+        ...domainFragment
     }
 }

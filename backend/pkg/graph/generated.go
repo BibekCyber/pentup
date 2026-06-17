@@ -217,6 +217,17 @@ type ComplexityRoot struct {
 		Qwen      func(childComplexity int) int
 	}
 
+	Domain struct {
+		CreatedAt         func(childComplexity int) int
+		DetectionMetadata func(childComplexity int) int
+		Flows             func(childComplexity int) int
+		ID                func(childComplexity int) int
+		Name              func(childComplexity int) int
+		Status            func(childComplexity int) int
+		TargetType        func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
+	}
+
 	Flow struct {
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -248,12 +259,15 @@ type ComplexityRoot struct {
 	}
 
 	FlowTemplate struct {
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		Text      func(childComplexity int) int
-		Title     func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		UserID    func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		DefaultTemplate func(childComplexity int) int
+		ID              func(childComplexity int) int
+		SystemOwned     func(childComplexity int) int
+		TargetTypes     func(childComplexity int) int
+		Text            func(childComplexity int) int
+		Title           func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
+		UserID          func(childComplexity int) int
 	}
 
 	FlowsStats struct {
@@ -306,33 +320,36 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddFavoriteFlow    func(childComplexity int, flowID int64) int
-		CallAssistant      func(childComplexity int, flowID int64, assistantID int64, input string, useAgents bool) int
-		CreateAPIToken     func(childComplexity int, input model.CreateAPITokenInput) int
-		CreateAssistant    func(childComplexity int, flowID int64, modelProvider string, input string, useAgents bool) int
-		CreateFlow         func(childComplexity int, modelProvider string, input string) int
-		CreateFlowTemplate func(childComplexity int, input model.CreateFlowTemplateInput) int
-		CreatePrompt       func(childComplexity int, typeArg model.PromptType, template string) int
-		CreateProvider     func(childComplexity int, name string, typeArg model.ProviderType, agents model.AgentsConfig) int
-		DeleteAPIToken     func(childComplexity int, tokenID string) int
-		DeleteAssistant    func(childComplexity int, flowID int64, assistantID int64) int
-		DeleteFavoriteFlow func(childComplexity int, flowID int64) int
-		DeleteFlow         func(childComplexity int, flowID int64) int
-		DeleteFlowTemplate func(childComplexity int, templateID int64) int
-		DeletePrompt       func(childComplexity int, promptID int64) int
-		DeleteProvider     func(childComplexity int, providerID int64) int
-		FinishFlow         func(childComplexity int, flowID int64) int
-		PutUserInput       func(childComplexity int, flowID int64, input string, modelProvider *string) int
-		RenameFlow         func(childComplexity int, flowID int64, title string) int
-		StopAssistant      func(childComplexity int, flowID int64, assistantID int64) int
-		StopFlow           func(childComplexity int, flowID int64) int
-		TestAgent          func(childComplexity int, typeArg model.ProviderType, agentType model.AgentConfigType, agent model.AgentConfig) int
-		TestProvider       func(childComplexity int, typeArg model.ProviderType, agents model.AgentsConfig) int
-		UpdateAPIToken     func(childComplexity int, tokenID string, input model.UpdateAPITokenInput) int
-		UpdateFlowTemplate func(childComplexity int, templateID int64, input model.UpdateFlowTemplateInput) int
-		UpdatePrompt       func(childComplexity int, promptID int64, template string) int
-		UpdateProvider     func(childComplexity int, providerID int64, name string, agents model.AgentsConfig) int
-		ValidatePrompt     func(childComplexity int, typeArg model.PromptType, template string) int
+		AddFavoriteFlow               func(childComplexity int, flowID int64) int
+		CallAssistant                 func(childComplexity int, flowID int64, assistantID int64, input string, useAgents bool) int
+		CreateAPIToken                func(childComplexity int, input model.CreateAPITokenInput) int
+		CreateAssistant               func(childComplexity int, flowID int64, modelProvider string, input string, useAgents bool) int
+		CreateDomain                  func(childComplexity int, input model.CreateDomainInput) int
+		CreateFlow                    func(childComplexity int, modelProvider string, input string) int
+		CreateFlowTemplate            func(childComplexity int, input model.CreateFlowTemplateInput) int
+		CreatePrompt                  func(childComplexity int, typeArg model.PromptType, template string) int
+		CreateProvider                func(childComplexity int, name string, typeArg model.ProviderType, agents model.AgentsConfig) int
+		DeleteAPIToken                func(childComplexity int, tokenID string) int
+		DeleteAssistant               func(childComplexity int, flowID int64, assistantID int64) int
+		DeleteDomain                  func(childComplexity int, id int64) int
+		DeleteFavoriteFlow            func(childComplexity int, flowID int64) int
+		DeleteFlow                    func(childComplexity int, flowID int64) int
+		DeleteFlowTemplate            func(childComplexity int, templateID int64) int
+		DeletePrompt                  func(childComplexity int, promptID int64) int
+		DeleteProvider                func(childComplexity int, providerID int64) int
+		FinishFlow                    func(childComplexity int, flowID int64) int
+		PutUserInput                  func(childComplexity int, flowID int64, input string, modelProvider *string) int
+		RenameFlow                    func(childComplexity int, flowID int64, title string) int
+		StopAssistant                 func(childComplexity int, flowID int64, assistantID int64) int
+		StopFlow                      func(childComplexity int, flowID int64) int
+		TestAgent                     func(childComplexity int, typeArg model.ProviderType, agentType model.AgentConfigType, agent model.AgentConfig) int
+		TestProvider                  func(childComplexity int, typeArg model.ProviderType, agents model.AgentsConfig) int
+		UpdateAPIToken                func(childComplexity int, tokenID string, input model.UpdateAPITokenInput) int
+		UpdateFlowTemplate            func(childComplexity int, templateID int64, input model.UpdateFlowTemplateInput) int
+		UpdateFlowTemplateTargetTypes func(childComplexity int, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) int
+		UpdatePrompt                  func(childComplexity int, promptID int64, template string) int
+		UpdateProvider                func(childComplexity int, providerID int64, name string, agents model.AgentsConfig) int
+		ValidatePrompt                func(childComplexity int, typeArg model.PromptType, template string) int
 	}
 
 	PromptValidationResult struct {
@@ -422,16 +439,20 @@ type ComplexityRoot struct {
 		AgentLogs                       func(childComplexity int, flowID int64) int
 		AssistantLogs                   func(childComplexity int, flowID int64, assistantID int64) int
 		Assistants                      func(childComplexity int, flowID int64) int
+		Domain                          func(childComplexity int, id int64) int
+		Domains                         func(childComplexity int) int
 		Flow                            func(childComplexity int, flowID int64) int
 		FlowStatsByFlow                 func(childComplexity int, flowID int64) int
 		FlowTemplate                    func(childComplexity int, templateID int64) int
 		FlowTemplates                   func(childComplexity int) int
+		FlowTemplatesByTargetType       func(childComplexity int, targetType model.TargetType) int
 		Flows                           func(childComplexity int) int
 		FlowsExecutionStatsByPeriod     func(childComplexity int, period model.UsageStatsPeriod) int
 		FlowsStatsByPeriod              func(childComplexity int, period model.UsageStatsPeriod) int
 		FlowsStatsTotal                 func(childComplexity int) int
 		MessageLogs                     func(childComplexity int, flowID int64) int
 		Providers                       func(childComplexity int) int
+		QuotaUsage                      func(childComplexity int) int
 		Screenshots                     func(childComplexity int, flowID int64) int
 		SearchLogs                      func(childComplexity int, flowID int64) int
 		Settings                        func(childComplexity int) int
@@ -453,6 +474,14 @@ type ComplexityRoot struct {
 		UsageStatsByProvider            func(childComplexity int) int
 		UsageStatsTotal                 func(childComplexity int) int
 		VectorStoreLogs                 func(childComplexity int, flowID int64) int
+	}
+
+	QuotaUsage struct {
+		DomainsCurrent    func(childComplexity int) int
+		DomainsMax        func(childComplexity int) int
+		FlowsCurrent      func(childComplexity int) int
+		FlowsMax          func(childComplexity int) int
+		FlowsPerDomainMax func(childComplexity int) int
 	}
 
 	ReasoningConfig struct {
@@ -500,6 +529,9 @@ type ComplexityRoot struct {
 		AssistantLogAdded   func(childComplexity int, flowID int64) int
 		AssistantLogUpdated func(childComplexity int, flowID int64) int
 		AssistantUpdated    func(childComplexity int, flowID int64) int
+		DomainCreated       func(childComplexity int) int
+		DomainDeleted       func(childComplexity int) int
+		DomainUpdated       func(childComplexity int) int
 		FlowCreated         func(childComplexity int) int
 		FlowDeleted         func(childComplexity int) int
 		FlowTemplateCreated func(childComplexity int) int
@@ -672,7 +704,10 @@ type MutationResolver interface {
 	DeleteFavoriteFlow(ctx context.Context, flowID int64) (model.ResultType, error)
 	CreateFlowTemplate(ctx context.Context, input model.CreateFlowTemplateInput) (*model.FlowTemplate, error)
 	UpdateFlowTemplate(ctx context.Context, templateID int64, input model.UpdateFlowTemplateInput) (*model.FlowTemplate, error)
+	UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) (*model.FlowTemplate, error)
 	DeleteFlowTemplate(ctx context.Context, templateID int64) (model.ResultType, error)
+	CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error)
+	DeleteDomain(ctx context.Context, id int64) (model.ResultType, error)
 }
 type QueryResolver interface {
 	Providers(ctx context.Context) ([]*model.Provider, error)
@@ -711,6 +746,10 @@ type QueryResolver interface {
 	APITokens(ctx context.Context) ([]*model.APIToken, error)
 	FlowTemplate(ctx context.Context, templateID int64) (*model.FlowTemplate, error)
 	FlowTemplates(ctx context.Context) ([]*model.FlowTemplate, error)
+	FlowTemplatesByTargetType(ctx context.Context, targetType model.TargetType) ([]*model.FlowTemplate, error)
+	Domains(ctx context.Context) ([]*model.Domain, error)
+	Domain(ctx context.Context, id int64) (*model.Domain, error)
+	QuotaUsage(ctx context.Context) (*model.QuotaUsage, error)
 }
 type SubscriptionResolver interface {
 	FlowCreated(ctx context.Context) (<-chan *model.Flow, error)
@@ -740,6 +779,9 @@ type SubscriptionResolver interface {
 	FlowTemplateCreated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateUpdated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateDeleted(ctx context.Context) (<-chan *model.FlowTemplate, error)
+	DomainCreated(ctx context.Context) (<-chan *model.Domain, error)
+	DomainUpdated(ctx context.Context) (<-chan *model.Domain, error)
+	DomainDeleted(ctx context.Context) (<-chan *model.Domain, error)
 }
 
 type executableSchema struct {
@@ -1552,6 +1594,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DefaultProvidersConfig.Qwen(childComplexity), true
 
+	case "Domain.createdAt":
+		if e.complexity.Domain.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Domain.CreatedAt(childComplexity), true
+
+	case "Domain.detectionMetadata":
+		if e.complexity.Domain.DetectionMetadata == nil {
+			break
+		}
+
+		return e.complexity.Domain.DetectionMetadata(childComplexity), true
+
+	case "Domain.flows":
+		if e.complexity.Domain.Flows == nil {
+			break
+		}
+
+		return e.complexity.Domain.Flows(childComplexity), true
+
+	case "Domain.id":
+		if e.complexity.Domain.ID == nil {
+			break
+		}
+
+		return e.complexity.Domain.ID(childComplexity), true
+
+	case "Domain.name":
+		if e.complexity.Domain.Name == nil {
+			break
+		}
+
+		return e.complexity.Domain.Name(childComplexity), true
+
+	case "Domain.status":
+		if e.complexity.Domain.Status == nil {
+			break
+		}
+
+		return e.complexity.Domain.Status(childComplexity), true
+
+	case "Domain.targetType":
+		if e.complexity.Domain.TargetType == nil {
+			break
+		}
+
+		return e.complexity.Domain.TargetType(childComplexity), true
+
+	case "Domain.updatedAt":
+		if e.complexity.Domain.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Domain.UpdatedAt(childComplexity), true
+
 	case "Flow.createdAt":
 		if e.complexity.Flow.CreatedAt == nil {
 			break
@@ -1685,12 +1783,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FlowTemplate.CreatedAt(childComplexity), true
 
+	case "FlowTemplate.defaultTemplate":
+		if e.complexity.FlowTemplate.DefaultTemplate == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplate.DefaultTemplate(childComplexity), true
+
 	case "FlowTemplate.id":
 		if e.complexity.FlowTemplate.ID == nil {
 			break
 		}
 
 		return e.complexity.FlowTemplate.ID(childComplexity), true
+
+	case "FlowTemplate.systemOwned":
+		if e.complexity.FlowTemplate.SystemOwned == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplate.SystemOwned(childComplexity), true
+
+	case "FlowTemplate.targetTypes":
+		if e.complexity.FlowTemplate.TargetTypes == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplate.TargetTypes(childComplexity), true
 
 	case "FlowTemplate.text":
 		if e.complexity.FlowTemplate.Text == nil {
@@ -1985,6 +2104,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateAssistant(childComplexity, args["flowId"].(int64), args["modelProvider"].(string), args["input"].(string), args["useAgents"].(bool)), true
 
+	case "Mutation.createDomain":
+		if e.complexity.Mutation.CreateDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createDomain_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateDomain(childComplexity, args["input"].(model.CreateDomainInput)), true
+
 	case "Mutation.createFlow":
 		if e.complexity.Mutation.CreateFlow == nil {
 			break
@@ -2056,6 +2187,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteAssistant(childComplexity, args["flowId"].(int64), args["assistantId"].(int64)), true
+
+	case "Mutation.deleteDomain":
+		if e.complexity.Mutation.DeleteDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteDomain_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteDomain(childComplexity, args["id"].(int64)), true
 
 	case "Mutation.deleteFavoriteFlow":
 		if e.complexity.Mutation.DeleteFavoriteFlow == nil {
@@ -2224,6 +2367,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateFlowTemplate(childComplexity, args["templateId"].(int64), args["input"].(model.UpdateFlowTemplateInput)), true
+
+	case "Mutation.updateFlowTemplateTargetTypes":
+		if e.complexity.Mutation.UpdateFlowTemplateTargetTypes == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFlowTemplateTargetTypes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFlowTemplateTargetTypes(childComplexity, args["templateId"].(int64), args["targetTypes"].([]model.TargetType), args["defaultTemplate"].(*bool)), true
 
 	case "Mutation.updatePrompt":
 		if e.complexity.Mutation.UpdatePrompt == nil {
@@ -2694,6 +2849,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Assistants(childComplexity, args["flowId"].(int64)), true
 
+	case "Query.domain":
+		if e.complexity.Query.Domain == nil {
+			break
+		}
+
+		args, err := ec.field_Query_domain_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Domain(childComplexity, args["id"].(int64)), true
+
+	case "Query.domains":
+		if e.complexity.Query.Domains == nil {
+			break
+		}
+
+		return e.complexity.Query.Domains(childComplexity), true
+
 	case "Query.flow":
 		if e.complexity.Query.Flow == nil {
 			break
@@ -2736,6 +2910,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.FlowTemplates(childComplexity), true
+
+	case "Query.flowTemplatesByTargetType":
+		if e.complexity.Query.FlowTemplatesByTargetType == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flowTemplatesByTargetType_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlowTemplatesByTargetType(childComplexity, args["targetType"].(model.TargetType)), true
 
 	case "Query.flows":
 		if e.complexity.Query.Flows == nil {
@@ -2793,6 +2979,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Providers(childComplexity), true
+
+	case "Query.quotaUsage":
+		if e.complexity.Query.QuotaUsage == nil {
+			break
+		}
+
+		return e.complexity.Query.QuotaUsage(childComplexity), true
 
 	case "Query.screenshots":
 		if e.complexity.Query.Screenshots == nil {
@@ -2995,6 +3188,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.VectorStoreLogs(childComplexity, args["flowId"].(int64)), true
+
+	case "QuotaUsage.domainsCurrent":
+		if e.complexity.QuotaUsage.DomainsCurrent == nil {
+			break
+		}
+
+		return e.complexity.QuotaUsage.DomainsCurrent(childComplexity), true
+
+	case "QuotaUsage.domainsMax":
+		if e.complexity.QuotaUsage.DomainsMax == nil {
+			break
+		}
+
+		return e.complexity.QuotaUsage.DomainsMax(childComplexity), true
+
+	case "QuotaUsage.flowsCurrent":
+		if e.complexity.QuotaUsage.FlowsCurrent == nil {
+			break
+		}
+
+		return e.complexity.QuotaUsage.FlowsCurrent(childComplexity), true
+
+	case "QuotaUsage.flowsMax":
+		if e.complexity.QuotaUsage.FlowsMax == nil {
+			break
+		}
+
+		return e.complexity.QuotaUsage.FlowsMax(childComplexity), true
+
+	case "QuotaUsage.flowsPerDomainMax":
+		if e.complexity.QuotaUsage.FlowsPerDomainMax == nil {
+			break
+		}
+
+		return e.complexity.QuotaUsage.FlowsPerDomainMax(childComplexity), true
 
 	case "ReasoningConfig.effort":
 		if e.complexity.ReasoningConfig.Effort == nil {
@@ -3249,6 +3477,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.AssistantUpdated(childComplexity, args["flowId"].(int64)), true
+
+	case "Subscription.domainCreated":
+		if e.complexity.Subscription.DomainCreated == nil {
+			break
+		}
+
+		return e.complexity.Subscription.DomainCreated(childComplexity), true
+
+	case "Subscription.domainDeleted":
+		if e.complexity.Subscription.DomainDeleted == nil {
+			break
+		}
+
+		return e.complexity.Subscription.DomainDeleted(childComplexity), true
+
+	case "Subscription.domainUpdated":
+		if e.complexity.Subscription.DomainUpdated == nil {
+			break
+		}
+
+		return e.complexity.Subscription.DomainUpdated(childComplexity), true
 
 	case "Subscription.flowCreated":
 		if e.complexity.Subscription.FlowCreated == nil {
@@ -4022,6 +4271,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAgentConfigInput,
 		ec.unmarshalInputAgentsConfigInput,
 		ec.unmarshalInputCreateAPITokenInput,
+		ec.unmarshalInputCreateDomainInput,
 		ec.unmarshalInputCreateFlowTemplateInput,
 		ec.unmarshalInputModelPriceInput,
 		ec.unmarshalInputReasoningConfigInput,
@@ -4450,6 +4700,38 @@ func (ec *executionContext) field_Mutation_createAssistant_argsUseAgents(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_createDomain_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_createDomain_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createDomain_argsInput(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (model.CreateDomainInput, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["input"]
+	if !ok {
+		var zeroVal model.CreateDomainInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalNCreateDomainInput2pentagiᚋpkgᚋgraphᚋmodelᚐCreateDomainInput(ctx, tmp)
+	}
+
+	var zeroVal model.CreateDomainInput
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_createFlowTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -4770,6 +5052,38 @@ func (ec *executionContext) field_Mutation_deleteAssistant_argsAssistantID(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("assistantId"))
 	if tmp, ok := rawArgs["assistantId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteDomain_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_deleteDomain_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteDomain_argsID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["id"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
 		return ec.unmarshalNID2int64(ctx, tmp)
 	}
 
@@ -5409,6 +5723,92 @@ func (ec *executionContext) field_Mutation_updateAPIToken_argsInput(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_updateFlowTemplateTargetTypes_argsTemplateID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["templateId"] = arg0
+	arg1, err := ec.field_Mutation_updateFlowTemplateTargetTypes_argsTargetTypes(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["targetTypes"] = arg1
+	arg2, err := ec.field_Mutation_updateFlowTemplateTargetTypes_argsDefaultTemplate(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["defaultTemplate"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsTemplateID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["templateId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("templateId"))
+	if tmp, ok := rawArgs["templateId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsTargetTypes(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) ([]model.TargetType, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["targetTypes"]
+	if !ok {
+		var zeroVal []model.TargetType
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTypes"))
+	if tmp, ok := rawArgs["targetTypes"]; ok {
+		return ec.unmarshalNTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, tmp)
+	}
+
+	var zeroVal []model.TargetType
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsDefaultTemplate(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*bool, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["defaultTemplate"]
+	if !ok {
+		var zeroVal *bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("defaultTemplate"))
+	if tmp, ok := rawArgs["defaultTemplate"]; ok {
+		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	}
+
+	var zeroVal *bool
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_updateFlowTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5859,6 +6259,38 @@ func (ec *executionContext) field_Query_assistants_argsFlowID(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_domain_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_domain_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_domain_argsID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["id"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_flowStatsByFlow_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5920,6 +6352,38 @@ func (ec *executionContext) field_Query_flowTemplate_argsTemplateID(
 	}
 
 	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_flowTemplatesByTargetType_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_flowTemplatesByTargetType_argsTargetType(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["targetType"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_flowTemplatesByTargetType_argsTargetType(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (model.TargetType, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["targetType"]
+	if !ok {
+		var zeroVal model.TargetType
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("targetType"))
+	if tmp, ok := rawArgs["targetType"]; ok {
+		return ec.unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, tmp)
+	}
+
+	var zeroVal model.TargetType
 	return zeroVal, nil
 }
 
@@ -12549,6 +13013,374 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_qwen(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Domain_id(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNID2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_name(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_targetType(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_targetType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.TargetType)
+	fc.Result = res
+	return ec.marshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_targetType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TargetType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_status(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DomainStatusType)
+	fc.Result = res
+	return ec.marshalNDomainStatusType2pentagiᚋpkgᚋgraphᚋmodelᚐDomainStatusType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DomainStatusType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_detectionMetadata(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_detectionMetadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DetectionMetadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_detectionMetadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_flows(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_flows(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Flows, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Flow)
+	fc.Result = res
+	return ec.marshalNFlow2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_flows(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flow_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Flow_title(ctx, field)
+			case "status":
+				return ec.fieldContext_Flow_status(ctx, field)
+			case "terminals":
+				return ec.fieldContext_Flow_terminals(ctx, field)
+			case "provider":
+				return ec.fieldContext_Flow_provider(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flow_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Flow_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flow", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Flow_id(ctx context.Context, field graphql.CollectedField, obj *model.Flow) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Flow_id(ctx, field)
 	if err != nil {
@@ -13575,6 +14407,138 @@ func (ec *executionContext) fieldContext_FlowTemplate_text(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplate_targetTypes(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetTypes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.TargetType)
+	fc.Result = res
+	return ec.marshalNTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplate_targetTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TargetType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplate_defaultTemplate(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DefaultTemplate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplate_defaultTemplate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplate_systemOwned(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SystemOwned, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplate_systemOwned(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -16580,6 +17544,12 @@ func (ec *executionContext) fieldContext_Mutation_createFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -16649,6 +17619,12 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -16665,6 +17641,81 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplate(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateFlowTemplate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFlowTemplateTargetTypes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateFlowTemplateTargetTypes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateFlowTemplateTargetTypes(rctx, fc.Args["templateId"].(int64), fc.Args["targetTypes"].([]model.TargetType), fc.Args["defaultTemplate"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplate)
+	fc.Result = res
+	return ec.marshalNFlowTemplate2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFlowTemplateTargetTypes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplate_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_FlowTemplate_userId(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplate_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplate_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplate", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFlowTemplateTargetTypes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -16720,6 +17771,134 @@ func (ec *executionContext) fieldContext_Mutation_deleteFlowTemplate(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteFlowTemplate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createDomain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createDomain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateDomain(rctx, fc.Args["input"].(model.CreateDomainInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Domain)
+	fc.Result = res
+	return ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createDomain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createDomain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteDomain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteDomain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteDomain(rctx, fc.Args["id"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ResultType)
+	fc.Result = res
+	return ec.marshalNResultType2pentagiᚋpkgᚋgraphᚋmodelᚐResultType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteDomain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ResultType does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteDomain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -21534,6 +22713,12 @@ func (ec *executionContext) fieldContext_Query_flowTemplate(ctx context.Context,
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -21603,12 +22788,281 @@ func (ec *executionContext) fieldContext_Query_flowTemplates(_ context.Context, 
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_FlowTemplate_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FlowTemplate", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flowTemplatesByTargetType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flowTemplatesByTargetType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlowTemplatesByTargetType(rctx, fc.Args["targetType"].(model.TargetType))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FlowTemplate)
+	fc.Result = res
+	return ec.marshalNFlowTemplate2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flowTemplatesByTargetType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplate_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_FlowTemplate_userId(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplate_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplate_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplate", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_flowTemplatesByTargetType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_domains(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_domains(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Domains(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Domain)
+	fc.Result = res
+	return ec.marshalNDomain2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomainᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_domains(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_domain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Domain(rctx, fc.Args["id"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Domain)
+	fc.Result = res
+	return ec.marshalODomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_domain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_domain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_quotaUsage(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_quotaUsage(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().QuotaUsage(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.QuotaUsage)
+	fc.Result = res
+	return ec.marshalNQuotaUsage2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐQuotaUsage(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_quotaUsage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "flowsCurrent":
+				return ec.fieldContext_QuotaUsage_flowsCurrent(ctx, field)
+			case "flowsMax":
+				return ec.fieldContext_QuotaUsage_flowsMax(ctx, field)
+			case "domainsCurrent":
+				return ec.fieldContext_QuotaUsage_domainsCurrent(ctx, field)
+			case "domainsMax":
+				return ec.fieldContext_QuotaUsage_domainsMax(ctx, field)
+			case "flowsPerDomainMax":
+				return ec.fieldContext_QuotaUsage_flowsPerDomainMax(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type QuotaUsage", field.Name)
 		},
 	}
 	return fc, nil
@@ -21738,6 +23192,226 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaUsage_flowsCurrent(ctx context.Context, field graphql.CollectedField, obj *model.QuotaUsage) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuotaUsage_flowsCurrent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FlowsCurrent, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuotaUsage_flowsCurrent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaUsage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaUsage_flowsMax(ctx context.Context, field graphql.CollectedField, obj *model.QuotaUsage) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuotaUsage_flowsMax(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FlowsMax, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuotaUsage_flowsMax(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaUsage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaUsage_domainsCurrent(ctx context.Context, field graphql.CollectedField, obj *model.QuotaUsage) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuotaUsage_domainsCurrent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DomainsCurrent, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuotaUsage_domainsCurrent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaUsage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaUsage_domainsMax(ctx context.Context, field graphql.CollectedField, obj *model.QuotaUsage) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuotaUsage_domainsMax(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DomainsMax, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuotaUsage_domainsMax(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaUsage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaUsage_flowsPerDomainMax(ctx context.Context, field graphql.CollectedField, obj *model.QuotaUsage) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuotaUsage_flowsPerDomainMax(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FlowsPerDomainMax, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuotaUsage_flowsPerDomainMax(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaUsage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -24782,6 +26456,12 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateCreated(_ cont
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -24854,6 +26534,12 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateUpdated(_ cont
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -24926,12 +26612,246 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateDeleted(_ cont
 				return ec.fieldContext_FlowTemplate_title(ctx, field)
 			case "text":
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
+			case "defaultTemplate":
+				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
+			case "systemOwned":
+				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_FlowTemplate_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FlowTemplate", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_domainCreated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_domainCreated(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().DomainCreated(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Domain):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_domainCreated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_domainUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_domainUpdated(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().DomainUpdated(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Domain):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_domainUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_domainDeleted(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_domainDeleted(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().DomainDeleted(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Domain):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_domainDeleted(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
 		},
 	}
 	return fc, nil
@@ -30802,6 +32722,61 @@ func (ec *executionContext) unmarshalInputCreateAPITokenInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateDomainInput(ctx context.Context, obj interface{}) (model.CreateDomainInput, error) {
+	var it model.CreateDomainInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "targetType", "templateIds", "autoDetect", "modelProvider"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "targetType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetType"))
+			data, err := ec.unmarshalOTargetType2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetType = data
+		case "templateIds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("templateIds"))
+			data, err := ec.unmarshalNID2ᚕint64ᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TemplateIds = data
+		case "autoDetect":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoDetect"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoDetect = data
+		case "modelProvider":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModelProvider = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Context, obj interface{}) (model.CreateFlowTemplateInput, error) {
 	var it model.CreateFlowTemplateInput
 	asMap := map[string]interface{}{}
@@ -30809,7 +32784,7 @@ func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "text"}
+	fieldsInOrder := [...]string{"title", "text", "targetTypes", "defaultTemplate"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -30830,6 +32805,20 @@ func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Co
 				return it, err
 			}
 			it.Text = data
+		case "targetTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTypes"))
+			data, err := ec.unmarshalOTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetTypes = data
+		case "defaultTemplate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("defaultTemplate"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DefaultTemplate = data
 		}
 	}
 
@@ -32099,6 +34088,80 @@ func (ec *executionContext) _DefaultProvidersConfig(ctx context.Context, sel ast
 	return out
 }
 
+var domainImplementors = []string{"Domain"}
+
+func (ec *executionContext) _Domain(ctx context.Context, sel ast.SelectionSet, obj *model.Domain) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, domainImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Domain")
+		case "id":
+			out.Values[i] = ec._Domain_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Domain_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetType":
+			out.Values[i] = ec._Domain_targetType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._Domain_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "detectionMetadata":
+			out.Values[i] = ec._Domain_detectionMetadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Domain_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Domain_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "flows":
+			out.Values[i] = ec._Domain_flows(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var flowImplementors = []string{"Flow"}
 
 func (ec *executionContext) _Flow(ctx context.Context, sel ast.SelectionSet, obj *model.Flow) graphql.Marshaler {
@@ -32350,6 +34413,21 @@ func (ec *executionContext) _FlowTemplate(ctx context.Context, sel ast.Selection
 			}
 		case "text":
 			out.Values[i] = ec._FlowTemplate_text(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetTypes":
+			out.Values[i] = ec._FlowTemplate_targetTypes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "defaultTemplate":
+			out.Values[i] = ec._FlowTemplate_defaultTemplate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "systemOwned":
+			out.Values[i] = ec._FlowTemplate_systemOwned(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -32925,9 +35003,30 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateFlowTemplateTargetTypes":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFlowTemplateTargetTypes(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deleteFlowTemplate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteFlowTemplate(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createDomain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createDomain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteDomain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteDomain(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -34267,6 +36366,91 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "flowTemplatesByTargetType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flowTemplatesByTargetType(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "domains":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_domains(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "domain":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_domain(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "quotaUsage":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_quotaUsage(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -34275,6 +36459,65 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var quotaUsageImplementors = []string{"QuotaUsage"}
+
+func (ec *executionContext) _QuotaUsage(ctx context.Context, sel ast.SelectionSet, obj *model.QuotaUsage) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, quotaUsageImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("QuotaUsage")
+		case "flowsCurrent":
+			out.Values[i] = ec._QuotaUsage_flowsCurrent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "flowsMax":
+			out.Values[i] = ec._QuotaUsage_flowsMax(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "domainsCurrent":
+			out.Values[i] = ec._QuotaUsage_domainsCurrent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "domainsMax":
+			out.Values[i] = ec._QuotaUsage_domainsMax(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "flowsPerDomainMax":
+			out.Values[i] = ec._QuotaUsage_flowsPerDomainMax(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -34598,6 +36841,12 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_flowTemplateUpdated(ctx, fields[0])
 	case "flowTemplateDeleted":
 		return ec._Subscription_flowTemplateDeleted(ctx, fields[0])
+	case "domainCreated":
+		return ec._Subscription_domainCreated(ctx, fields[0])
+	case "domainUpdated":
+		return ec._Subscription_domainUpdated(ctx, fields[0])
+	case "domainDeleted":
+		return ec._Subscription_domainDeleted(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -36062,6 +38311,11 @@ func (ec *executionContext) unmarshalNCreateAPITokenInput2pentagiᚋpkgᚋgraph�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateDomainInput2pentagiᚋpkgᚋgraphᚋmodelᚐCreateDomainInput(ctx context.Context, v interface{}) (model.CreateDomainInput, error) {
+	res, err := ec.unmarshalInputCreateDomainInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateFlowTemplateInput2pentagiᚋpkgᚋgraphᚋmodelᚐCreateFlowTemplateInput(ctx context.Context, v interface{}) (model.CreateFlowTemplateInput, error) {
 	res, err := ec.unmarshalInputCreateFlowTemplateInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -36259,6 +38513,74 @@ func (ec *executionContext) marshalNDefaultProvidersConfig2ᚖpentagiᚋpkgᚋgr
 	return ec._DefaultProvidersConfig(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNDomain2pentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx context.Context, sel ast.SelectionSet, v model.Domain) graphql.Marshaler {
+	return ec._Domain(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDomain2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomainᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Domain) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx context.Context, sel ast.SelectionSet, v *model.Domain) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Domain(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDomainStatusType2pentagiᚋpkgᚋgraphᚋmodelᚐDomainStatusType(ctx context.Context, v interface{}) (model.DomainStatusType, error) {
+	var res model.DomainStatusType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDomainStatusType2pentagiᚋpkgᚋgraphᚋmodelᚐDomainStatusType(ctx context.Context, sel ast.SelectionSet, v model.DomainStatusType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -36276,6 +38598,50 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 
 func (ec *executionContext) marshalNFlow2pentagiᚋpkgᚋgraphᚋmodelᚐFlow(ctx context.Context, sel ast.SelectionSet, v model.Flow) graphql.Marshaler {
 	return ec._Flow(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFlow2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Flow) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFlow2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlow(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNFlow2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlow(ctx context.Context, sel ast.SelectionSet, v *model.Flow) graphql.Marshaler {
@@ -36908,6 +39274,20 @@ func (ec *executionContext) marshalNProvidersReadinessStatus2ᚖpentagiᚋpkgᚋ
 	return ec._ProvidersReadinessStatus(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNQuotaUsage2pentagiᚋpkgᚋgraphᚋmodelᚐQuotaUsage(ctx context.Context, sel ast.SelectionSet, v model.QuotaUsage) graphql.Marshaler {
+	return ec._QuotaUsage(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNQuotaUsage2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐQuotaUsage(ctx context.Context, sel ast.SelectionSet, v *model.QuotaUsage) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._QuotaUsage(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNResultFormat2pentagiᚋpkgᚋgraphᚋmodelᚐResultFormat(ctx context.Context, v interface{}) (model.ResultFormat, error) {
 	var res model.ResultFormat
 	err := res.UnmarshalGQL(v)
@@ -37089,6 +39469,77 @@ func (ec *executionContext) marshalNSubtaskExecutionStats2ᚖpentagiᚋpkgᚋgra
 		return graphql.Null
 	}
 	return ec._SubtaskExecutionStats(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx context.Context, v interface{}) (model.TargetType, error) {
+	var res model.TargetType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx context.Context, sel ast.SelectionSet, v model.TargetType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx context.Context, v interface{}) ([]model.TargetType, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.TargetType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.TargetType) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTask2pentagiᚋpkgᚋgraphᚋmodelᚐTask(ctx context.Context, sel ast.SelectionSet, v model.Task) graphql.Marshaler {
@@ -37819,6 +40270,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) marshalODomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx context.Context, sel ast.SelectionSet, v *model.Domain) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Domain(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
 	if v == nil {
 		return nil, nil
@@ -38286,6 +40744,89 @@ func (ec *executionContext) marshalOSubtask2ᚕᚖpentagiᚋpkgᚋgraphᚋmodel�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx context.Context, v interface{}) ([]model.TargetType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.TargetType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.TargetType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOTargetType2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx context.Context, v interface{}) (*model.TargetType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.TargetType)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTargetType2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx context.Context, sel ast.SelectionSet, v *model.TargetType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOTask2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐTaskᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Task) graphql.Marshaler {

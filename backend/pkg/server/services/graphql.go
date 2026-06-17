@@ -54,18 +54,21 @@ func NewGraphqlService(
 	origins []string,
 	tokenCache *auth.TokenCache,
 	providers providers.ProviderController,
-	controller controller.FlowController,
+	flowController controller.FlowController,
 	subscriptions subscriptions.SubscriptionsController,
 ) *GraphqlService {
+	domainController := controller.NewDomainController(db, cfg, flowController, providers, subscriptions)
+
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-		DB:              db,
-		Config:          cfg,
-		Logger:          logrus.StandardLogger().WithField("component", "pentagi-gql-bl"),
-		TokenCache:      tokenCache,
-		DefaultPrompter: templates.NewDefaultPrompter(),
-		ProvidersCtrl:   providers,
-		Controller:      controller,
-		Subscriptions:   subscriptions,
+		DB:               db,
+		Config:           cfg,
+		Logger:           logrus.StandardLogger().WithField("component", "pentagi-gql-bl"),
+		TokenCache:       tokenCache,
+		DefaultPrompter:  templates.NewDefaultPrompter(),
+		ProvidersCtrl:    providers,
+		Controller:       flowController,
+		DomainController: domainController,
+		Subscriptions:    subscriptions,
 	}}))
 
 	component := "pentagi-gql"

@@ -58,6 +58,12 @@ type FlowSubscriber interface {
 	FlowTemplateCreated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateUpdated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateDeleted(ctx context.Context) (<-chan *model.FlowTemplate, error)
+	DomainCreatedAdmin(ctx context.Context) (<-chan *model.Domain, error)
+	DomainCreated(ctx context.Context) (<-chan *model.Domain, error)
+	DomainUpdatedAdmin(ctx context.Context) (<-chan *model.Domain, error)
+	DomainUpdated(ctx context.Context) (<-chan *model.Domain, error)
+	DomainDeletedAdmin(ctx context.Context) (<-chan *model.Domain, error)
+	DomainDeleted(ctx context.Context) (<-chan *model.Domain, error)
 	FlowContext
 }
 
@@ -89,6 +95,9 @@ type FlowPublisher interface {
 	FlowTemplateCreated(ctx context.Context, template database.FlowTemplate)
 	FlowTemplateUpdated(ctx context.Context, template database.FlowTemplate)
 	FlowTemplateDeleted(ctx context.Context, template database.FlowTemplate)
+	DomainCreated(ctx context.Context, domain database.Domain, flows []database.Flow)
+	DomainUpdated(ctx context.Context, domain database.Domain, flows []database.Flow)
+	DomainDeleted(ctx context.Context, domain database.Domain, flows []database.Flow)
 	FlowContext
 }
 
@@ -123,6 +132,12 @@ type controller struct {
 	flowTemplateCreated Channel[*model.FlowTemplate]
 	flowTemplateUpdated Channel[*model.FlowTemplate]
 	flowTemplateDeleted Channel[*model.FlowTemplate]
+	domainCreatedAdmin  Channel[*model.Domain]
+	domainCreated       Channel[*model.Domain]
+	domainUpdatedAdmin  Channel[*model.Domain]
+	domainUpdated       Channel[*model.Domain]
+	domainDeletedAdmin  Channel[*model.Domain]
+	domainDeleted       Channel[*model.Domain]
 }
 
 func NewSubscriptionsController() SubscriptionsController {
@@ -157,6 +172,12 @@ func NewSubscriptionsController() SubscriptionsController {
 		flowTemplateCreated: NewChannel[*model.FlowTemplate](),
 		flowTemplateUpdated: NewChannel[*model.FlowTemplate](),
 		flowTemplateDeleted: NewChannel[*model.FlowTemplate](),
+		domainCreatedAdmin:  NewChannel[*model.Domain](),
+		domainCreated:       NewChannel[*model.Domain](),
+		domainUpdatedAdmin:  NewChannel[*model.Domain](),
+		domainUpdated:       NewChannel[*model.Domain](),
+		domainDeletedAdmin:  NewChannel[*model.Domain](),
+		domainDeleted:       NewChannel[*model.Domain](),
 	}
 }
 

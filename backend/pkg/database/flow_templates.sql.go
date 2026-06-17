@@ -7,29 +7,43 @@ package database
 
 import (
 	"context"
+
+	"github.com/lib/pq"
 )
 
 const createFlowTemplate = `-- name: CreateFlowTemplate :one
 INSERT INTO flow_templates (
   user_id,
   title,
-  text
+  text,
+  target_types,
+  default_template
 ) VALUES (
   $1,
   $2,
-  $3
+  $3,
+  $4,
+  $5
 )
-RETURNING id, user_id, title, text, created_at, updated_at
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
 `
 
 type CreateFlowTemplateParams struct {
-	UserID int64  `json:"user_id"`
-	Title  string `json:"title"`
-	Text   string `json:"text"`
+	UserID          int64    `json:"user_id"`
+	Title           string   `json:"title"`
+	Text            string   `json:"text"`
+	TargetTypes     []string `json:"target_types"`
+	DefaultTemplate bool     `json:"default_template"`
 }
 
 func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplateParams) (FlowTemplate, error) {
-	row := q.db.QueryRowContext(ctx, createFlowTemplate, arg.UserID, arg.Title, arg.Text)
+	row := q.db.QueryRowContext(ctx, createFlowTemplate,
+		arg.UserID,
+		arg.Title,
+		arg.Text,
+		pq.Array(arg.TargetTypes),
+		arg.DefaultTemplate,
+	)
 	var i FlowTemplate
 	err := row.Scan(
 		&i.ID,
@@ -38,6 +52,9 @@ func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplate
 		&i.Text,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		pq.Array(&i.TargetTypes),
+		&i.DefaultTemplate,
+		&i.SystemOwned,
 	)
 	return i, err
 }
@@ -57,9 +74,55 @@ func (q *Queries) DeleteFlowTemplate(ctx context.Context, arg DeleteFlowTemplate
 	return err
 }
 
+const getDefaultFlowTemplatesByTargetType = `-- name: GetDefaultFlowTemplatesByTargetType :many
+SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+WHERE (user_id = $1 OR system_owned = true)
+  AND default_template = true
+  AND $2::TARGET_TYPE = ANY(target_types)
+ORDER BY system_owned DESC, created_at DESC
+`
+
+type GetDefaultFlowTemplatesByTargetTypeParams struct {
+	UserID  int64  `json:"user_id"`
+	Column2 string `json:"column_2"`
+}
+
+func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
+	rows, err := q.db.QueryContext(ctx, getDefaultFlowTemplatesByTargetType, arg.UserID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FlowTemplate
+	for rows.Next() {
+		var i FlowTemplate
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Text,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			pq.Array(&i.TargetTypes),
+			&i.DefaultTemplate,
+			&i.SystemOwned,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFlowTemplate = `-- name: GetFlowTemplate :one
-SELECT id, user_id, title, text, created_at, updated_at FROM flow_templates
-WHERE id = $1 AND user_id = $2 LIMIT 1
+SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+WHERE id = $1 AND (user_id = $2 OR system_owned = true) LIMIT 1
 `
 
 type GetFlowTemplateParams struct {
@@ -77,14 +140,62 @@ func (q *Queries) GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams
 		&i.Text,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		pq.Array(&i.TargetTypes),
+		&i.DefaultTemplate,
+		&i.SystemOwned,
 	)
 	return i, err
 }
 
+const getFlowTemplatesByTargetType = `-- name: GetFlowTemplatesByTargetType :many
+SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+WHERE (user_id = $1 OR system_owned = true)
+  AND $2::TARGET_TYPE = ANY(target_types)
+ORDER BY system_owned DESC, created_at DESC
+`
+
+type GetFlowTemplatesByTargetTypeParams struct {
+	UserID  int64  `json:"user_id"`
+	Column2 string `json:"column_2"`
+}
+
+func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowTemplatesByTargetType, arg.UserID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FlowTemplate
+	for rows.Next() {
+		var i FlowTemplate
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Text,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			pq.Array(&i.TargetTypes),
+			&i.DefaultTemplate,
+			&i.SystemOwned,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFlowTemplatesByUserID = `-- name: GetFlowTemplatesByUserID :many
-SELECT id, user_id, title, text, created_at, updated_at FROM flow_templates
-WHERE user_id = $1
-ORDER BY created_at DESC
+SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+WHERE user_id = $1 OR system_owned = true
+ORDER BY system_owned DESC, created_at DESC
 `
 
 func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([]FlowTemplate, error) {
@@ -103,6 +214,9 @@ func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([
 			&i.Text,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			pq.Array(&i.TargetTypes),
+			&i.DefaultTemplate,
+			&i.SystemOwned,
 		); err != nil {
 			return nil, err
 		}
@@ -119,11 +233,11 @@ func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([
 
 const updateFlowTemplate = `-- name: UpdateFlowTemplate :one
 UPDATE flow_templates
-SET 
+SET
   title = $3,
   text = $4
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, title, text, created_at, updated_at
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
 `
 
 type UpdateFlowTemplateParams struct {
@@ -148,6 +262,41 @@ func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplate
 		&i.Text,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		pq.Array(&i.TargetTypes),
+		&i.DefaultTemplate,
+		&i.SystemOwned,
+	)
+	return i, err
+}
+
+const updateFlowTemplateTargetTypes = `-- name: UpdateFlowTemplateTargetTypes :one
+UPDATE flow_templates
+SET
+  target_types = $2,
+  default_template = $3
+WHERE id = $1
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
+`
+
+type UpdateFlowTemplateTargetTypesParams struct {
+	ID              int64    `json:"id"`
+	TargetTypes     []string `json:"target_types"`
+	DefaultTemplate bool     `json:"default_template"`
+}
+
+func (q *Queries) UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateFlowTemplateTargetTypesParams) (FlowTemplate, error) {
+	row := q.db.QueryRowContext(ctx, updateFlowTemplateTargetTypes, arg.ID, pq.Array(arg.TargetTypes), arg.DefaultTemplate)
+	var i FlowTemplate
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Text,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		pq.Array(&i.TargetTypes),
+		&i.DefaultTemplate,
+		&i.SystemOwned,
 	)
 	return i, err
 }

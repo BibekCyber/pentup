@@ -47,6 +47,7 @@ var frontendRoutes = []string{
 	"/oauth",
 	"/login",
 	"/flows",
+	"/domains",
 	"/settings",
 	"/templates",
 	"/dashboard",

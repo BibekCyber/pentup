@@ -222,6 +222,16 @@ type Config struct {
 
 	// === Agent Planning Phase Configuration ===
 	AgentPlanningStepEnabled bool `env:"AGENT_PLANNING_STEP_ENABLED" envDefault:"false"`
+
+	// === Domain-First Scan Orchestration & Quotas ===
+	// Hard per-user concurrency guardrails for domain-orchestrated multi-flow spawning.
+	MaxConcurrentFlowsPerUser   int `env:"MAX_CONCURRENT_FLOWS_PER_USER" envDefault:"10"`
+	MaxConcurrentDomainsPerUser int `env:"MAX_CONCURRENT_DOMAINS_PER_USER" envDefault:"3"`
+	MaxFlowsPerDomain           int `env:"MAX_FLOWS_PER_DOMAIN" envDefault:"5"`
+	// Fixed cheap provider used for the target-type auto-detection (Phase 2) classifier call.
+	DomainClassifierProvider string `env:"DOMAIN_CLASSIFIER_PROVIDER" envDefault:"openai"`
+	// Identifies the recon probe in outbound requests so target owners can recognise it.
+	DomainReconUserAgent string `env:"DOMAIN_RECON_USER_AGENT" envDefault:"PentAGI/1.0 (+https://pentagi.com)"`
 }
 
 func NewConfig() (*Config, error) {

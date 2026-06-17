@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import AppLayout from '@/components/layouts/app-layout';
+import DomainsLayout from '@/components/layouts/domains-layout';
 import FlowsLayout from '@/components/layouts/flows-layout';
 import MainLayout from '@/components/layouts/main-layout';
 import SettingsLayout from '@/components/layouts/settings-layout';
@@ -13,6 +14,7 @@ import PageLoader from '@/components/shared/page-loader';
 import { Toaster } from '@/components/ui/sonner';
 import { usePermission } from '@/hooks/use-permission';
 import client from '@/lib/apollo';
+import { DomainProvider } from '@/providers/domain-provider';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
 import { ProvidersProvider } from '@/providers/providers-provider';
@@ -24,6 +26,9 @@ import { UserProvider } from '@/providers/user-provider';
 import { SystemSettingsProvider } from './providers/system-settings-provider';
 
 const Dashboard = lazy(() => import('@/pages/dashboard/dashboard'));
+const Domain = lazy(() => import('@/pages/domains/domain'));
+const Domains = lazy(() => import('@/pages/domains/domains'));
+const NewDomain = lazy(() => import('@/pages/domains/new-domain'));
 const Flow = lazy(() => import('@/pages/flows/flow'));
 const FlowReport = lazy(() => import('@/pages/flows/flow-report'));
 const Flows = lazy(() => import('@/pages/flows/flows'));
@@ -109,6 +114,26 @@ const App = () => {
                                                             </FlowProvider>
                                                         }
                                                         path="flows/:flowId"
+                                                    />
+                                                </Route>
+
+                                                {/* Domains section with DomainsProvider */}
+                                                <Route element={<DomainsLayout />}>
+                                                    <Route
+                                                        element={<Domains />}
+                                                        path="domains"
+                                                    />
+                                                    <Route
+                                                        element={<NewDomain />}
+                                                        path="domains/new"
+                                                    />
+                                                    <Route
+                                                        element={
+                                                            <DomainProvider>
+                                                                <Domain />
+                                                            </DomainProvider>
+                                                        }
+                                                        path="domains/:domainId"
                                                     />
                                                 </Route>
 

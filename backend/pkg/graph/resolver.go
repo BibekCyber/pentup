@@ -17,12 +17,13 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	DB              database.Querier
-	Config          *config.Config
-	Logger          *logrus.Entry
-	TokenCache      *auth.TokenCache
-	DefaultPrompter templates.Prompter
-	ProvidersCtrl   providers.ProviderController
-	Controller      controller.FlowController
-	Subscriptions   subscriptions.SubscriptionsController
+	DB               database.Querier
+	Config           *config.Config
+	Logger           *logrus.Entry
+	TokenCache       *auth.TokenCache
+	DefaultPrompter  templates.Prompter
+	ProvidersCtrl    providers.ProviderController
+	Controller       controller.FlowController
+	DomainController controller.DomainController
+	Subscriptions    subscriptions.SubscriptionsController
 }

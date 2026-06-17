@@ -95,6 +95,84 @@ func (q *Queries) DeleteFlow(ctx context.Context, id int64) (Flow, error) {
 	return i, err
 }
 
+const countActiveFlowsForUser = `-- name: CountActiveFlowsForUser :one
+SELECT COUNT(*)::bigint
+FROM flows
+WHERE user_id = $1
+  AND deleted_at IS NULL
+  AND status IN ('created', 'running', 'waiting')
+`
+
+func (q *Queries) CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countActiveFlowsForUser, userID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const setFlowDomain = `-- name: SetFlowDomain :exec
+UPDATE flows
+SET domain_id = $2, template_id = $3
+WHERE id = $1
+`
+
+type SetFlowDomainParams struct {
+	ID         int64         `json:"id"`
+	DomainID   sql.NullInt64 `json:"domain_id"`
+	TemplateID sql.NullInt64 `json:"template_id"`
+}
+
+func (q *Queries) SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error {
+	_, err := q.db.ExecContext(ctx, setFlowDomain, arg.ID, arg.DomainID, arg.TemplateID)
+	return err
+}
+
+const getFlowsForDomain = `-- name: GetFlowsForDomain :many
+SELECT
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
+FROM flows f
+WHERE f.domain_id = $1 AND f.deleted_at IS NULL
+ORDER BY f.created_at DESC
+`
+
+func (q *Queries) GetFlowsForDomain(ctx context.Context, domainID sql.NullInt64) ([]Flow, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowsForDomain, domainID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Flow
+	for rows.Next() {
+		var i Flow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Title,
+			&i.Model,
+			&i.ModelProviderName,
+			&i.Language,
+			&i.Functions,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TraceID,
+			&i.ModelProviderType,
+			&i.ToolCallIDTemplate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFlow = `-- name: GetFlow :one
 SELECT
   f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template

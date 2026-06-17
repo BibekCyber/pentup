@@ -77,6 +77,25 @@ SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
+-- name: CountActiveFlowsForUser :one
+SELECT COUNT(*)::bigint
+FROM flows
+WHERE user_id = $1
+  AND deleted_at IS NULL
+  AND status IN ('created', 'running', 'waiting');
+
+-- name: SetFlowDomain :exec
+UPDATE flows
+SET domain_id = $2, template_id = $3
+WHERE id = $1;
+
+-- name: GetFlowsForDomain :many
+SELECT
+  f.*
+FROM flows f
+WHERE f.domain_id = $1 AND f.deleted_at IS NULL
+ORDER BY f.created_at DESC;
+
 -- ==================== Flows Analytics Queries ====================
 
 -- name: GetFlowStats :one

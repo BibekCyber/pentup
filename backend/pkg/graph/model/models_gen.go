@@ -142,9 +142,19 @@ type CreateAPITokenInput struct {
 	TTL  int     `json:"ttl"`
 }
 
+type CreateDomainInput struct {
+	Name          string      `json:"name"`
+	TargetType    *TargetType `json:"targetType,omitempty"`
+	TemplateIds   []int64     `json:"templateIds"`
+	AutoDetect    *bool       `json:"autoDetect,omitempty"`
+	ModelProvider string      `json:"modelProvider"`
+}
+
 type CreateFlowTemplateInput struct {
-	Title string `json:"title"`
-	Text  string `json:"text"`
+	Title           string       `json:"title"`
+	Text            string       `json:"text"`
+	TargetTypes     []TargetType `json:"targetTypes,omitempty"`
+	DefaultTemplate *bool        `json:"defaultTemplate,omitempty"`
 }
 
 type DailyFlowsStats struct {
@@ -186,6 +196,17 @@ type DefaultProvidersConfig struct {
 	Qwen      *ProviderConfig `json:"qwen,omitempty"`
 }
 
+type Domain struct {
+	ID                int64            `json:"id"`
+	Name              string           `json:"name"`
+	TargetType        TargetType       `json:"targetType"`
+	Status            DomainStatusType `json:"status"`
+	DetectionMetadata string           `json:"detectionMetadata"`
+	CreatedAt         time.Time        `json:"createdAt"`
+	UpdatedAt         time.Time        `json:"updatedAt"`
+	Flows             []*Flow          `json:"flows"`
+}
+
 type Flow struct {
 	ID        int64       `json:"id"`
 	Title     string      `json:"title"`
@@ -217,12 +238,15 @@ type FlowStats struct {
 }
 
 type FlowTemplate struct {
-	ID        int64     `json:"id"`
-	UserID    int64     `json:"userId"`
-	Title     string    `json:"title"`
-	Text      string    `json:"text"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID              int64        `json:"id"`
+	UserID          int64        `json:"userId"`
+	Title           string       `json:"title"`
+	Text            string       `json:"text"`
+	TargetTypes     []TargetType `json:"targetTypes"`
+	DefaultTemplate bool         `json:"defaultTemplate"`
+	SystemOwned     bool         `json:"systemOwned"`
+	CreatedAt       time.Time    `json:"createdAt"`
+	UpdatedAt       time.Time    `json:"updatedAt"`
 }
 
 type FlowsStats struct {
@@ -359,6 +383,14 @@ type ProvidersReadinessStatus struct {
 }
 
 type Query struct {
+}
+
+type QuotaUsage struct {
+	FlowsCurrent      int `json:"flowsCurrent"`
+	FlowsMax          int `json:"flowsMax"`
+	DomainsCurrent    int `json:"domainsCurrent"`
+	DomainsMax        int `json:"domainsMax"`
+	FlowsPerDomainMax int `json:"flowsPerDomainMax"`
 }
 
 type ReasoningConfig struct {
@@ -660,6 +692,53 @@ func (e *AgentType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AgentType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DomainStatusType string
+
+const (
+	DomainStatusTypeCreated     DomainStatusType = "created"
+	DomainStatusTypeClassifying DomainStatusType = "classifying"
+	DomainStatusTypeRunning     DomainStatusType = "running"
+	DomainStatusTypeFinished    DomainStatusType = "finished"
+	DomainStatusTypeFailed      DomainStatusType = "failed"
+)
+
+var AllDomainStatusType = []DomainStatusType{
+	DomainStatusTypeCreated,
+	DomainStatusTypeClassifying,
+	DomainStatusTypeRunning,
+	DomainStatusTypeFinished,
+	DomainStatusTypeFailed,
+}
+
+func (e DomainStatusType) IsValid() bool {
+	switch e {
+	case DomainStatusTypeCreated, DomainStatusTypeClassifying, DomainStatusTypeRunning, DomainStatusTypeFinished, DomainStatusTypeFailed:
+		return true
+	}
+	return false
+}
+
+func (e DomainStatusType) String() string {
+	return string(e)
+}
+
+func (e *DomainStatusType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DomainStatusType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DomainStatusType", str)
+	}
+	return nil
+}
+
+func (e DomainStatusType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -1114,6 +1193,59 @@ func (e *StatusType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e StatusType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type TargetType string
+
+const (
+	TargetTypeWebApp        TargetType = "web_app"
+	TargetTypeAPI           TargetType = "api"
+	TargetTypeAWS           TargetType = "aws"
+	TargetTypeAzure         TargetType = "azure"
+	TargetTypeGCP           TargetType = "gcp"
+	TargetTypeNetwork       TargetType = "network"
+	TargetTypeMobileBackend TargetType = "mobile_backend"
+	TargetTypeGeneral       TargetType = "general"
+)
+
+var AllTargetType = []TargetType{
+	TargetTypeWebApp,
+	TargetTypeAPI,
+	TargetTypeAWS,
+	TargetTypeAzure,
+	TargetTypeGCP,
+	TargetTypeNetwork,
+	TargetTypeMobileBackend,
+	TargetTypeGeneral,
+}
+
+func (e TargetType) IsValid() bool {
+	switch e {
+	case TargetTypeWebApp, TargetTypeAPI, TargetTypeAWS, TargetTypeAzure, TargetTypeGCP, TargetTypeNetwork, TargetTypeMobileBackend, TargetTypeGeneral:
+		return true
+	}
+	return false
+}
+
+func (e TargetType) String() string {
+	return string(e)
+}
+
+func (e *TargetType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TargetType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TargetType", str)
+	}
+	return nil
+}
+
+func (e TargetType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

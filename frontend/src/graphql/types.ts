@@ -216,7 +216,17 @@ export type CreateApiTokenInput = {
     ttl: Scalars['Int']['input'];
 };
 
+export type CreateDomainInput = {
+    autoDetect?: InputMaybe<Scalars['Boolean']['input']>;
+    modelProvider: Scalars['String']['input'];
+    name: Scalars['String']['input'];
+    targetType?: InputMaybe<TargetType>;
+    templateIds: Array<Scalars['ID']['input']>;
+};
+
 export type CreateFlowTemplateInput = {
+    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
+    targetTypes?: InputMaybe<Array<TargetType>>;
     text: Scalars['String']['input'];
     title: Scalars['String']['input'];
 };
@@ -260,6 +270,25 @@ export type DefaultProvidersConfig = {
     qwen?: Maybe<ProviderConfig>;
 };
 
+export type Domain = {
+    createdAt: Scalars['Time']['output'];
+    detectionMetadata: Scalars['String']['output'];
+    flows: Array<Flow>;
+    id: Scalars['ID']['output'];
+    name: Scalars['String']['output'];
+    status: DomainStatusType;
+    targetType: TargetType;
+    updatedAt: Scalars['Time']['output'];
+};
+
+export enum DomainStatusType {
+    Classifying = 'classifying',
+    Created = 'created',
+    Failed = 'failed',
+    Finished = 'finished',
+    Running = 'running',
+}
+
 export type Flow = {
     createdAt: Scalars['Time']['output'];
     id: Scalars['ID']['output'];
@@ -292,7 +321,10 @@ export type FlowStats = {
 
 export type FlowTemplate = {
     createdAt: Scalars['Time']['output'];
+    defaultTemplate: Scalars['Boolean']['output'];
     id: Scalars['ID']['output'];
+    systemOwned: Scalars['Boolean']['output'];
+    targetTypes: Array<TargetType>;
     text: Scalars['String']['output'];
     title: Scalars['String']['output'];
     updatedAt: Scalars['Time']['output'];
@@ -374,12 +406,14 @@ export type Mutation = {
     callAssistant: ResultType;
     createAPIToken: ApiTokenWithSecret;
     createAssistant: FlowAssistant;
+    createDomain: Domain;
     createFlow: Flow;
     createFlowTemplate: FlowTemplate;
     createPrompt: UserPrompt;
     createProvider: ProviderConfig;
     deleteAPIToken: Scalars['Boolean']['output'];
     deleteAssistant: ResultType;
+    deleteDomain: ResultType;
     deleteFavoriteFlow: ResultType;
     deleteFlow: ResultType;
     deleteFlowTemplate: ResultType;
@@ -394,6 +428,7 @@ export type Mutation = {
     testProvider: ProviderTestResult;
     updateAPIToken: ApiToken;
     updateFlowTemplate: FlowTemplate;
+    updateFlowTemplateTargetTypes: FlowTemplate;
     updatePrompt: UserPrompt;
     updateProvider: ProviderConfig;
     validatePrompt: PromptValidationResult;
@@ -419,6 +454,10 @@ export type MutationCreateAssistantArgs = {
     input: Scalars['String']['input'];
     modelProvider: Scalars['String']['input'];
     useAgents: Scalars['Boolean']['input'];
+};
+
+export type MutationCreateDomainArgs = {
+    input: CreateDomainInput;
 };
 
 export type MutationCreateFlowArgs = {
@@ -448,6 +487,10 @@ export type MutationDeleteApiTokenArgs = {
 export type MutationDeleteAssistantArgs = {
     assistantId: Scalars['ID']['input'];
     flowId: Scalars['ID']['input'];
+};
+
+export type MutationDeleteDomainArgs = {
+    id: Scalars['ID']['input'];
 };
 
 export type MutationDeleteFavoriteFlowArgs = {
@@ -512,6 +555,12 @@ export type MutationUpdateApiTokenArgs = {
 
 export type MutationUpdateFlowTemplateArgs = {
     input: UpdateFlowTemplateInput;
+    templateId: Scalars['ID']['input'];
+};
+
+export type MutationUpdateFlowTemplateTargetTypesArgs = {
+    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
+    targetTypes: Array<TargetType>;
     templateId: Scalars['ID']['input'];
 };
 
@@ -682,16 +731,20 @@ export type Query = {
     apiTokens: Array<ApiToken>;
     assistantLogs?: Maybe<Array<AssistantLog>>;
     assistants?: Maybe<Array<Assistant>>;
+    domain?: Maybe<Domain>;
+    domains: Array<Domain>;
     flow: Flow;
     flowStatsByFlow: FlowStats;
     flowTemplate?: Maybe<FlowTemplate>;
     flowTemplates: Array<FlowTemplate>;
+    flowTemplatesByTargetType: Array<FlowTemplate>;
     flows?: Maybe<Array<Flow>>;
     flowsExecutionStatsByPeriod: Array<FlowExecutionStats>;
     flowsStatsByPeriod: Array<DailyFlowsStats>;
     flowsStatsTotal: FlowsStats;
     messageLogs?: Maybe<Array<MessageLog>>;
     providers: Array<Provider>;
+    quotaUsage: QuotaUsage;
     screenshots?: Maybe<Array<Screenshot>>;
     searchLogs?: Maybe<Array<SearchLog>>;
     settings: Settings;
@@ -732,6 +785,10 @@ export type QueryAssistantsArgs = {
     flowId: Scalars['ID']['input'];
 };
 
+export type QueryDomainArgs = {
+    id: Scalars['ID']['input'];
+};
+
 export type QueryFlowArgs = {
     flowId: Scalars['ID']['input'];
 };
@@ -742,6 +799,10 @@ export type QueryFlowStatsByFlowArgs = {
 
 export type QueryFlowTemplateArgs = {
     templateId: Scalars['ID']['input'];
+};
+
+export type QueryFlowTemplatesByTargetTypeArgs = {
+    targetType: TargetType;
 };
 
 export type QueryFlowsExecutionStatsByPeriodArgs = {
@@ -798,6 +859,14 @@ export type QueryUsageStatsByPeriodArgs = {
 
 export type QueryVectorStoreLogsArgs = {
     flowId: Scalars['ID']['input'];
+};
+
+export type QuotaUsage = {
+    domainsCurrent: Scalars['Int']['output'];
+    domainsMax: Scalars['Int']['output'];
+    flowsCurrent: Scalars['Int']['output'];
+    flowsMax: Scalars['Int']['output'];
+    flowsPerDomainMax: Scalars['Int']['output'];
 };
 
 export type ReasoningConfig = {
@@ -875,6 +944,9 @@ export type Subscription = {
     assistantLogAdded: AssistantLog;
     assistantLogUpdated: AssistantLog;
     assistantUpdated: Assistant;
+    domainCreated: Domain;
+    domainDeleted: Domain;
+    domainUpdated: Domain;
     flowCreated: Flow;
     flowDeleted: Flow;
     flowTemplateCreated: FlowTemplate;
@@ -968,6 +1040,17 @@ export type SubtaskExecutionStats = {
     totalDurationSeconds: Scalars['Float']['output'];
     totalToolcallsCount: Scalars['Int']['output'];
 };
+
+export enum TargetType {
+    Api = 'api',
+    Aws = 'aws',
+    Azure = 'azure',
+    Gcp = 'gcp',
+    General = 'general',
+    MobileBackend = 'mobile_backend',
+    Network = 'network',
+    WebApp = 'web_app',
+}
 
 export type Task = {
     createdAt: Scalars['Time']['output'];
@@ -1382,6 +1465,9 @@ export type FlowTemplateFragmentFragment = {
     userId: string;
     title: string;
     text: string;
+    targetTypes: Array<TargetType>;
+    defaultTemplate: boolean;
+    systemOwned: boolean;
     createdAt: any;
     updatedAt: any;
 };
@@ -1717,6 +1803,12 @@ export type FlowTemplateQueryVariables = Exact<{
 
 export type FlowTemplateQuery = { flowTemplate?: FlowTemplateFragmentFragment | null };
 
+export type FlowTemplatesByTargetTypeQueryVariables = Exact<{
+    targetType: TargetType;
+}>;
+
+export type FlowTemplatesByTargetTypeQuery = { flowTemplatesByTargetType: Array<FlowTemplateFragmentFragment> };
+
 export type CreateFlowTemplateMutationVariables = Exact<{
     input: CreateFlowTemplateInput;
 }>;
@@ -1729,6 +1821,14 @@ export type UpdateFlowTemplateMutationVariables = Exact<{
 }>;
 
 export type UpdateFlowTemplateMutation = { updateFlowTemplate: FlowTemplateFragmentFragment };
+
+export type UpdateFlowTemplateTargetTypesMutationVariables = Exact<{
+    templateId: Scalars['ID']['input'];
+    targetTypes: Array<TargetType> | TargetType;
+    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+export type UpdateFlowTemplateTargetTypesMutation = { updateFlowTemplateTargetTypes: FlowTemplateFragmentFragment };
 
 export type DeleteFlowTemplateMutationVariables = Exact<{
     templateId: Scalars['ID']['input'];
@@ -2037,6 +2137,63 @@ export type FlowTemplateDeletedSubscriptionVariables = Exact<{ [key: string]: ne
 
 export type FlowTemplateDeletedSubscription = { flowTemplateDeleted: FlowTemplateFragmentFragment };
 
+export type DomainFragmentFragment = {
+    id: string;
+    name: string;
+    targetType: TargetType;
+    status: DomainStatusType;
+    detectionMetadata: string;
+    createdAt: any;
+    updatedAt: any;
+    flows: Array<FlowFragmentFragment>;
+};
+
+export type DomainsQueryVariables = Exact<{ [key: string]: never }>;
+
+export type DomainsQuery = { domains: Array<DomainFragmentFragment> };
+
+export type DomainQueryVariables = Exact<{
+    id: Scalars['ID']['input'];
+}>;
+
+export type DomainQuery = { domain?: DomainFragmentFragment | null };
+
+export type QuotaUsageQueryVariables = Exact<{ [key: string]: never }>;
+
+export type QuotaUsageQuery = {
+    quotaUsage: {
+        flowsCurrent: number;
+        flowsMax: number;
+        domainsCurrent: number;
+        domainsMax: number;
+        flowsPerDomainMax: number;
+    };
+};
+
+export type CreateDomainMutationVariables = Exact<{
+    input: CreateDomainInput;
+}>;
+
+export type CreateDomainMutation = { createDomain: DomainFragmentFragment };
+
+export type DeleteDomainMutationVariables = Exact<{
+    id: Scalars['ID']['input'];
+}>;
+
+export type DeleteDomainMutation = { deleteDomain: ResultType };
+
+export type DomainCreatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type DomainCreatedSubscription = { domainCreated: DomainFragmentFragment };
+
+export type DomainUpdatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type DomainUpdatedSubscription = { domainUpdated: DomainFragmentFragment };
+
+export type DomainDeletedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type DomainDeletedSubscription = { domainDeleted: DomainFragmentFragment };
+
 export const SettingsFragmentFragmentDoc = gql`
     fragment settingsFragment on Settings {
         debug
@@ -2044,39 +2201,6 @@ export const SettingsFragmentFragmentDoc = gql`
         dockerInside
         assistantUseAgents
     }
-`;
-export const TerminalFragmentFragmentDoc = gql`
-    fragment terminalFragment on Terminal {
-        id
-        type
-        name
-        image
-        connected
-        createdAt
-    }
-`;
-export const ProviderFragmentFragmentDoc = gql`
-    fragment providerFragment on Provider {
-        name
-        type
-    }
-`;
-export const FlowFragmentFragmentDoc = gql`
-    fragment flowFragment on Flow {
-        id
-        title
-        status
-        terminals {
-            ...terminalFragment
-        }
-        provider {
-            ...providerFragment
-        }
-        createdAt
-        updatedAt
-    }
-    ${TerminalFragmentFragmentDoc}
-    ${ProviderFragmentFragmentDoc}
 `;
 export const SubtaskFragmentFragmentDoc = gql`
     fragment subtaskFragment on Subtask {
@@ -2183,6 +2307,12 @@ export const VectorStoreLogFragmentFragmentDoc = gql`
         taskId
         subtaskId
         createdAt
+    }
+`;
+export const ProviderFragmentFragmentDoc = gql`
+    fragment providerFragment on Provider {
+        name
+        type
     }
 `;
 export const AssistantFragmentFragmentDoc = gql`
@@ -2427,6 +2557,9 @@ export const FlowTemplateFragmentFragmentDoc = gql`
         userId
         title
         text
+        targetTypes
+        defaultTemplate
+        systemOwned
         createdAt
         updatedAt
     }
@@ -2564,6 +2697,48 @@ export const UserPreferencesFragmentFragmentDoc = gql`
         id
         favoriteFlows
     }
+`;
+export const TerminalFragmentFragmentDoc = gql`
+    fragment terminalFragment on Terminal {
+        id
+        type
+        name
+        image
+        connected
+        createdAt
+    }
+`;
+export const FlowFragmentFragmentDoc = gql`
+    fragment flowFragment on Flow {
+        id
+        title
+        status
+        terminals {
+            ...terminalFragment
+        }
+        provider {
+            ...providerFragment
+        }
+        createdAt
+        updatedAt
+    }
+    ${TerminalFragmentFragmentDoc}
+    ${ProviderFragmentFragmentDoc}
+`;
+export const DomainFragmentFragmentDoc = gql`
+    fragment domainFragment on Domain {
+        id
+        name
+        targetType
+        status
+        detectionMetadata
+        createdAt
+        updatedAt
+        flows {
+            ...flowFragment
+        }
+    }
+    ${FlowFragmentFragmentDoc}
 `;
 export const FlowsDocument = gql`
     query flows {
@@ -4868,6 +5043,82 @@ export type FlowTemplateQueryHookResult = ReturnType<typeof useFlowTemplateQuery
 export type FlowTemplateLazyQueryHookResult = ReturnType<typeof useFlowTemplateLazyQuery>;
 export type FlowTemplateSuspenseQueryHookResult = ReturnType<typeof useFlowTemplateSuspenseQuery>;
 export type FlowTemplateQueryResult = Apollo.QueryResult<FlowTemplateQuery, FlowTemplateQueryVariables>;
+export const FlowTemplatesByTargetTypeDocument = gql`
+    query flowTemplatesByTargetType($targetType: TargetType!) {
+        flowTemplatesByTargetType(targetType: $targetType) {
+            ...flowTemplateFragment
+        }
+    }
+    ${FlowTemplateFragmentFragmentDoc}
+`;
+
+/**
+ * __useFlowTemplatesByTargetTypeQuery__
+ *
+ * To run a query within a React component, call `useFlowTemplatesByTargetTypeQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFlowTemplatesByTargetTypeQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFlowTemplatesByTargetTypeQuery({
+ *   variables: {
+ *      targetType: // value for 'targetType'
+ *   },
+ * });
+ */
+export function useFlowTemplatesByTargetTypeQuery(
+    baseOptions: Apollo.QueryHookOptions<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables> &
+        ({ variables: FlowTemplatesByTargetTypeQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>(
+        FlowTemplatesByTargetTypeDocument,
+        options,
+    );
+}
+export function useFlowTemplatesByTargetTypeLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>(
+        FlowTemplatesByTargetTypeDocument,
+        options,
+    );
+}
+// @ts-ignore
+export function useFlowTemplatesByTargetTypeSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<
+        FlowTemplatesByTargetTypeQuery,
+        FlowTemplatesByTargetTypeQueryVariables
+    >,
+): Apollo.UseSuspenseQueryResult<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>;
+export function useFlowTemplatesByTargetTypeSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>,
+): Apollo.UseSuspenseQueryResult<FlowTemplatesByTargetTypeQuery | undefined, FlowTemplatesByTargetTypeQueryVariables>;
+export function useFlowTemplatesByTargetTypeSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<FlowTemplatesByTargetTypeQuery, FlowTemplatesByTargetTypeQueryVariables>(
+        FlowTemplatesByTargetTypeDocument,
+        options,
+    );
+}
+export type FlowTemplatesByTargetTypeQueryHookResult = ReturnType<typeof useFlowTemplatesByTargetTypeQuery>;
+export type FlowTemplatesByTargetTypeLazyQueryHookResult = ReturnType<typeof useFlowTemplatesByTargetTypeLazyQuery>;
+export type FlowTemplatesByTargetTypeSuspenseQueryHookResult = ReturnType<
+    typeof useFlowTemplatesByTargetTypeSuspenseQuery
+>;
+export type FlowTemplatesByTargetTypeQueryResult = Apollo.QueryResult<
+    FlowTemplatesByTargetTypeQuery,
+    FlowTemplatesByTargetTypeQueryVariables
+>;
 export const CreateFlowTemplateDocument = gql`
     mutation createFlowTemplate($input: CreateFlowTemplateInput!) {
         createFlowTemplate(input: $input) {
@@ -4958,6 +5209,62 @@ export type UpdateFlowTemplateMutationResult = Apollo.MutationResult<UpdateFlowT
 export type UpdateFlowTemplateMutationOptions = Apollo.BaseMutationOptions<
     UpdateFlowTemplateMutation,
     UpdateFlowTemplateMutationVariables
+>;
+export const UpdateFlowTemplateTargetTypesDocument = gql`
+    mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!, $defaultTemplate: Boolean) {
+        updateFlowTemplateTargetTypes(
+            templateId: $templateId
+            targetTypes: $targetTypes
+            defaultTemplate: $defaultTemplate
+        ) {
+            ...flowTemplateFragment
+        }
+    }
+    ${FlowTemplateFragmentFragmentDoc}
+`;
+export type UpdateFlowTemplateTargetTypesMutationFn = Apollo.MutationFunction<
+    UpdateFlowTemplateTargetTypesMutation,
+    UpdateFlowTemplateTargetTypesMutationVariables
+>;
+
+/**
+ * __useUpdateFlowTemplateTargetTypesMutation__
+ *
+ * To run a mutation, you first call `useUpdateFlowTemplateTargetTypesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFlowTemplateTargetTypesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFlowTemplateTargetTypesMutation, { data, loading, error }] = useUpdateFlowTemplateTargetTypesMutation({
+ *   variables: {
+ *      templateId: // value for 'templateId'
+ *      targetTypes: // value for 'targetTypes'
+ *      defaultTemplate: // value for 'defaultTemplate'
+ *   },
+ * });
+ */
+export function useUpdateFlowTemplateTargetTypesMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        UpdateFlowTemplateTargetTypesMutation,
+        UpdateFlowTemplateTargetTypesMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<UpdateFlowTemplateTargetTypesMutation, UpdateFlowTemplateTargetTypesMutationVariables>(
+        UpdateFlowTemplateTargetTypesDocument,
+        options,
+    );
+}
+export type UpdateFlowTemplateTargetTypesMutationHookResult = ReturnType<
+    typeof useUpdateFlowTemplateTargetTypesMutation
+>;
+export type UpdateFlowTemplateTargetTypesMutationResult = Apollo.MutationResult<UpdateFlowTemplateTargetTypesMutation>;
+export type UpdateFlowTemplateTargetTypesMutationOptions = Apollo.BaseMutationOptions<
+    UpdateFlowTemplateTargetTypesMutation,
+    UpdateFlowTemplateTargetTypesMutationVariables
 >;
 export const DeleteFlowTemplateDocument = gql`
     mutation deleteFlowTemplate($templateId: ID!) {
@@ -6849,3 +7156,339 @@ export function useFlowTemplateDeletedSubscription(
 }
 export type FlowTemplateDeletedSubscriptionHookResult = ReturnType<typeof useFlowTemplateDeletedSubscription>;
 export type FlowTemplateDeletedSubscriptionResult = Apollo.SubscriptionResult<FlowTemplateDeletedSubscription>;
+export const DomainsDocument = gql`
+    query domains {
+        domains {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+
+/**
+ * __useDomainsQuery__
+ *
+ * To run a query within a React component, call `useDomainsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDomainsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDomainsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDomainsQuery(baseOptions?: Apollo.QueryHookOptions<DomainsQuery, DomainsQueryVariables>) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<DomainsQuery, DomainsQueryVariables>(DomainsDocument, options);
+}
+export function useDomainsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DomainsQuery, DomainsQueryVariables>) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<DomainsQuery, DomainsQueryVariables>(DomainsDocument, options);
+}
+// @ts-ignore
+export function useDomainsSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<DomainsQuery, DomainsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<DomainsQuery, DomainsQueryVariables>;
+export function useDomainsSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<DomainsQuery, DomainsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<DomainsQuery | undefined, DomainsQueryVariables>;
+export function useDomainsSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<DomainsQuery, DomainsQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<DomainsQuery, DomainsQueryVariables>(DomainsDocument, options);
+}
+export type DomainsQueryHookResult = ReturnType<typeof useDomainsQuery>;
+export type DomainsLazyQueryHookResult = ReturnType<typeof useDomainsLazyQuery>;
+export type DomainsSuspenseQueryHookResult = ReturnType<typeof useDomainsSuspenseQuery>;
+export type DomainsQueryResult = Apollo.QueryResult<DomainsQuery, DomainsQueryVariables>;
+export const DomainDocument = gql`
+    query domain($id: ID!) {
+        domain(id: $id) {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+
+/**
+ * __useDomainQuery__
+ *
+ * To run a query within a React component, call `useDomainQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDomainQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDomainQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDomainQuery(
+    baseOptions: Apollo.QueryHookOptions<DomainQuery, DomainQueryVariables> &
+        ({ variables: DomainQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<DomainQuery, DomainQueryVariables>(DomainDocument, options);
+}
+export function useDomainLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DomainQuery, DomainQueryVariables>) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<DomainQuery, DomainQueryVariables>(DomainDocument, options);
+}
+// @ts-ignore
+export function useDomainSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<DomainQuery, DomainQueryVariables>,
+): Apollo.UseSuspenseQueryResult<DomainQuery, DomainQueryVariables>;
+export function useDomainSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<DomainQuery, DomainQueryVariables>,
+): Apollo.UseSuspenseQueryResult<DomainQuery | undefined, DomainQueryVariables>;
+export function useDomainSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<DomainQuery, DomainQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<DomainQuery, DomainQueryVariables>(DomainDocument, options);
+}
+export type DomainQueryHookResult = ReturnType<typeof useDomainQuery>;
+export type DomainLazyQueryHookResult = ReturnType<typeof useDomainLazyQuery>;
+export type DomainSuspenseQueryHookResult = ReturnType<typeof useDomainSuspenseQuery>;
+export type DomainQueryResult = Apollo.QueryResult<DomainQuery, DomainQueryVariables>;
+export const QuotaUsageDocument = gql`
+    query quotaUsage {
+        quotaUsage {
+            flowsCurrent
+            flowsMax
+            domainsCurrent
+            domainsMax
+            flowsPerDomainMax
+        }
+    }
+`;
+
+/**
+ * __useQuotaUsageQuery__
+ *
+ * To run a query within a React component, call `useQuotaUsageQuery` and pass it any options that fit your needs.
+ * When your component renders, `useQuotaUsageQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useQuotaUsageQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useQuotaUsageQuery(baseOptions?: Apollo.QueryHookOptions<QuotaUsageQuery, QuotaUsageQueryVariables>) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<QuotaUsageQuery, QuotaUsageQueryVariables>(QuotaUsageDocument, options);
+}
+export function useQuotaUsageLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<QuotaUsageQuery, QuotaUsageQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<QuotaUsageQuery, QuotaUsageQueryVariables>(QuotaUsageDocument, options);
+}
+// @ts-ignore
+export function useQuotaUsageSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<QuotaUsageQuery, QuotaUsageQueryVariables>,
+): Apollo.UseSuspenseQueryResult<QuotaUsageQuery, QuotaUsageQueryVariables>;
+export function useQuotaUsageSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<QuotaUsageQuery, QuotaUsageQueryVariables>,
+): Apollo.UseSuspenseQueryResult<QuotaUsageQuery | undefined, QuotaUsageQueryVariables>;
+export function useQuotaUsageSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<QuotaUsageQuery, QuotaUsageQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<QuotaUsageQuery, QuotaUsageQueryVariables>(QuotaUsageDocument, options);
+}
+export type QuotaUsageQueryHookResult = ReturnType<typeof useQuotaUsageQuery>;
+export type QuotaUsageLazyQueryHookResult = ReturnType<typeof useQuotaUsageLazyQuery>;
+export type QuotaUsageSuspenseQueryHookResult = ReturnType<typeof useQuotaUsageSuspenseQuery>;
+export type QuotaUsageQueryResult = Apollo.QueryResult<QuotaUsageQuery, QuotaUsageQueryVariables>;
+export const CreateDomainDocument = gql`
+    mutation createDomain($input: CreateDomainInput!) {
+        createDomain(input: $input) {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+export type CreateDomainMutationFn = Apollo.MutationFunction<CreateDomainMutation, CreateDomainMutationVariables>;
+
+/**
+ * __useCreateDomainMutation__
+ *
+ * To run a mutation, you first call `useCreateDomainMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateDomainMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createDomainMutation, { data, loading, error }] = useCreateDomainMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateDomainMutation(
+    baseOptions?: Apollo.MutationHookOptions<CreateDomainMutation, CreateDomainMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<CreateDomainMutation, CreateDomainMutationVariables>(CreateDomainDocument, options);
+}
+export type CreateDomainMutationHookResult = ReturnType<typeof useCreateDomainMutation>;
+export type CreateDomainMutationResult = Apollo.MutationResult<CreateDomainMutation>;
+export type CreateDomainMutationOptions = Apollo.BaseMutationOptions<
+    CreateDomainMutation,
+    CreateDomainMutationVariables
+>;
+export const DeleteDomainDocument = gql`
+    mutation deleteDomain($id: ID!) {
+        deleteDomain(id: $id)
+    }
+`;
+export type DeleteDomainMutationFn = Apollo.MutationFunction<DeleteDomainMutation, DeleteDomainMutationVariables>;
+
+/**
+ * __useDeleteDomainMutation__
+ *
+ * To run a mutation, you first call `useDeleteDomainMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteDomainMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteDomainMutation, { data, loading, error }] = useDeleteDomainMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteDomainMutation(
+    baseOptions?: Apollo.MutationHookOptions<DeleteDomainMutation, DeleteDomainMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<DeleteDomainMutation, DeleteDomainMutationVariables>(DeleteDomainDocument, options);
+}
+export type DeleteDomainMutationHookResult = ReturnType<typeof useDeleteDomainMutation>;
+export type DeleteDomainMutationResult = Apollo.MutationResult<DeleteDomainMutation>;
+export type DeleteDomainMutationOptions = Apollo.BaseMutationOptions<
+    DeleteDomainMutation,
+    DeleteDomainMutationVariables
+>;
+export const DomainCreatedDocument = gql`
+    subscription domainCreated {
+        domainCreated {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+
+/**
+ * __useDomainCreatedSubscription__
+ *
+ * To run a query within a React component, call `useDomainCreatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useDomainCreatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDomainCreatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDomainCreatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<DomainCreatedSubscription, DomainCreatedSubscriptionVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<DomainCreatedSubscription, DomainCreatedSubscriptionVariables>(
+        DomainCreatedDocument,
+        options,
+    );
+}
+export type DomainCreatedSubscriptionHookResult = ReturnType<typeof useDomainCreatedSubscription>;
+export type DomainCreatedSubscriptionResult = Apollo.SubscriptionResult<DomainCreatedSubscription>;
+export const DomainUpdatedDocument = gql`
+    subscription domainUpdated {
+        domainUpdated {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+
+/**
+ * __useDomainUpdatedSubscription__
+ *
+ * To run a query within a React component, call `useDomainUpdatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useDomainUpdatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDomainUpdatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDomainUpdatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<DomainUpdatedSubscription, DomainUpdatedSubscriptionVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<DomainUpdatedSubscription, DomainUpdatedSubscriptionVariables>(
+        DomainUpdatedDocument,
+        options,
+    );
+}
+export type DomainUpdatedSubscriptionHookResult = ReturnType<typeof useDomainUpdatedSubscription>;
+export type DomainUpdatedSubscriptionResult = Apollo.SubscriptionResult<DomainUpdatedSubscription>;
+export const DomainDeletedDocument = gql`
+    subscription domainDeleted {
+        domainDeleted {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+
+/**
+ * __useDomainDeletedSubscription__
+ *
+ * To run a query within a React component, call `useDomainDeletedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useDomainDeletedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDomainDeletedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDomainDeletedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<DomainDeletedSubscription, DomainDeletedSubscriptionVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<DomainDeletedSubscription, DomainDeletedSubscriptionVariables>(
+        DomainDeletedDocument,
+        options,
+    );
+}
+export type DomainDeletedSubscriptionHookResult = ReturnType<typeof useDomainDeletedSubscription>;
+export type DomainDeletedSubscriptionResult = Apollo.SubscriptionResult<DomainDeletedSubscription>;

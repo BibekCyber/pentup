@@ -44,6 +44,38 @@ func ConvertFlow(flow database.Flow, containers []database.Container) *model.Flo
 	}
 }
 
+func ConvertDomains(domains []database.Domain, flowsByDomain map[int64][]database.Flow) []*model.Domain {
+	gdomains := make([]*model.Domain, 0, len(domains))
+	for _, domain := range domains {
+		gdomains = append(gdomains, ConvertDomain(domain, flowsByDomain[domain.ID]))
+	}
+
+	return gdomains
+}
+
+func ConvertDomain(domain database.Domain, flows []database.Flow) *model.Domain {
+	metadata := string(domain.DetectionMetadata)
+	if metadata == "" {
+		metadata = "{}"
+	}
+
+	gflows := make([]*model.Flow, 0, len(flows))
+	for _, flow := range flows {
+		gflows = append(gflows, ConvertFlow(flow, nil))
+	}
+
+	return &model.Domain{
+		ID:                domain.ID,
+		Name:              domain.Name,
+		TargetType:        model.TargetType(domain.TargetType),
+		Status:            model.DomainStatusType(string(domain.Status)),
+		DetectionMetadata: metadata,
+		CreatedAt:         domain.CreatedAt.Time,
+		UpdatedAt:         domain.UpdatedAt.Time,
+		Flows:             gflows,
+	}
+}
+
 func ConvertContainers(containers []database.Container) []*model.Terminal {
 	gcontainers := make([]*model.Terminal, 0, len(containers))
 	for _, container := range containers {
@@ -492,14 +524,25 @@ func ConvertAPITokens(tokens []database.ApiToken) []*model.APIToken {
 	return result
 }
 
+func convertTargetTypes(targetTypes []string) []model.TargetType {
+	result := make([]model.TargetType, 0, len(targetTypes))
+	for _, t := range targetTypes {
+		result = append(result, model.TargetType(t))
+	}
+	return result
+}
+
 func ConvertFlowTemplate(template database.FlowTemplate) *model.FlowTemplate {
 	return &model.FlowTemplate{
-		ID:        template.ID,
-		UserID:    template.UserID,
-		Title:     template.Title,
-		Text:      template.Text,
-		CreatedAt: template.CreatedAt.Time,
-		UpdatedAt: template.UpdatedAt.Time,
+		ID:              template.ID,
+		UserID:          template.UserID,
+		Title:           template.Title,
+		Text:            template.Text,
+		TargetTypes:     convertTargetTypes(template.TargetTypes),
+		DefaultTemplate: template.DefaultTemplate,
+		SystemOwned:     template.SystemOwned,
+		CreatedAt:       template.CreatedAt.Time,
+		UpdatedAt:       template.UpdatedAt.Time,
 	}
 }
 

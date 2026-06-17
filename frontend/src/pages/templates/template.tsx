@@ -5,24 +5,29 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
+import TargetTypePicker from '@/components/forms/target-type-picker';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextareaAutosize } from '@/components/ui/input-group';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
-import { useFlowTemplateQuery } from '@/graphql/types';
+import { Switch } from '@/components/ui/switch';
+import { TargetType, useFlowTemplateQuery } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { cn } from '@/lib/utils';
 import { useTemplates } from '@/providers/templates-provider';
 
 const formSchema = z.object({
+    defaultTemplate: z.boolean(),
+    targetTypes: z.array(z.nativeEnum(TargetType)).min(1, { message: 'Select at least one target type' }),
     text: z.string().trim().min(1, { message: 'Text is required' }),
     title: z.string().trim().min(1, { message: 'Title is required' }),
 });
@@ -226,7 +231,7 @@ const Template = () => {
     });
 
     const form = useForm<FormValues>({
-        defaultValues: { text: '', title: '' },
+        defaultValues: { defaultTemplate: false, targetTypes: [TargetType.General], text: '', title: '' },
         mode: 'onChange',
         resolver: zodResolver(formSchema),
     });
@@ -239,9 +244,19 @@ const Template = () => {
             return;
         }
 
-        const { text, title } = templateData.flowTemplate;
-        reset({ text, title }, { keepDefaultValues: false });
+        const { defaultTemplate, targetTypes, text, title } = templateData.flowTemplate;
+        reset(
+            {
+                defaultTemplate,
+                targetTypes: targetTypes.length > 0 ? targetTypes : [TargetType.General],
+                text,
+                title,
+            },
+            { keepDefaultValues: false },
+        );
     }, [templateData, isNew, reset]);
+
+    const isSystemOwned = Boolean(templateData?.flowTemplate?.systemOwned);
 
     // Check if form has unsaved changes
     const hasUnsavedChanges = formState.isDirty;
@@ -256,10 +271,20 @@ const Template = () => {
 
         try {
             if (isNew) {
-                await createTemplate(values.title, values.text);
+                await createTemplate({
+                    defaultTemplate: values.defaultTemplate,
+                    targetTypes: values.targetTypes,
+                    text: values.text,
+                    title: values.title,
+                });
                 navigate('/templates');
             } else if (templateId) {
-                await updateTemplate(templateId, { text: values.text, title: values.title });
+                await updateTemplate(templateId, {
+                    defaultTemplate: values.defaultTemplate,
+                    targetTypes: values.targetTypes,
+                    text: values.text,
+                    title: values.title,
+                });
                 reset(values, { keepDefaultValues: false });
             }
         } catch {
@@ -485,6 +510,55 @@ const Template = () => {
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={control}
+                                        name="targetTypes"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Target types</FormLabel>
+                                                <FormControl>
+                                                    <TargetTypePicker
+                                                        disabled={isSaving}
+                                                        onChange={field.onChange}
+                                                        value={field.value}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Tag this template with the domains it applies to.
+                                                </FormDescription>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name="defaultTemplate"
+                                        render={({ field }) => (
+                                            <FormItem className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label htmlFor="defaultTemplate">
+                                                        Mark as default for these target types
+                                                    </Label>
+                                                    <FormDescription>
+                                                        Default templates can run automatically when a target type
+                                                        matches.
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        disabled={isSaving}
+                                                        id="defaultTemplate"
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {isSystemOwned ? (
+                                        <p className="text-muted-foreground text-xs">
+                                            This is a system template. Changes require the templates.admin privilege.
+                                        </p>
+                                    ) : null}
                                     <FormField
                                         control={control}
                                         name="text"

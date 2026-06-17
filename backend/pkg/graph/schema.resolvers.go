@@ -978,10 +978,22 @@ func (r *mutationResolver) CreateFlowTemplate(ctx context.Context, input model.C
 		"title": input.Title,
 	}).Debug("create flow template")
 
+	targetTypes, err := normalizeTargetTypes(input.TargetTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultTemplate := false
+	if input.DefaultTemplate != nil {
+		defaultTemplate = *input.DefaultTemplate
+	}
+
 	template, err := r.DB.CreateFlowTemplate(ctx, database.CreateFlowTemplateParams{
-		UserID: uid,
-		Title:  input.Title,
-		Text:   input.Text,
+		UserID:          uid,
+		Title:           input.Title,
+		Text:            input.Text,
+		TargetTypes:     targetTypes,
+		DefaultTemplate: defaultTemplate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create template: %w", err)
@@ -994,7 +1006,7 @@ func (r *mutationResolver) CreateFlowTemplate(ctx context.Context, input model.C
 
 // UpdateFlowTemplate is the resolver for the updateFlowTemplate field.
 func (r *mutationResolver) UpdateFlowTemplate(ctx context.Context, templateID int64, input model.UpdateFlowTemplateInput) (*model.FlowTemplate, error) {
-	uid, _, err := validatePermission(ctx, "templates.edit")
+	uid, isAdmin, err := validatePermission(ctx, "templates.edit")
 	if err != nil {
 		return nil, err
 	}
@@ -1013,22 +1025,105 @@ func (r *mutationResolver) UpdateFlowTemplate(ctx context.Context, templateID in
 		"templateID": templateID,
 	}).Debug("update flow template")
 
-	_, err = r.DB.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
+	existing, err := r.DB.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
 		ID:     templateID,
 		UserID: uid,
 	})
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("template not found")
+		}
 		return nil, fmt.Errorf("template not found: %w", err)
+	}
+
+	// System-owned templates can only be modified by users holding the
+	// templates.admin privilege.
+	if existing.SystemOwned && !isAdmin {
+		return nil, fmt.Errorf("unauthorized: templates.admin privilege required to modify system templates")
+	}
+
+	// Owner is the template owner for user templates, or the system owner for
+	// admins editing system-owned templates.
+	ownerID := uid
+	if existing.SystemOwned {
+		ownerID = existing.UserID
 	}
 
 	template, err := r.DB.UpdateFlowTemplate(ctx, database.UpdateFlowTemplateParams{
 		ID:     templateID,
-		UserID: uid,
+		UserID: ownerID,
 		Title:  input.Title,
 		Text:   input.Text,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update template: %w", err)
+	}
+
+	r.Subscriptions.NewFlowPublisher(uid, 0).FlowTemplateUpdated(ctx, template)
+
+	return converter.ConvertFlowTemplate(template), nil
+}
+
+// UpdateFlowTemplateTargetTypes is the resolver for the updateFlowTemplateTargetTypes field.
+func (r *mutationResolver) UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) (*model.FlowTemplate, error) {
+	uid, isAdmin, err := validatePermission(ctx, "templates.edit")
+	if err != nil {
+		return nil, err
+	}
+
+	isUserSession, err := validateUserType(ctx, userSessionTypes...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isUserSession {
+		return nil, fmt.Errorf("unauthorized: non-user session is not allowed to update templates")
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":        uid,
+		"templateID": templateID,
+	}).Debug("update flow template target types")
+
+	existing, err := r.DB.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
+		ID:     templateID,
+		UserID: uid,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("template not found")
+		}
+		return nil, fmt.Errorf("template not found: %w", err)
+	}
+
+	// Only the owner of the template may change its target types; system-owned
+	// templates additionally require the templates.admin privilege.
+	if existing.SystemOwned {
+		if !isAdmin {
+			return nil, fmt.Errorf("unauthorized: templates.admin privilege required to modify system templates")
+		}
+	} else if existing.UserID != uid {
+		return nil, fmt.Errorf("unauthorized: only the template owner can change its target types")
+	}
+
+	normalized, err := normalizeTargetTypes(targetTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Preserve the existing default flag unless the caller supplies a new value.
+	defaultFlag := existing.DefaultTemplate
+	if defaultTemplate != nil {
+		defaultFlag = *defaultTemplate
+	}
+
+	template, err := r.DB.UpdateFlowTemplateTargetTypes(ctx, database.UpdateFlowTemplateTargetTypesParams{
+		ID:              templateID,
+		TargetTypes:     normalized,
+		DefaultTemplate: defaultFlag,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update template target types: %w", err)
 	}
 
 	r.Subscriptions.NewFlowPublisher(uid, 0).FlowTemplateUpdated(ctx, template)
@@ -1074,6 +1169,89 @@ func (r *mutationResolver) DeleteFlowTemplate(ctx context.Context, templateID in
 	}
 
 	r.Subscriptions.NewFlowPublisher(uid, 0).FlowTemplateDeleted(ctx, template)
+
+	return model.ResultTypeSuccess, nil
+}
+
+// CreateDomain is the resolver for the createDomain field.
+func (r *mutationResolver) CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error) {
+	uid, _, err := validatePermission(ctx, "domains.create")
+	if err != nil {
+		return nil, err
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":  uid,
+		"name": input.Name,
+	}).Debug("create domain")
+
+	if input.Name == "" {
+		return nil, fmt.Errorf("domain name is required")
+	}
+	if input.ModelProvider == "" {
+		return nil, fmt.Errorf("model provider is required")
+	}
+
+	autoDetect := input.AutoDetect != nil && *input.AutoDetect
+	if !autoDetect {
+		if input.TargetType == nil {
+			return nil, fmt.Errorf("target type is required when auto-detect is disabled")
+		}
+		if len(input.TemplateIds) == 0 {
+			return nil, fmt.Errorf("at least one template is required")
+		}
+	}
+
+	prvname := provider.ProviderName(input.ModelProvider)
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	targetType := ""
+	if input.TargetType != nil {
+		targetType = string(*input.TargetType)
+	}
+
+	result, err := r.DomainController.CreateDomain(ctx, controller.CreateDomainParams{
+		UserID:       uid,
+		Name:         input.Name,
+		TargetType:   targetType,
+		TemplateIDs:  input.TemplateIds,
+		AutoDetect:   autoDetect,
+		ProviderName: prvname,
+		ProviderType: prv.Type(),
+	})
+	if err != nil {
+		return nil, quotaGraphQLError(err)
+	}
+
+	return converter.ConvertDomain(result.Domain, result.Flows), nil
+}
+
+// DeleteDomain is the resolver for the deleteDomain field.
+func (r *mutationResolver) DeleteDomain(ctx context.Context, id int64) (model.ResultType, error) {
+	uid, admin, err := validatePermission(ctx, "domains.delete")
+	if err != nil {
+		return model.ResultTypeError, err
+	}
+
+	domain, err := r.DB.GetDomain(ctx, id)
+	if err != nil {
+		return model.ResultTypeError, err
+	}
+	if !admin && domain.UserID != uid {
+		return model.ResultTypeError, fmt.Errorf("not permitted")
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":    uid,
+		"domain": id,
+	}).Debug("delete domain")
+
+	if err := r.DomainController.DeleteDomain(ctx, domain.UserID, id); err != nil {
+		return model.ResultTypeError, err
+	}
 
 	return model.ResultTypeSuccess, nil
 }
@@ -2157,6 +2335,127 @@ func (r *queryResolver) FlowTemplates(ctx context.Context) ([]*model.FlowTemplat
 	return converter.ConvertFlowTemplates(templates), nil
 }
 
+// FlowTemplatesByTargetType is the resolver for the flowTemplatesByTargetType field.
+func (r *queryResolver) FlowTemplatesByTargetType(ctx context.Context, targetType model.TargetType) ([]*model.FlowTemplate, error) {
+	uid, _, err := validatePermission(ctx, "templates.view")
+	if err != nil {
+		return nil, err
+	}
+
+	isUserSession, err := validateUserType(ctx, userSessionTypes...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isUserSession {
+		return nil, fmt.Errorf("unauthorized: non-user session is not allowed to view templates")
+	}
+
+	if !targetType.IsValid() {
+		return nil, fmt.Errorf("invalid target type: %s", targetType)
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":        uid,
+		"targetType": targetType,
+	}).Debug("get flow templates by target type")
+
+	templates, err := r.DB.GetFlowTemplatesByTargetType(ctx, database.GetFlowTemplatesByTargetTypeParams{
+		UserID:  uid,
+		Column2: string(targetType),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get templates: %w", err)
+	}
+
+	return converter.ConvertFlowTemplates(templates), nil
+}
+
+// Domains is the resolver for the domains field.
+func (r *queryResolver) Domains(ctx context.Context) ([]*model.Domain, error) {
+	uid, admin, err := validatePermission(ctx, "domains.view")
+	if err != nil {
+		return nil, err
+	}
+
+	r.Logger.WithField("uid", uid).Debug("get domains")
+
+	var domains []database.Domain
+	if admin {
+		domains, err = r.DB.GetDomains(ctx)
+	} else {
+		domains, err = r.DB.GetUserDomains(ctx, uid)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	flowsByDomain := make(map[int64][]database.Flow, len(domains))
+	for _, domain := range domains {
+		flows, err := r.DB.GetFlowsForDomain(ctx, sql.NullInt64{Int64: domain.ID, Valid: true})
+		if err != nil {
+			return nil, err
+		}
+		flowsByDomain[domain.ID] = flows
+	}
+
+	return converter.ConvertDomains(domains, flowsByDomain), nil
+}
+
+// Domain is the resolver for the domain field.
+func (r *queryResolver) Domain(ctx context.Context, id int64) (*model.Domain, error) {
+	uid, admin, err := validatePermission(ctx, "domains.view")
+	if err != nil {
+		return nil, err
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":    uid,
+		"domain": id,
+	}).Debug("get domain")
+
+	domain, err := r.DB.GetDomain(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !admin && domain.UserID != uid {
+		return nil, fmt.Errorf("not permitted")
+	}
+
+	flows, err := r.DB.GetFlowsForDomain(ctx, sql.NullInt64{Int64: domain.ID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.ConvertDomain(domain, flows), nil
+}
+
+// QuotaUsage is the resolver for the quotaUsage field.
+func (r *queryResolver) QuotaUsage(ctx context.Context) (*model.QuotaUsage, error) {
+	uid, _, err := validatePermission(ctx, "domains.view")
+	if err != nil {
+		return nil, err
+	}
+
+	flowsCurrent, err := r.Controller.CountActiveFlowsForUser(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	domainsCurrent, err := r.DomainController.CountActiveDomainsForUser(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.QuotaUsage{
+		FlowsCurrent:      int(flowsCurrent),
+		FlowsMax:          r.Config.MaxConcurrentFlowsPerUser,
+		DomainsCurrent:    int(domainsCurrent),
+		DomainsMax:        r.Config.MaxConcurrentDomainsPerUser,
+		FlowsPerDomainMax: r.Config.MaxFlowsPerDomain,
+	}, nil
+}
+
 // FlowCreated is the resolver for the flowCreated field.
 func (r *subscriptionResolver) FlowCreated(ctx context.Context) (<-chan *model.Flow, error) {
 	uid, admin, err := validatePermission(ctx, "flows.subscribe")
@@ -2503,6 +2802,51 @@ func (r *subscriptionResolver) FlowTemplateDeleted(ctx context.Context) (<-chan 
 	}
 
 	return r.Subscriptions.NewFlowSubscriber(uid, 0).FlowTemplateDeleted(ctx)
+}
+
+// DomainCreated is the resolver for the domainCreated field.
+func (r *subscriptionResolver) DomainCreated(ctx context.Context) (<-chan *model.Domain, error) {
+	uid, admin, err := validatePermission(ctx, "domains.subscribe")
+	if err != nil {
+		return nil, err
+	}
+
+	subscriber := r.Subscriptions.NewFlowSubscriber(uid, 0)
+	if admin {
+		return subscriber.DomainCreatedAdmin(ctx)
+	}
+
+	return subscriber.DomainCreated(ctx)
+}
+
+// DomainUpdated is the resolver for the domainUpdated field.
+func (r *subscriptionResolver) DomainUpdated(ctx context.Context) (<-chan *model.Domain, error) {
+	uid, admin, err := validatePermission(ctx, "domains.subscribe")
+	if err != nil {
+		return nil, err
+	}
+
+	subscriber := r.Subscriptions.NewFlowSubscriber(uid, 0)
+	if admin {
+		return subscriber.DomainUpdatedAdmin(ctx)
+	}
+
+	return subscriber.DomainUpdated(ctx)
+}
+
+// DomainDeleted is the resolver for the domainDeleted field.
+func (r *subscriptionResolver) DomainDeleted(ctx context.Context) (<-chan *model.Domain, error) {
+	uid, admin, err := validatePermission(ctx, "domains.subscribe")
+	if err != nil {
+		return nil, err
+	}
+
+	subscriber := r.Subscriptions.NewFlowSubscriber(uid, 0)
+	if admin {
+		return subscriber.DomainDeletedAdmin(ctx)
+	}
+
+	return subscriber.DomainDeleted(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

@@ -143,3 +143,21 @@ func (p *flowPublisher) FlowTemplateUpdated(ctx context.Context, template databa
 func (p *flowPublisher) FlowTemplateDeleted(ctx context.Context, template database.FlowTemplate) {
 	p.ctrl.flowTemplateDeleted.Publish(ctx, p.userID, converter.ConvertFlowTemplate(template))
 }
+
+func (p *flowPublisher) DomainCreated(ctx context.Context, domain database.Domain, flows []database.Flow) {
+	domainModel := converter.ConvertDomain(domain, flows)
+	p.ctrl.domainCreated.Publish(ctx, p.userID, domainModel)
+	p.ctrl.domainCreatedAdmin.Broadcast(ctx, domainModel)
+}
+
+func (p *flowPublisher) DomainUpdated(ctx context.Context, domain database.Domain, flows []database.Flow) {
+	domainModel := converter.ConvertDomain(domain, flows)
+	p.ctrl.domainUpdated.Publish(ctx, p.userID, domainModel)
+	p.ctrl.domainUpdatedAdmin.Broadcast(ctx, domainModel)
+}
+
+func (p *flowPublisher) DomainDeleted(ctx context.Context, domain database.Domain, flows []database.Flow) {
+	domainModel := converter.ConvertDomain(domain, flows)
+	p.ctrl.domainDeleted.Publish(ctx, p.userID, domainModel)
+	p.ctrl.domainDeletedAdmin.Broadcast(ctx, domainModel)
+}

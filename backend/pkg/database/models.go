@@ -188,6 +188,51 @@ func (ns NullFlowStatus) Value() (driver.Value, error) {
 	return string(ns.FlowStatus), nil
 }
 
+type DomainStatus string
+
+const (
+	DomainStatusCreated     DomainStatus = "created"
+	DomainStatusClassifying DomainStatus = "classifying"
+	DomainStatusRunning     DomainStatus = "running"
+	DomainStatusFinished    DomainStatus = "finished"
+	DomainStatusFailed      DomainStatus = "failed"
+)
+
+func (e *DomainStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DomainStatus(s)
+	case string:
+		*e = DomainStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DomainStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDomainStatus struct {
+	DomainStatus DomainStatus `json:"domain_status"`
+	Valid        bool         `json:"valid"` // Valid is true if DomainStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDomainStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DomainStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DomainStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDomainStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DomainStatus), nil
+}
+
 type MsgchainType string
 
 const (
@@ -947,12 +992,27 @@ type Flow struct {
 }
 
 type FlowTemplate struct {
-	ID        int64        `json:"id"`
-	UserID    int64        `json:"user_id"`
-	Title     string       `json:"title"`
-	Text      string       `json:"text"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt sql.NullTime `json:"updated_at"`
+	ID              int64        `json:"id"`
+	UserID          int64        `json:"user_id"`
+	Title           string       `json:"title"`
+	Text            string       `json:"text"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+	TargetTypes     []string     `json:"target_types"`
+	DefaultTemplate bool         `json:"default_template"`
+	SystemOwned     bool         `json:"system_owned"`
+}
+
+type Domain struct {
+	ID                int64           `json:"id"`
+	UserID            int64           `json:"user_id"`
+	Name              string          `json:"name"`
+	TargetType        string          `json:"target_type"`
+	Status            DomainStatus    `json:"status"`
+	DetectionMetadata json.RawMessage `json:"detection_metadata"`
+	CreatedAt         sql.NullTime    `json:"created_at"`
+	UpdatedAt         sql.NullTime    `json:"updated_at"`
+	DeletedAt         sql.NullTime    `json:"deleted_at"`
 }
 
 type Msgchain struct {

@@ -1,30 +1,55 @@
 -- name: GetFlowTemplate :one
 SELECT * FROM flow_templates
-WHERE id = $1 AND user_id = $2 LIMIT 1;
+WHERE id = $1 AND (user_id = $2 OR system_owned = true) LIMIT 1;
 
 -- name: GetFlowTemplatesByUserID :many
 SELECT * FROM flow_templates
-WHERE user_id = $1
-ORDER BY created_at DESC;
+WHERE user_id = $1 OR system_owned = true
+ORDER BY system_owned DESC, created_at DESC;
+
+-- name: GetFlowTemplatesByTargetType :many
+SELECT * FROM flow_templates
+WHERE (user_id = $1 OR system_owned = true)
+  AND $2::TARGET_TYPE = ANY(target_types)
+ORDER BY system_owned DESC, created_at DESC;
+
+-- name: GetDefaultFlowTemplatesByTargetType :many
+SELECT * FROM flow_templates
+WHERE (user_id = $1 OR system_owned = true)
+  AND default_template = true
+  AND $2::TARGET_TYPE = ANY(target_types)
+ORDER BY system_owned DESC, created_at DESC;
 
 -- name: CreateFlowTemplate :one
 INSERT INTO flow_templates (
   user_id,
   title,
-  text
+  text,
+  target_types,
+  default_template
 ) VALUES (
   $1,
   $2,
-  $3
+  $3,
+  $4,
+  $5
 )
 RETURNING *;
 
 -- name: UpdateFlowTemplate :one
 UPDATE flow_templates
-SET 
+SET
   title = $3,
   text = $4
 WHERE id = $1 AND user_id = $2
+RETURNING *;
+
+-- name: UpdateFlowTemplateTargetTypes :one
+UPDATE flow_templates
+SET
+  target_types = $2,
+  default_template = $3
+WHERE id = $1
 RETURNING *;
 
 -- name: DeleteFlowTemplate :exec

@@ -4,6 +4,7 @@ import {
     Clock,
     FileText,
     GitFork,
+    Globe,
     KeyRound,
     LayoutDashboard,
     LogOut,
@@ -92,6 +93,7 @@ const FlowMenuItem = ({ activeFlowId, flow, isFavorite, onToggleFavorite }: Flow
 export const MainSidebar = () => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const isDashboardActive = useMatch('/dashboard');
+    const isDomainsActive = useMatch('/domains/*');
     const isFlowsActive = useMatch('/flows/*');
     const isTemplatesActive = useMatch('/templates/*');
     const isSettingsActive = useMatch('/settings/*');
@@ -162,6 +164,26 @@ export const MainSidebar = () => {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             )}
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={!!isDomainsActive}
+                                >
+                                    <Link to="/domains">
+                                        <Globe />
+                                        Domains
+                                    </Link>
+                                </SidebarMenuButton>
+                                <SidebarMenuAction
+                                    asChild
+                                    className="data-[state=open]:bg-accent rounded-sm"
+                                    showOnHover
+                                >
+                                    <Link to="/domains/new">
+                                        <Plus />
+                                    </Link>
+                                </SidebarMenuAction>
+                            </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild

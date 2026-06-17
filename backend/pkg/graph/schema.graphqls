@@ -171,11 +171,25 @@ type UserPreferences {
 
 # ==================== Flow Template Types ====================
 
+enum TargetType {
+  web_app
+  api
+  aws
+  azure
+  gcp
+  network
+  mobile_backend
+  general
+}
+
 type FlowTemplate {
   id: ID!
   userId: ID!
   title: String!
   text: String!
+  targetTypes: [TargetType!]!
+  defaultTemplate: Boolean!
+  systemOwned: Boolean!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -183,11 +197,57 @@ type FlowTemplate {
 input CreateFlowTemplateInput {
   title: String!
   text: String!
+  targetTypes: [TargetType!]
+  defaultTemplate: Boolean
 }
 
 input UpdateFlowTemplateInput {
   title: String!
   text: String!
+}
+
+# ==================== Domain Orchestration Types ====================
+
+# Lifecycle status of a domain-orchestrated scan
+enum DomainStatusType {
+  created
+  classifying
+  running
+  finished
+  failed
+}
+
+# A target (e.g. acme.com) that groups one or more child Flows
+type Domain {
+  id: ID!
+  name: String!
+  targetType: TargetType!
+  status: DomainStatusType!
+  # Raw recon/classification output as a JSON string ("{}" when not auto-detected)
+  detectionMetadata: String!
+  createdAt: Time!
+  updatedAt: Time!
+  flows: [Flow!]!
+}
+
+input CreateDomainInput {
+  name: String!
+  # Required when autoDetect is false; ignored (and overwritten) when autoDetect is true
+  targetType: TargetType
+  # Templates to spawn now (manual path); may be empty when autoDetect picks defaults
+  templateIds: [ID!]!
+  # When true, run recon + classifier to detect targetType and pick default templates
+  autoDetect: Boolean
+  modelProvider: String!
+}
+
+# Live per-user quota usage powering the spawn confirmation screen
+type QuotaUsage {
+  flowsCurrent: Int!
+  flowsMax: Int!
+  domainsCurrent: Int!
+  domainsMax: Int!
+  flowsPerDomainMax: Int!
 }
 
 # ==================== Flow Management Types ====================
@@ -851,6 +911,12 @@ type Query {
   # Flow Templates management
   flowTemplate(templateId: ID!): FlowTemplate
   flowTemplates: [FlowTemplate!]!
+  flowTemplatesByTargetType(targetType: TargetType!): [FlowTemplate!]!
+
+  # Domain orchestration
+  domains: [Domain!]!
+  domain(id: ID!): Domain
+  quotaUsage: QuotaUsage!
 }
 
 type Mutation {
@@ -893,7 +959,12 @@ type Mutation {
   # Flow Templates management
   createFlowTemplate(input: CreateFlowTemplateInput!): FlowTemplate!
   updateFlowTemplate(templateId: ID!, input: UpdateFlowTemplateInput!): FlowTemplate!
+  updateFlowTemplateTargetTypes(templateId: ID!, targetTypes: [TargetType!]!, defaultTemplate: Boolean): FlowTemplate!
   deleteFlowTemplate(templateId: ID!): ResultType!
+
+  # Domain orchestration
+  createDomain(input: CreateDomainInput!): Domain!
+  deleteDomain(id: ID!): ResultType!
 }
 
 type Subscription {
@@ -937,4 +1008,9 @@ type Subscription {
   flowTemplateCreated: FlowTemplate!
   flowTemplateUpdated: FlowTemplate!
   flowTemplateDeleted: FlowTemplate!
+
+  # Domain events
+  domainCreated: Domain!
+  domainUpdated: Domain!
+  domainDeleted: Domain!
 }

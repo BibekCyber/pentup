@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo } from 
 import { toast } from 'sonner';
 
 import {
+    type TargetType,
     useCreateFlowTemplateMutation,
     useDeleteFlowTemplateMutation,
     useFlowTemplateCreatedSubscription,
@@ -9,30 +10,48 @@ import {
     useFlowTemplatesQuery,
     useFlowTemplateUpdatedSubscription,
     useUpdateFlowTemplateMutation,
+    useUpdateFlowTemplateTargetTypesMutation,
 } from '@/graphql/types';
 import { Log } from '@/lib/log';
 import { useUser } from '@/providers/user-provider';
 
 export interface Template {
     createdAt: Date;
+    defaultTemplate: boolean;
     id: string;
+    systemOwned: boolean;
+    targetTypes: TargetType[];
     text: string;
     title: string;
     updatedAt: Date;
     userId: string;
 }
 
+interface CreateTemplatePayload {
+    defaultTemplate?: boolean;
+    targetTypes?: TargetType[];
+    text: string;
+    title: string;
+}
+
 interface TemplatesContextValue {
-    createTemplate: (title: string, text: string) => Promise<void>;
+    createTemplate: (payload: CreateTemplatePayload) => Promise<void>;
     deleteTemplate: (id: string) => Promise<void>;
     getTemplate: (id: string) => Template | undefined;
     isLoading: boolean;
     templates: Template[];
-    updateTemplate: (id: string, payload: { text: string; title: string }) => Promise<void>;
+    updateTemplate: (id: string, payload: UpdateTemplatePayload) => Promise<void>;
 }
 
 interface TemplatesProviderProps {
     children: ReactNode;
+}
+
+interface UpdateTemplatePayload {
+    defaultTemplate?: boolean;
+    targetTypes?: TargetType[];
+    text: string;
+    title: string;
 }
 
 const TemplatesContext = createContext<TemplatesContextValue | undefined>(undefined);
@@ -51,6 +70,7 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
     // GraphQL mutations
     const [createTemplateMutation] = useCreateFlowTemplateMutation();
     const [updateTemplateMutation] = useUpdateFlowTemplateMutation();
+    const [updateTemplateTargetTypesMutation] = useUpdateFlowTemplateTargetTypesMutation();
     const [deleteTemplateMutation] = useDeleteFlowTemplateMutation();
 
     // GraphQL subscriptions (only for authenticated users)
@@ -72,7 +92,10 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
 
         return rawTemplates.map((t) => ({
             createdAt: new Date(t.createdAt),
+            defaultTemplate: t.defaultTemplate,
             id: t.id,
+            systemOwned: t.systemOwned,
+            targetTypes: t.targetTypes,
             text: t.text,
             title: t.title,
             updatedAt: new Date(t.updatedAt),
@@ -88,13 +111,15 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
     );
 
     const createTemplate = useCallback(
-        async (title: string, text: string) => {
+        async (payload: CreateTemplatePayload) => {
             try {
                 await createTemplateMutation({
                     variables: {
                         input: {
-                            text,
-                            title,
+                            defaultTemplate: payload.defaultTemplate,
+                            targetTypes: payload.targetTypes,
+                            text: payload.text,
+                            title: payload.title,
                         },
                     },
                 });
@@ -111,7 +136,7 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
     );
 
     const updateTemplate = useCallback(
-        async (id: string, payload: { text: string; title: string }) => {
+        async (id: string, payload: UpdateTemplatePayload) => {
             try {
                 await updateTemplateMutation({
                     variables: {
@@ -122,6 +147,19 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
                         templateId: id,
                     },
                 });
+
+                // Target types live on a separate mutation so they can be
+                // updated independently and gated by ownership/admin on the
+                // backend. Only call it when the caller actually provided them.
+                if (payload.targetTypes !== undefined) {
+                    await updateTemplateTargetTypesMutation({
+                        variables: {
+                            defaultTemplate: payload.defaultTemplate,
+                            targetTypes: payload.targetTypes,
+                            templateId: id,
+                        },
+                    });
+                }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Failed to update template';
                 toast.error('Failed to update template', {
@@ -131,7 +169,7 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
                 throw error;
             }
         },
-        [updateTemplateMutation],
+        [updateTemplateMutation, updateTemplateTargetTypesMutation],
     );
 
     const deleteTemplate = useCallback(
