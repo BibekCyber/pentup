@@ -6,10 +6,12 @@ import AppLayout from '@/components/layouts/app-layout';
 import FlowsLayout from '@/components/layouts/flows-layout';
 import MainLayout from '@/components/layouts/main-layout';
 import SettingsLayout from '@/components/layouts/settings-layout';
+import ProtectedByPermission from '@/components/routes/protected-by-permission';
 import ProtectedRoute from '@/components/routes/protected-route';
 import PublicRoute from '@/components/routes/public-route';
 import PageLoader from '@/components/shared/page-loader';
 import { Toaster } from '@/components/ui/sonner';
+import { usePermission } from '@/hooks/use-permission';
 import client from '@/lib/apollo';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
@@ -35,6 +37,18 @@ const SettingsPrompt = lazy(() => import('@/pages/settings/settings-prompt'));
 const SettingsPrompts = lazy(() => import('@/pages/settings/settings-prompts'));
 const SettingsProvider = lazy(() => import('@/pages/settings/settings-provider'));
 const SettingsProviders = lazy(() => import('@/pages/settings/settings-providers'));
+const SettingsUsers = lazy(() => import('@/pages/settings/settings-users'));
+
+const DefaultLanding = () => {
+    const canSeeDashboard = usePermission('usage.view');
+
+    return (
+        <Navigate
+            replace
+            to={canSeeDashboard ? '/dashboard' : '/flows'}
+        />
+    );
+};
 
 const App = () => {
     const renderProtectedRoute = () => (
@@ -70,7 +84,11 @@ const App = () => {
                                             {/* Main layout for chat pages */}
                                             <Route element={<MainLayout />}>
                                                 <Route
-                                                    element={<Dashboard />}
+                                                    element={
+                                                        <ProtectedByPermission permission="usage.view">
+                                                            <Dashboard />
+                                                        </ProtectedByPermission>
+                                                    }
                                                     path="dashboard"
                                                 />
 
@@ -138,6 +156,14 @@ const App = () => {
                                                     element={<SettingsAPITokens />}
                                                     path="api-tokens"
                                                 />
+                                                <Route
+                                                    element={
+                                                        <ProtectedByPermission permission="users.view">
+                                                            <SettingsUsers />
+                                                        </ProtectedByPermission>
+                                                    }
+                                                    path="users"
+                                                />
                                                 {/* <Route
                                         path="mcp-servers"
                                         element={<SettingsMcpServers />}
@@ -188,11 +214,11 @@ const App = () => {
 
                                         {/* other routes */}
                                         <Route
-                                            element={<Navigate to="/dashboard" />}
+                                            element={<DefaultLanding />}
                                             path="/"
                                         />
                                         <Route
-                                            element={<Navigate to="/dashboard" />}
+                                            element={<DefaultLanding />}
                                             path="*"
                                         />
                                     </Routes>

@@ -4,9 +4,11 @@ import FlowDashboard from '@/features/flows/dashboard/flow-dashboard';
 import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-messages';
 import FlowAutomationMessages from '@/features/flows/messages/flow-automation-messages';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
+import { usePermission } from '@/hooks/use-permission';
 
 const FlowCentralTabs = () => {
     const { handleTabChange, resolvedTab } = useFlowTabDetection();
+    const canSeeDashboard = usePermission('usage.view');
 
     return (
         <Tabs
@@ -19,7 +21,7 @@ const FlowCentralTabs = () => {
                     <TabsList className="flex w-fit">
                         <TabsTrigger value="automation">Automation</TabsTrigger>
                         <TabsTrigger value="assistant">Assistant</TabsTrigger>
-                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                        {canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
@@ -37,12 +39,14 @@ const FlowCentralTabs = () => {
             >
                 <FlowAssistantMessages />
             </TabsContent>
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="dashboard"
-            >
-                <FlowDashboard />
-            </TabsContent>
+            {canSeeDashboard && (
+                <TabsContent
+                    className="mt-1 flex-1 overflow-auto pr-4"
+                    value="dashboard"
+                >
+                    <FlowDashboard />
+                </TabsContent>
+            )}
         </Tabs>
     );
 };

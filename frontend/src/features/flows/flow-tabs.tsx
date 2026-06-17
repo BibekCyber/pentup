@@ -12,6 +12,7 @@ import FlowTerminal from '@/features/flows/terminal/flow-terminal';
 import FlowTools from '@/features/flows/tools/flow-tools';
 import FlowVectorStores from '@/features/flows/vector-stores/flow-vector-stores';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { usePermission } from '@/hooks/use-permission';
 
 interface FlowTabsProps {
     activeTab: string;
@@ -20,6 +21,7 @@ interface FlowTabsProps {
 
 const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
     const { isDesktop } = useBreakpoint();
+    const canSeeDashboard = usePermission('usage.view');
 
     const previousActiveTabRef = useRef<string>(activeTab);
 
@@ -43,7 +45,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                     <TabsList className="flex w-fit">
                         {!isDesktop && <TabsTrigger value="automation">Automation</TabsTrigger>}
                         {!isDesktop && <TabsTrigger value="assistant">Assistant</TabsTrigger>}
-                        {!isDesktop && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
+                        {!isDesktop && canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
                         <TabsTrigger value="terminal">Terminal</TabsTrigger>
                         <TabsTrigger value="tasks">Tasks</TabsTrigger>
                         <TabsTrigger value="agents">Agents</TabsTrigger>
@@ -72,7 +74,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                     <FlowAssistantMessages className="pr-4" />
                 </TabsContent>
             )}
-            {!isDesktop && (
+            {!isDesktop && canSeeDashboard && (
                 <TabsContent
                     className="mt-1 flex-1 overflow-auto pr-4"
                     value="dashboard"

@@ -270,7 +270,7 @@ func TestUserPasswordValid(t *testing.T) {
 	t.Run("valid user password", func(t *testing.T) {
 		t.Parallel()
 		up := UserPassword{
-			Password: "somepassword",
+			Password: "SomePass1!abc",
 			User: User{
 				ID:     1,
 				Hash:   "abcdef1234567890abcdef1234567890",

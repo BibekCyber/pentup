@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Key, Plug, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Key, Plug, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { usePermission } from '@/hooks/use-permission';
 
 // Types
 export interface MenuItem {
@@ -24,6 +25,7 @@ export interface MenuItem {
     id: string;
     isActive?: boolean;
     path: string;
+    permission?: string;
     title: string;
 }
 
@@ -50,6 +52,13 @@ const menuItems: readonly MenuItem[] = [
         id: 'api-tokens',
         path: '/settings/api-tokens',
         title: 'PentAGI API',
+    },
+    {
+        icon: <Users className="size-4" />,
+        id: 'users',
+        path: '/settings/users',
+        permission: 'users.view',
+        title: 'Users',
     },
     // {
     //     id: 'mcp-servers',
@@ -138,6 +147,9 @@ const SettingsHeader = () => {
 
 // Settings sidebar component
 const SettingsSidebar = () => {
+    const canViewUsers = usePermission('users.view');
+    const visibleMenuItems = menuItems.filter((item) => !item.permission || (item.permission === 'users.view' && canViewUsers));
+
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
@@ -156,7 +168,7 @@ const SettingsSidebar = () => {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menuItems.map((item) => (
+                            {visibleMenuItems.map((item) => (
                                 <SettingsSidebarMenuItem
                                     item={item}
                                     key={item.id}

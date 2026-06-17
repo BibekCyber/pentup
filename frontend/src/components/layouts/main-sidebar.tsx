@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PasswordChangeForm } from '@/features/authentication/password-change-form';
+import { usePermission } from '@/hooks/use-permission';
 import { useTheme } from '@/hooks/use-theme';
 import { useFavorites } from '@/providers/favorites-provider';
 import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
@@ -98,6 +99,7 @@ export const MainSidebar = () => {
 
     const { authInfo, logout } = useUser();
     const user = authInfo?.user;
+    const canSeeDashboard = usePermission('usage.view');
     const { setTheme, theme } = useTheme();
     const { addFavoriteFlow, favoriteFlowIds, removeFavoriteFlow } = useFavorites();
     const { flows } = useSidebarFlows();
@@ -147,17 +149,19 @@ export const MainSidebar = () => {
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={!!isDashboardActive}
-                                >
-                                    <Link to="/dashboard">
-                                        <LayoutDashboard />
-                                        Dashboard
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                            {canSeeDashboard && (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={!!isDashboardActive}
+                                    >
+                                        <Link to="/dashboard">
+                                            <LayoutDashboard />
+                                            Dashboard
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild

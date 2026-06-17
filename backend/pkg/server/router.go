@@ -241,9 +241,9 @@ func NewRouter(
 	privateUserGroup := api.Group("/")
 	privateUserGroup.Use(authMiddleware.AuthUserRequired)
 	{
-		setRolesGroup(privateGroup, roleService)
-		setUsersGroup(privateGroup, userService)
-		setTokensGroup(privateGroup, tokenService)
+		setRolesGroup(privateUserGroup, roleService)
+		setUsersGroup(privateUserGroup, userService)
+		setTokensGroup(privateUserGroup, tokenService)
 	}
 
 	if cfg.StaticURL != nil && cfg.StaticURL.Scheme != "" && cfg.StaticURL.Host != "" {
