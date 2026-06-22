@@ -231,6 +231,16 @@ export type CreateFlowTemplateInput = {
     title: Scalars['String']['input'];
 };
 
+export type CreateScanInput = {
+    box?: InputMaybe<ScanBox>;
+    credential?: InputMaybe<ScanCredentialInput>;
+    modelProvider: Scalars['String']['input'];
+    name: Scalars['String']['input'];
+    scope?: InputMaybe<ScanScope>;
+    targetType: TargetType;
+    templates: Array<ScanTemplateInput>;
+};
+
 export type DailyFlowsStats = {
     date: Scalars['Time']['output'];
     stats: FlowsStats;
@@ -271,11 +281,13 @@ export type DefaultProvidersConfig = {
 };
 
 export type Domain = {
+    box?: Maybe<ScanBox>;
     createdAt: Scalars['Time']['output'];
     detectionMetadata: Scalars['String']['output'];
     flows: Array<Flow>;
     id: Scalars['ID']['output'];
     name: Scalars['String']['output'];
+    scope?: Maybe<ScanScope>;
     status: DomainStatusType;
     targetType: TargetType;
     updatedAt: Scalars['Time']['output'];
@@ -411,6 +423,7 @@ export type Mutation = {
     createFlowTemplate: FlowTemplate;
     createPrompt: UserPrompt;
     createProvider: ProviderConfig;
+    createScan: Domain;
     deleteAPIToken: Scalars['Boolean']['output'];
     deleteAssistant: ResultType;
     deleteDomain: ResultType;
@@ -478,6 +491,10 @@ export type MutationCreateProviderArgs = {
     agents: AgentsConfigInput;
     name: Scalars['String']['input'];
     type: ProviderType;
+};
+
+export type MutationCreateScanArgs = {
+    input: CreateScanInput;
 };
 
 export type MutationDeleteApiTokenArgs = {
@@ -895,6 +912,37 @@ export enum ResultType {
     Error = 'error',
     Success = 'success',
 }
+
+export enum ScanBox {
+    Black = 'black',
+    Grey = 'grey',
+}
+
+export type ScanCredentialInput = {
+    kind: ScanCredentialKind;
+    value: Scalars['String']['input'];
+};
+
+export enum ScanCredentialKind {
+    CloudKeys = 'cloud_keys',
+    EmailPassword = 'email_password',
+    WebToken = 'web_token',
+}
+
+export enum ScanRunMode {
+    Assistant = 'assistant',
+    Automatic = 'automatic',
+}
+
+export enum ScanScope {
+    External = 'external',
+    Internal = 'internal',
+}
+
+export type ScanTemplateInput = {
+    runMode: ScanRunMode;
+    templateId: Scalars['ID']['input'];
+};
 
 export type Screenshot = {
     createdAt: Scalars['Time']['output'];
@@ -2142,6 +2190,8 @@ export type DomainFragmentFragment = {
     name: string;
     targetType: TargetType;
     status: DomainStatusType;
+    scope?: ScanScope | null;
+    box?: ScanBox | null;
     detectionMetadata: string;
     createdAt: any;
     updatedAt: any;
@@ -2175,6 +2225,12 @@ export type CreateDomainMutationVariables = Exact<{
 }>;
 
 export type CreateDomainMutation = { createDomain: DomainFragmentFragment };
+
+export type CreateScanMutationVariables = Exact<{
+    input: CreateScanInput;
+}>;
+
+export type CreateScanMutation = { createScan: DomainFragmentFragment };
 
 export type DeleteDomainMutationVariables = Exact<{
     id: Scalars['ID']['input'];
@@ -2731,6 +2787,8 @@ export const DomainFragmentFragmentDoc = gql`
         name
         targetType
         status
+        scope
+        box
         detectionMetadata
         createdAt
         updatedAt
@@ -7351,6 +7409,42 @@ export type CreateDomainMutationOptions = Apollo.BaseMutationOptions<
     CreateDomainMutation,
     CreateDomainMutationVariables
 >;
+export const CreateScanDocument = gql`
+    mutation createScan($input: CreateScanInput!) {
+        createScan(input: $input) {
+            ...domainFragment
+        }
+    }
+    ${DomainFragmentFragmentDoc}
+`;
+export type CreateScanMutationFn = Apollo.MutationFunction<CreateScanMutation, CreateScanMutationVariables>;
+
+/**
+ * __useCreateScanMutation__
+ *
+ * To run a mutation, you first call `useCreateScanMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateScanMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createScanMutation, { data, loading, error }] = useCreateScanMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateScanMutation(
+    baseOptions?: Apollo.MutationHookOptions<CreateScanMutation, CreateScanMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<CreateScanMutation, CreateScanMutationVariables>(CreateScanDocument, options);
+}
+export type CreateScanMutationHookResult = ReturnType<typeof useCreateScanMutation>;
+export type CreateScanMutationResult = Apollo.MutationResult<CreateScanMutation>;
+export type CreateScanMutationOptions = Apollo.BaseMutationOptions<CreateScanMutation, CreateScanMutationVariables>;
 export const DeleteDomainDocument = gql`
     mutation deleteDomain($id: ID!) {
         deleteDomain(id: $id)

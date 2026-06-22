@@ -8,7 +8,7 @@ import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-mess
 import FlowAutomationMessages from '@/features/flows/messages/flow-automation-messages';
 import FlowScreenshots from '@/features/flows/screenshots/flow-screenshots';
 import FlowTasks from '@/features/flows/tasks/flow-tasks';
-import FlowTerminal from '@/features/flows/terminal/flow-terminal';
+import FlowSplitTerminal from '@/features/flows/terminal/flow-split-terminal';
 import FlowTools from '@/features/flows/tools/flow-tools';
 import FlowVectorStores from '@/features/flows/vector-stores/flow-vector-stores';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
@@ -88,7 +88,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 className="mt-1 flex-1 overflow-auto"
                 value="terminal"
             >
-                <FlowTerminal />
+                <FlowSplitTerminal />
             </TabsContent>
 
             <TabsContent

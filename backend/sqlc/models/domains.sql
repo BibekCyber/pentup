@@ -36,6 +36,11 @@ SET target_type = $2, detection_metadata = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
+-- name: SetDomainScopeBox :exec
+UPDATE domains
+SET scope = $2, box = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
 -- name: DeleteDomain :one
 UPDATE domains
 SET deleted_at = CURRENT_TIMESTAMP

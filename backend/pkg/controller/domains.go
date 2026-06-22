@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"pentagi/pkg/config"
+	"pentagi/pkg/crypt"
 	"pentagi/pkg/database"
 	"pentagi/pkg/graph/subscriptions"
 	"pentagi/pkg/providers"
@@ -29,6 +31,13 @@ type DomainController interface {
 	UnregisterDomain(domainID int64)
 }
 
+// Scan engagement string constants (mirror the DB CHECK values and GraphQL enums).
+const (
+	scopeInternal    = "internal"
+	boxGrey          = "grey"
+	runModeAssistant = "assistant"
+)
+
 // CreateDomainParams carries everything needed to orchestrate a domain scan.
 type CreateDomainParams struct {
 	UserID       int64
@@ -38,6 +47,26 @@ type CreateDomainParams struct {
 	AutoDetect   bool
 	ProviderName provider.ProviderName
 	ProviderType provider.ProviderType
+
+	// Scan engagement fields (new wizard). All zero/empty for classic domain
+	// creation, which therefore behaves exactly as before.
+	Scope         string              // "internal"|"external"|"" (cloud engagements)
+	Box           string              // "grey"|"black"|"" (web engagements)
+	Credential    *ScanCredentialSpec // collected only for internal/grey engagements
+	TemplateSpecs []ScanTemplateSpec  // per-template run mode; overrides TemplateIDs when set
+}
+
+// ScanCredentialSpec is a plaintext target credential to encrypt and store.
+// Value must never be logged; it is encrypted via pkg/crypt before storage.
+type ScanCredentialSpec struct {
+	Kind  string // "web_token"|"email_password"|"cloud_keys"
+	Value string
+}
+
+// ScanTemplateSpec is a selected template plus the mode it should run in.
+type ScanTemplateSpec struct {
+	TemplateID int64
+	RunMode    string // "automatic"|"assistant"
 }
 
 // DomainResult reports the orchestration outcome so the caller can surface a
@@ -114,6 +143,31 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 		return nil, &QuotaError{Quota: QuotaDomains, Current: int(count), Max: dc.cfg.MaxConcurrentDomainsPerUser}
 	}
 
+	// Engagement validation (scan wizard). All no-ops for classic domain creation
+	// (empty Scope/Box/Credential/TemplateSpecs).
+	if params.Scope != "" && params.Box != "" {
+		return nil, fmt.Errorf("invalid engagement: set scope (cloud) or box (web), not both")
+	}
+	hasCredential := params.Credential != nil && strings.TrimSpace(params.Credential.Value) != ""
+	needsCredentials := params.Scope == scopeInternal || params.Box == boxGrey
+	if hasCredential && !needsCredentials {
+		return nil, fmt.Errorf("credentials are only allowed for internal (cloud) / grey-box (web) engagements")
+	}
+	if hasCredential {
+		// Validate before any DB write so a failure never leaves an orphan domain.
+		if crypt.IsInsecureSalt(dc.cfg.CookieSigningSalt) {
+			return nil, fmt.Errorf("cannot store scan credentials: set a strong COOKIE_SIGNING_SALT")
+		}
+		// Assistant-mode credential delivery is not wired yet (the assistant
+		// worker would not receive the credential file/redaction), so reject the
+		// silently-broken/insecure combination rather than dropping the credential.
+		for _, spec := range params.TemplateSpecs {
+			if spec.RunMode == runModeAssistant {
+				return nil, fmt.Errorf("assistant run mode is not yet supported for authenticated (internal/grey-box) engagements")
+			}
+		}
+	}
+
 	targetType := params.TargetType
 	if targetType == "" {
 		targetType = defaultTargetType
@@ -126,7 +180,7 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 	domain, err := dc.db.CreateDomain(ctx, database.CreateDomainParams{
 		UserID:            params.UserID,
 		Name:              params.Name,
-		TargetType:        targetType,
+		TargetType:        database.TargetType(targetType),
 		Status:            initialStatus,
 		DetectionMetadata: json.RawMessage("{}"),
 	})
@@ -138,12 +192,43 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 	defer dc.UnregisterDomain(domain.ID)
 	dc.publishDomain(ctx, params.UserID, domain, true)
 
+	// Scan engagement: persist scope/box and (for authenticated engagements) the
+	// encrypted target credential. All no-ops for classic domain creation.
+	if params.Scope != "" || params.Box != "" {
+		if err := dc.db.SetDomainScopeBox(ctx, database.SetDomainScopeBoxParams{
+			ID:    domain.ID,
+			Scope: sql.NullString{String: params.Scope, Valid: params.Scope != ""},
+			Box:   sql.NullString{String: params.Box, Valid: params.Box != ""},
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set scope/box for domain %d: %w", domain.ID, err)
+		}
+		domain.Scope = sql.NullString{String: params.Scope, Valid: params.Scope != ""}
+		domain.Box = sql.NullString{String: params.Box, Valid: params.Box != ""}
+	}
+
+	// Credentials are only collected for internal (cloud) / grey-box (web)
+	// engagements; never for external/black-box (validated above).
+	if needsCredentials && hasCredential {
+		ciphertext, err := crypt.EncryptCredential(dc.cfg.CookieSigningSalt, params.Credential.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt scan credential for domain %d: %w", domain.ID, err)
+		}
+		if _, err := dc.db.CreateScanCredential(ctx, database.CreateScanCredentialParams{
+			UserID:     params.UserID,
+			DomainID:   domain.ID,
+			Kind:       params.Credential.Kind,
+			Ciphertext: ciphertext,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to store scan credential for domain %d: %w", domain.ID, err)
+		}
+	}
+
 	templateIDs := params.TemplateIDs
 	if params.AutoDetect {
 		detected, metadata := dc.classifier.Classify(ctx, params.UserID, params.Name, params.ProviderName)
 		domain, err = dc.db.UpdateDomainDetectionMetadata(ctx, database.UpdateDomainDetectionMetadataParams{
 			ID:                domain.ID,
-			TargetType:        detected,
+			TargetType:        database.TargetType(detected),
 			DetectionMetadata: metadata,
 		})
 		if err != nil {
@@ -154,7 +239,7 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 		if len(templateIDs) == 0 {
 			defaults, err := dc.db.GetDefaultFlowTemplatesByTargetType(ctx, database.GetDefaultFlowTemplatesByTargetTypeParams{
 				UserID:  params.UserID,
-				Column2: detected,
+				Column2: database.TargetType(detected),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to load default templates for target type %s: %w", detected, err)
@@ -165,10 +250,27 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 		}
 	}
 
-	requested := len(templateIDs)
+	// Build the spawn list. The scan wizard supplies per-template run modes via
+	// TemplateSpecs; classic domain creation maps templateIDs to automatic mode.
+	type spawnSpec struct {
+		templateID int64
+		assistant  bool
+	}
+	var specs []spawnSpec
+	if len(params.TemplateSpecs) > 0 {
+		for _, s := range params.TemplateSpecs {
+			specs = append(specs, spawnSpec{templateID: s.TemplateID, assistant: s.RunMode == runModeAssistant})
+		}
+	} else {
+		for _, id := range templateIDs {
+			specs = append(specs, spawnSpec{templateID: id})
+		}
+	}
+
+	requested := len(specs)
 	truncated := false
 	if requested > dc.cfg.MaxFlowsPerDomain {
-		templateIDs = templateIDs[:dc.cfg.MaxFlowsPerDomain]
+		specs = specs[:dc.cfg.MaxFlowsPerDomain]
 		truncated = true
 		logger.WithFields(logrus.Fields{
 			"requested": requested,
@@ -177,8 +279,13 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 	}
 
 	spawned := 0
-	for _, templateID := range templateIDs {
-		_, err := dc.fc.CreateFlowForDomain(ctx, params.UserID, domain.ID, templateID, params.ProviderName, params.ProviderType)
+	for _, spec := range specs {
+		var err error
+		if spec.assistant {
+			_, err = dc.fc.CreateAssistantForDomain(ctx, params.UserID, domain.ID, spec.templateID, params.ProviderName, params.ProviderType)
+		} else {
+			_, err = dc.fc.CreateFlowForDomain(ctx, params.UserID, domain.ID, spec.templateID, params.ProviderName, params.ProviderType)
+		}
 		if err != nil {
 			var quotaErr *QuotaError
 			if errors.As(err, &quotaErr) {
@@ -186,7 +293,7 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 				logger.WithField("spawned", spawned).Warn("domain fan-out truncated by per-user flow quota")
 				break
 			}
-			logger.WithError(err).WithField("template_id", templateID).Error("failed to spawn child flow for domain")
+			logger.WithError(err).WithField("template_id", spec.templateID).Error("failed to spawn child flow for domain")
 			continue
 		}
 		spawned++

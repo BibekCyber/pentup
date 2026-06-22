@@ -1,9 +1,13 @@
 package tools
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"pentagi/pkg/config"
 	"pentagi/pkg/database"
@@ -151,6 +155,11 @@ type flowToolsExecutor struct {
 	functions      *Functions
 	replacer       anonymizer.Replacer
 
+	// targetCredential, when set, is written to SecretCredentialPath inside the
+	// primary container on Prepare so an authenticated-engagement agent can read
+	// it. It is never placed in the prompt/logs (only the path is referenced).
+	targetCredential string
+
 	definitions map[string]llms.FunctionDefinition
 	handlers    map[string]ExecutorHandler
 }
@@ -286,6 +295,7 @@ type FlowToolsExecutor interface {
 	SetTermLogProvider(tlp TermLogProvider)
 	SetVectorStoreLogProvider(vslp VectorStoreLogProvider)
 	SetGraphitiClient(client *graphiti.Client)
+	SetTargetCredential(content string)
 
 	Prepare(ctx context.Context) error
 	Release(ctx context.Context) error
@@ -309,6 +319,10 @@ func NewFlowToolsExecutor(
 	docker docker.DockerClient,
 	functions *Functions,
 	flowID int64,
+	// extraSecrets are per-flow secret values (e.g. decrypted scan credentials)
+	// to mask in anonymized output. The replacer is immutable after construction,
+	// so they must be supplied here. Empty values are skipped.
+	extraSecrets ...string,
 ) (FlowToolsExecutor, error) {
 	allPatterns, err := patterns.LoadPatterns(patterns.PatternListTypeAll)
 	if err != nil {
@@ -317,6 +331,19 @@ func NewFlowToolsExecutor(
 
 	// combine with config secret patterns
 	allPatterns.Patterns = append(allPatterns.Patterns, cfg.GetSecretPatterns()...)
+
+	// seed per-flow secrets (scan credentials) so they are redacted in
+	// anonymized output, mirroring config.GetSecretPatterns construction.
+	for _, secret := range extraSecrets {
+		trimmed := strings.TrimSpace(secret)
+		if trimmed == "" {
+			continue
+		}
+		allPatterns.Patterns = append(allPatterns.Patterns, patterns.Pattern{
+			Name:  "Scan Credential",
+			Regex: "(?P<replace>" + regexp.QuoteMeta(trimmed) + ")",
+		})
+	}
 
 	replacer, err := anonymizer.NewReplacer(allPatterns.Regexes(), allPatterns.Names())
 	if err != nil {
@@ -394,13 +421,56 @@ func (fte *flowToolsExecutor) SetGraphitiClient(client *graphiti.Client) {
 	fte.graphitiClient = client
 }
 
+// SecretCredentialPath is where an authenticated scan's target credentials are
+// written inside the primary container. The agent reads this path to
+// authenticate; the raw value is never put in the prompt, logs, or traces.
+const SecretCredentialPath = "/work/.pentagi_target_credentials"
+
+func (fte *flowToolsExecutor) SetTargetCredential(content string) {
+	fte.targetCredential = content
+}
+
+// writeTargetCredential writes the configured target credential into the primary
+// container at SecretCredentialPath (mode 0600). No-op when none is set.
+func (fte *flowToolsExecutor) writeTargetCredential(ctx context.Context) error {
+	if strings.TrimSpace(fte.targetCredential) == "" {
+		return nil
+	}
+
+	// CopyToContainer extracts a tar archive at the destination directory.
+	dir, file := "/work", strings.TrimPrefix(SecretCredentialPath, "/work/")
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	if err := tw.WriteHeader(&tar.Header{
+		Name: file,
+		Mode: 0o600,
+		Size: int64(len(fte.targetCredential)),
+	}); err != nil {
+		return fmt.Errorf("failed to write credential tar header: %w", err)
+	}
+	if _, err := tw.Write([]byte(fte.targetCredential)); err != nil {
+		return fmt.Errorf("failed to write credential tar body: %w", err)
+	}
+	if err := tw.Close(); err != nil {
+		return fmt.Errorf("failed to close credential tar: %w", err)
+	}
+
+	if err := fte.docker.CopyToContainer(
+		ctx, PrimaryTerminalName(fte.flowID), dir, &buf, container.CopyToContainerOptions{},
+	); err != nil {
+		return fmt.Errorf("failed to copy credential into container: %w", err)
+	}
+
+	return nil
+}
+
 func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 	if cnt, err := fte.db.GetFlowPrimaryContainer(ctx, fte.flowID); err == nil {
 		switch cnt.Status {
 		case database.ContainerStatusRunning:
 			fte.primaryID = cnt.ID
 			fte.primaryLID = cnt.LocalID.String
-			return nil
+			return fte.writeTargetCredential(ctx)
 		default:
 			fte.docker.RemoveContainer(ctx, cnt.LocalID.String, cnt.ID)
 		}
@@ -432,7 +502,7 @@ func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 	fte.primaryID = cnt.ID
 	fte.primaryLID = cnt.LocalID.String
 
-	return nil
+	return fte.writeTargetCredential(ctx)
 }
 
 func (fte *flowToolsExecutor) Release(ctx context.Context) error {
@@ -528,6 +598,7 @@ func (fte *flowToolsExecutor) GetAssistantExecutor(cfg AssistantExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	definitions := []llms.FunctionDefinition{
@@ -799,6 +870,7 @@ func (fte *flowToolsExecutor) GetInstallerExecutor(cfg InstallerExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{
@@ -993,6 +1065,7 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{
@@ -1256,6 +1329,7 @@ func (fte *flowToolsExecutor) GetGeneratorExecutor(cfg GeneratorExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{
@@ -1321,6 +1395,7 @@ func (fte *flowToolsExecutor) GetRefinerExecutor(cfg RefinerExecutorConfig) (Con
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{
@@ -1382,6 +1457,7 @@ func (fte *flowToolsExecutor) GetMemoristExecutor(cfg MemoristExecutorConfig) (C
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{
@@ -1450,6 +1526,7 @@ func (fte *flowToolsExecutor) GetEnricherExecutor(cfg EnricherExecutorConfig) (C
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
+		fte.replacer,
 	)
 
 	ce := &customExecutor{

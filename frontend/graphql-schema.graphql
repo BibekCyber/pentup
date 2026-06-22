@@ -1256,6 +1256,8 @@ fragment domainFragment on Domain {
     name
     targetType
     status
+    scope
+    box
     detectionMetadata
     createdAt
     updatedAt
@@ -1288,6 +1290,12 @@ query quotaUsage {
 
 mutation createDomain($input: CreateDomainInput!) {
     createDomain(input: $input) {
+        ...domainFragment
+    }
+}
+
+mutation createScan($input: CreateScanInput!) {
+    createScan(input: $input) {
         ...domainFragment
     }
 }

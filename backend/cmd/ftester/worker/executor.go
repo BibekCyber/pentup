@@ -135,6 +135,7 @@ func (te *toolExecutor) GetTool(ctx context.Context, funcName string) (tools.Too
 			containerLID,
 			te.dockerClient,
 			te.proxies.GetTermLogProvider(),
+			nil,
 		), nil
 
 	case tools.FileToolName:
@@ -147,6 +148,7 @@ func (te *toolExecutor) GetTool(ctx context.Context, funcName string) (tools.Too
 			containerLID,
 			te.dockerClient,
 			te.proxies.GetTermLogProvider(),
+			nil,
 		), nil
 
 	case tools.BrowserToolName:

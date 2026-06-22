@@ -1256,6 +1256,80 @@ func (r *mutationResolver) DeleteDomain(ctx context.Context, id int64) (model.Re
 	return model.ResultTypeSuccess, nil
 }
 
+// CreateScan is the resolver for the createScan field.
+func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateScanInput) (*model.Domain, error) {
+	uid, _, err := validatePermission(ctx, "domains.create")
+	if err != nil {
+		return nil, err
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":  uid,
+		"name": input.Name,
+	}).Debug("create scan")
+
+	if input.Name == "" {
+		return nil, fmt.Errorf("scan name is required")
+	}
+	if input.ModelProvider == "" {
+		return nil, fmt.Errorf("model provider is required")
+	}
+	if len(input.Templates) == 0 {
+		return nil, fmt.Errorf("at least one template is required")
+	}
+
+	prvname := provider.ProviderName(input.ModelProvider)
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	scope := ""
+	if input.Scope != nil {
+		scope = string(*input.Scope)
+	}
+	box := ""
+	if input.Box != nil {
+		box = string(*input.Box)
+	}
+
+	specs := make([]controller.ScanTemplateSpec, 0, len(input.Templates))
+	for _, t := range input.Templates {
+		specs = append(specs, controller.ScanTemplateSpec{
+			TemplateID: t.TemplateID,
+			RunMode:    string(t.RunMode),
+		})
+	}
+
+	// Credentials are only honored for internal (cloud) / grey-box (web)
+	// engagements; the controller enforces the same gate defensively.
+	var credential *controller.ScanCredentialSpec
+	if (scope == string(model.ScanScopeInternal) || box == string(model.ScanBoxGrey)) && input.Credential != nil {
+		credential = &controller.ScanCredentialSpec{
+			Kind:  string(input.Credential.Kind),
+			Value: input.Credential.Value,
+		}
+	}
+
+	result, err := r.DomainController.CreateDomain(ctx, controller.CreateDomainParams{
+		UserID:        uid,
+		Name:          input.Name,
+		TargetType:    string(input.TargetType),
+		AutoDetect:    false,
+		ProviderName:  prvname,
+		ProviderType:  prv.Type(),
+		Scope:         scope,
+		Box:           box,
+		Credential:    credential,
+		TemplateSpecs: specs,
+	})
+	if err != nil {
+		return nil, quotaGraphQLError(err)
+	}
+
+	return converter.ConvertDomain(result.Domain, result.Flows), nil
+}
+
 // Providers is the resolver for the providers field.
 func (r *queryResolver) Providers(ctx context.Context) ([]*model.Provider, error) {
 	uid, _, err := validatePermission(ctx, "providers.view")
@@ -2362,7 +2436,7 @@ func (r *queryResolver) FlowTemplatesByTargetType(ctx context.Context, targetTyp
 
 	templates, err := r.DB.GetFlowTemplatesByTargetType(ctx, database.GetFlowTemplatesByTargetTypeParams{
 		UserID:  uid,
-		Column2: string(targetType),
+		Column2: database.TargetType(targetType),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get templates: %w", err)

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"pentagi/pkg/config"
+	"pentagi/pkg/crypt"
 	"pentagi/pkg/database"
 	"pentagi/pkg/docker"
 	"pentagi/pkg/graph/subscriptions"
@@ -46,6 +47,16 @@ type FlowController interface {
 		prvname provider.ProviderName,
 		prvtype provider.ProviderType,
 	) (FlowWorker, error)
+	// CreateAssistantForDomain spawns an assistant-mode flow for a scan template
+	// (mirrors CreateFlowForDomain but starts the flow in assistant mode).
+	CreateAssistantForDomain(
+		ctx context.Context,
+		userID int64,
+		domainID int64,
+		templateID int64,
+		prvname provider.ProviderName,
+		prvtype provider.ProviderType,
+	) (AssistantWorker, error)
 	// CountActiveFlowsForUser returns how many flows the user currently has in
 	// an active status (created/running/waiting). Used for quota checks and the
 	// quota-usage query that powers the spawn confirmation screen.
@@ -220,6 +231,32 @@ func (fc *flowController) CountActiveFlowsForUser(ctx context.Context, userID in
 	return fc.db.CountActiveFlowsForUser(ctx, userID)
 }
 
+// loadScanCredential returns the decrypted target credential for a scan domain,
+// or (nil, nil) when none is stored (classic domains, or external/black-box
+// engagements where Phase-1 gating never persisted one).
+func (fc *flowController) loadScanCredential(ctx context.Context, userID, domainID int64) (*flowCredential, error) {
+	sc, err := fc.db.GetActiveScanCredentialForDomain(ctx, domainID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to load scan credential for domain %d: %w", domainID, err)
+	}
+
+	// Defense-in-depth: never decrypt/deliver a credential belonging to another
+	// user, even if a caller passes a mismatched domain id.
+	if sc.UserID != userID {
+		return nil, fmt.Errorf("scan credential for domain %d does not belong to user %d", domainID, userID)
+	}
+
+	value, err := crypt.DecryptCredential(fc.cfg.CookieSigningSalt, sc.Ciphertext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt scan credential for domain %d: %w", domainID, err)
+	}
+
+	return &flowCredential{Kind: sc.Kind, Value: value}, nil
+}
+
 func (fc *flowController) CreateFlowForDomain(
 	ctx context.Context,
 	userID int64,
@@ -243,11 +280,20 @@ func (fc *flowController) CreateFlowForDomain(
 		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
 	}
 
+	// Authenticated engagements (internal cloud / grey-box web) carry an
+	// encrypted credential; decrypt it so the agent can authenticate. Its
+	// presence gates the authenticate-first directive + container delivery.
+	cred, err := fc.loadScanCredential(ctx, userID, domainID)
+	if err != nil {
+		return nil, err
+	}
+
 	fw, err := NewFlowWorker(ctx, newFlowWorkerCtx{
-		userID:  userID,
-		input:   template.Text,
-		prvname: prvname,
-		prvtype: prvtype,
+		userID:     userID,
+		input:      template.Text,
+		prvname:    prvname,
+		prvtype:    prvtype,
+		credential: cred,
 		flowWorkerCtx: flowWorkerCtx{
 			db:     fc.db,
 			cfg:    fc.cfg,
@@ -280,6 +326,48 @@ func (fc *flowController) CreateFlowForDomain(
 	}
 
 	return fw, nil
+}
+
+func (fc *flowController) CreateAssistantForDomain(
+	ctx context.Context,
+	userID int64,
+	domainID int64,
+	templateID int64,
+	prvname provider.ProviderName,
+	prvtype provider.ProviderType,
+) (AssistantWorker, error) {
+	// CreateAssistant does not enforce the per-user flow quota; replicate the
+	// truncation semantics of CreateFlowForDomain here. checkUserFlowQuota is
+	// lock-free (db count only), so it is safe to call before CreateAssistant
+	// (which takes fc.mx itself) without nesting locks.
+	if err := fc.checkUserFlowQuota(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	template, err := fc.db.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
+		ID:     templateID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
+	}
+
+	// flowID=0 -> CreateAssistant creates a dry-run host flow (Waiting) and
+	// attaches the assistant; useAgents=true gives the full sub-agent toolset.
+	aw, err := fc.CreateAssistant(ctx, userID, 0, template.Text, true, prvname, prvtype, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create assistant for domain %d: %w", domainID, err)
+	}
+
+	if err := fc.db.SetFlowDomain(ctx, database.SetFlowDomainParams{
+		ID:         aw.GetFlowID(),
+		DomainID:   sql.NullInt64{Int64: domainID, Valid: true},
+		TemplateID: sql.NullInt64{Int64: templateID, Valid: true},
+	}); err != nil {
+		return nil, fmt.Errorf("failed to link assistant flow %d to domain %d: %w", aw.GetFlowID(), domainID, err)
+	}
+
+	return aw, nil
 }
 
 func (fc *flowController) CreateAssistant(

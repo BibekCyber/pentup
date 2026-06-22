@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { TargetTypeChip } from '@/components/forms/target-type-chip';
-import { ProviderIcon } from '@/components/icons/provider-icon';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,9 +22,7 @@ import { useQuotaUsageQuery } from '@/graphql/types';
 import { usePermission } from '@/hooks/use-permission';
 import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
-import { getProviderDisplayName } from '@/models/provider';
 import { useDomains } from '@/providers/domains-provider';
-import { useProviders } from '@/providers/providers-provider';
 import { useTemplates } from '@/providers/templates-provider';
 
 // Rough, clearly-labeled per-flow cost band used only for the admin cost
@@ -33,11 +30,14 @@ import { useTemplates } from '@/providers/templates-provider';
 const PER_FLOW_COST_LOW = 0.5;
 const PER_FLOW_COST_HIGH = 2.0;
 
+// The model provider is hardcoded for now (provider selection was removed from
+// the scan-creation form). Change here if a different default is needed.
+const DEFAULT_MODEL_PROVIDER = 'kimi';
+
 const formSchema = z
     .object({
         autoDetect: z.boolean(),
-        name: z.string().trim().min(1, { message: 'Domain name is required' }),
-        providerName: z.string().trim().min(1, { message: 'Provider must be selected' }),
+        name: z.string().trim().min(1, { message: 'Target is required' }),
         targetType: z.nativeEnum(TargetType).optional(),
         templateIds: z.array(z.string()),
     })
@@ -55,7 +55,6 @@ type DomainFormValues = z.infer<typeof formSchema>;
 const NewDomain = () => {
     const navigate = useNavigate();
     const { createDomain } = useDomains();
-    const { providers, selectedProvider } = useProviders();
     const { templates } = useTemplates();
     const canViewCost = usePermission('usage.view');
 
@@ -66,7 +65,7 @@ const NewDomain = () => {
 
     const {
         control,
-        formState: { errors, isValid },
+        formState: { errors },
         handleSubmit,
         register,
         setValue,
@@ -75,7 +74,6 @@ const NewDomain = () => {
         defaultValues: {
             autoDetect: false,
             name: '',
-            providerName: selectedProvider?.name ?? '',
             targetType: undefined,
             templateIds: [],
         },
@@ -84,16 +82,25 @@ const NewDomain = () => {
     });
 
     const autoDetect = watch('autoDetect');
+    const name = watch('name');
     const targetType = watch('targetType');
     const templateIds = watch('templateIds');
 
-    useEffect(() => {
-        if (!selectedProvider) {
-            return;
+    // Deterministic submit-gating that mirrors the zod schema. We derive it from
+    // the watched values rather than RHF's formState.isValid, which is unreliable
+    // for ZodEffects (.refine) schemas and can leave the button disabled on valid
+    // input.
+    const canSubmit = useMemo(() => {
+        if (!name?.trim()) {
+            return false;
         }
 
-        setValue('providerName', selectedProvider.name, { shouldValidate: true });
-    }, [selectedProvider, setValue]);
+        if (autoDetect) {
+            return true;
+        }
+
+        return !!targetType && templateIds.length > 0;
+    }, [name, autoDetect, targetType, templateIds]);
 
     // Templates available for the chosen target type.
     const availableTemplates = useMemo(() => {
@@ -134,7 +141,7 @@ const NewDomain = () => {
         try {
             const domain = await createDomain({
                 autoDetect: values.autoDetect,
-                modelProvider: values.providerName,
+                modelProvider: DEFAULT_MODEL_PROVIDER,
                 name: values.name.trim(),
                 targetType: values.autoDetect ? undefined : values.targetType,
                 templateIds: values.autoDetect ? [] : values.templateIds,
@@ -147,7 +154,7 @@ const NewDomain = () => {
                     });
                 }
 
-                navigate(`/domains/${domain.id}`);
+                navigate(`/scans/${domain.id}`);
             }
         } finally {
             setIsLoading(false);
@@ -168,7 +175,7 @@ const NewDomain = () => {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbPage>New domain</BreadcrumbPage>
+                            <BreadcrumbPage>New scan</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -178,7 +185,7 @@ const NewDomain = () => {
                 <Card className="w-full max-w-2xl">
                     <CardContent className="flex flex-col gap-6 pt-6">
                         <div className="text-center">
-                            <h1 className="text-2xl font-semibold">Start a domain scan</h1>
+                            <h1 className="text-2xl font-semibold">Start a scan</h1>
                             <p className="text-muted-foreground mt-2">
                                 Enter a target and run matching scan templates together.
                             </p>
@@ -188,9 +195,9 @@ const NewDomain = () => {
                             className="flex flex-col gap-5"
                             onSubmit={handleSubmit(onSubmit)}
                         >
-                            {/* Domain name */}
+                            {/* Target */}
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="domain-name">Domain</Label>
+                                <Label htmlFor="domain-name">Target</Label>
                                 <Input
                                     autoFocus
                                     disabled={isLoading}
@@ -201,25 +208,28 @@ const NewDomain = () => {
                                 {errors.name ? <p className="text-destructive text-xs">{errors.name.message}</p> : null}
                             </div>
 
-                            {/* Auto-detect toggle */}
+                            {/* Auto-detect toggle — light row, switch on the right */}
                             <Controller
                                 control={control}
                                 name="autoDetect"
                                 render={({ field }) => (
-                                    <div className="bg-muted/40 flex items-start justify-between gap-4 rounded-md border p-3">
-                                        <div className="flex flex-col gap-1">
-                                            <Label className="flex items-center gap-2">
-                                                <Sparkles className="size-4" />
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex flex-col gap-0.5">
+                                            <Label
+                                                className="flex items-center gap-2"
+                                                htmlFor="auto-detect"
+                                            >
+                                                <Sparkles className="text-muted-foreground size-4" />
                                                 Auto-detect target type
                                             </Label>
                                             <p className="text-muted-foreground text-xs">
-                                                Probe the domain and let the system pick the target type and default
-                                                templates.
+                                                Probe the target and pick templates for you.
                                             </p>
                                         </div>
                                         <Switch
                                             checked={field.value}
                                             disabled={isLoading}
+                                            id="auto-detect"
                                             onCheckedChange={field.onChange}
                                         />
                                     </div>
@@ -284,12 +294,14 @@ const NewDomain = () => {
                                                                     'flex items-start gap-2 rounded-md border p-2 text-left transition-colors',
                                                                     selected
                                                                         ? 'border-primary bg-primary/5'
-                                                                        : 'border-transparent hover:bg-muted',
+                                                                        : 'hover:bg-muted border-transparent',
                                                                 )}
                                                                 disabled={isLoading}
                                                                 key={template.id}
                                                                 onClick={() =>
-                                                                    field.onChange(toggleTemplate(template.id, field.value))
+                                                                    field.onChange(
+                                                                        toggleTemplate(template.id, field.value),
+                                                                    )
                                                                 }
                                                                 type="button"
                                                             >
@@ -329,45 +341,6 @@ const NewDomain = () => {
                                 </div>
                             ) : null}
 
-                            {/* Provider */}
-                            <div className="flex flex-col gap-2">
-                                <Label>Model provider</Label>
-                                <Controller
-                                    control={control}
-                                    name="providerName"
-                                    render={({ field }) => (
-                                        <Select
-                                            disabled={isLoading}
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a provider" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {providers.map((provider) => (
-                                                    <SelectItem
-                                                        key={provider.name}
-                                                        value={provider.name}
-                                                    >
-                                                        <span className="flex items-center gap-2">
-                                                            <ProviderIcon
-                                                                className="size-4"
-                                                                provider={provider}
-                                                            />
-                                                            {getProviderDisplayName(provider)}
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                                {errors.providerName ? (
-                                    <p className="text-destructive text-xs">{errors.providerName.message}</p>
-                                ) : null}
-                            </div>
-
                             {/* Confirmation panel */}
                             <div className="bg-muted/40 flex flex-col gap-2 rounded-md border p-4 text-sm">
                                 <p>
@@ -376,8 +349,7 @@ const NewDomain = () => {
                                         {autoDetect ? 'up to ' : ''}
                                         {cappedCount} flow{cappedCount === 1 ? '' : 's'}
                                     </span>{' '}
-                                    targeting{' '}
-                                    <span className="font-semibold">{watch('name')?.trim() || 'your domain'}</span>
+                                    targeting <span className="font-semibold">{name?.trim() || 'your target'}</span>
                                     {!autoDetect && targetType ? (
                                         <>
                                             {' '}
@@ -396,7 +368,7 @@ const NewDomain = () => {
                                 </p>
                                 {willTruncate ? (
                                     <p className="text-yellow-600 dark:text-yellow-500">
-                                        This selection exceeds the per-domain limit; only the first {flowsPerDomainMax}{' '}
+                                        This selection exceeds the per-scan limit; only the first {flowsPerDomainMax}{' '}
                                         will run.
                                     </p>
                                 ) : null}
@@ -416,7 +388,7 @@ const NewDomain = () => {
                             <div className="flex justify-end gap-2">
                                 <Button
                                     disabled={isLoading}
-                                    onClick={() => navigate('/domains')}
+                                    onClick={() => navigate('/scans')}
                                     type="button"
                                     variant="outline"
                                 >
@@ -424,7 +396,7 @@ const NewDomain = () => {
                                     Cancel
                                 </Button>
                                 <Button
-                                    disabled={isLoading || !isValid}
+                                    disabled={isLoading || !canSubmit}
                                     type="submit"
                                 >
                                     {isLoading ? <Spinner variant="circle" /> : null}

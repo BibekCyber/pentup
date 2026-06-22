@@ -60,6 +60,14 @@ type flowWorker struct {
 	logger  *logrus.Entry
 }
 
+// flowCredential is a decrypted target credential for an authenticated scan
+// engagement. It is delivered to the agent via a file in its container (never in
+// the prompt); only its presence drives the authenticate-first directive.
+type flowCredential struct {
+	Kind  string
+	Value string
+}
+
 type newFlowWorkerCtx struct {
 	userID    int64
 	input     string
@@ -67,6 +75,10 @@ type newFlowWorkerCtx struct {
 	prvname   provider.ProviderName
 	prvtype   provider.ProviderType
 	functions *tools.Functions
+	// credential, when set (internal cloud / grey-box web engagements), seeds the
+	// redaction replacer, is written into the container, and adds an
+	// authenticate-first directive to the agent input.
+	credential *flowCredential
 
 	flowWorkerCtx
 }
@@ -107,12 +119,38 @@ type flowInput struct {
 	done  chan error
 }
 
+// buildAuthDirective returns the authenticate-first instruction prepended to the
+// agent input for authenticated engagements. It references the credential FILE
+// path (delivered into the container), never the raw secret, so it is safe to
+// persist/trace.
+func buildAuthDirective(kind string) string {
+	return fmt.Sprintf(
+		"<engagement_auth>\n"+
+			"This is an AUTHENTICATED engagement (credential kind: %s). The target "+
+			"credentials are stored in the file %s inside your container (do NOT print, "+
+			"cat, or echo this file). BEFORE any scanning, authenticate to the target "+
+			"using these credentials. If authentication FAILS (expired/invalid token, "+
+			"blocked login, MFA challenge, changed login form, etc.), use the `ask` tool "+
+			"to report the exact problem and request corrected credentials, then retry. "+
+			"Do not proceed with the engagement until access is confirmed.\n"+
+			"</engagement_auth>\n\n",
+		kind, tools.SecretCredentialPath,
+	)
+}
+
 func NewFlowWorker(
 	ctx context.Context,
 	fwc newFlowWorkerCtx,
 ) (FlowWorker, error) {
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "controller.NewFlowWorker")
 	defer span.End()
+
+	// Authenticated engagement: prepend the authenticate-first directive so it
+	// conditions every downstream use of the input (trace, provider, PutInput).
+	// The raw credential is NOT included here — only delivered via the container.
+	if fwc.credential != nil {
+		fwc.input = buildAuthDirective(fwc.credential.Kind) + fwc.input
+	}
 
 	flow, err := fwc.db.CreateFlow(ctx, database.CreateFlowParams{
 		Title:              "untitled",
@@ -167,9 +205,18 @@ func NewFlowWorker(
 	ctx, _ = flowSpan.Observation(ctx)
 
 	prompter := templates.NewDefaultPrompter() // TODO: change to flow prompter by userID from DB
-	executor, err := tools.NewFlowToolsExecutor(fwc.db, fwc.cfg, fwc.docker, fwc.functions, flow.ID)
+	var extraSecrets []string
+	if fwc.credential != nil {
+		extraSecrets = append(extraSecrets, fwc.credential.Value)
+	}
+	executor, err := tools.NewFlowToolsExecutor(fwc.db, fwc.cfg, fwc.docker, fwc.functions, flow.ID, extraSecrets...)
 	if err != nil {
 		return nil, wrapErrorEndSpan(ctx, flowSpan, "failed to create flow tools executor", err)
+	}
+	if fwc.credential != nil {
+		// Deliver the decrypted credential into the container on Prepare so the
+		// agent can authenticate; it is never placed in the prompt or logs.
+		executor.SetTargetCredential(fwc.credential.Value)
 	}
 	flowProvider, err := fwc.provs.NewFlowProvider(
 		ctx, fwc.prvname, prompter, executor, flow.ID, fwc.userID, fwc.cfg.AskUser, fwc.input,

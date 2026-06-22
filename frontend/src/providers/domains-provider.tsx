@@ -50,7 +50,7 @@ export const DomainsProvider = ({ children }: DomainsProviderProps) => {
 
     useEffect(() => {
         if (domainsError) {
-            toast.error('Error loading domains', {
+            toast.error('Error loading scans', {
                 description: domainsError.message,
             });
             Log.error('Error loading domains:', domainsError);
@@ -69,8 +69,8 @@ export const DomainsProvider = ({ children }: DomainsProviderProps) => {
 
                 return data?.createDomain ?? null;
             } catch (error) {
-                const description = error instanceof Error ? error.message : 'An error occurred while creating domain';
-                toast.error('Failed to create domain', {
+                const description = error instanceof Error ? error.message : 'An error occurred while creating scan';
+                toast.error('Failed to create scan', {
                     description,
                 });
                 Log.error('Error creating domain:', error);
@@ -90,7 +90,7 @@ export const DomainsProvider = ({ children }: DomainsProviderProps) => {
             }
 
             const domainDescription = `${name || 'Unknown'} (ID: ${domainId})`;
-            const loadingToastId = toast.loading('Deleting domain...', {
+            const loadingToastId = toast.loading('Deleting scan...', {
                 description: domainDescription,
             });
 
@@ -99,14 +99,14 @@ export const DomainsProvider = ({ children }: DomainsProviderProps) => {
                     variables: { id: domainId },
                 });
 
-                toast.success('Domain deleted successfully', {
+                toast.success('Scan deleted successfully', {
                     description: domainDescription,
                     id: loadingToastId,
                 });
 
                 return true;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'An error occurred while deleting domain';
+                const errorMessage = error instanceof Error ? error.message : 'An error occurred while deleting scan';
                 toast.error(errorMessage, {
                     description: domainDescription,
                     id: loadingToastId,

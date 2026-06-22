@@ -223,6 +223,9 @@ type Domain {
   name: String!
   targetType: TargetType!
   status: DomainStatusType!
+  # Engagement posture (new scan wizard). Null for classic domains/scans.
+  scope: ScanScope
+  box: ScanBox
   # Raw recon/classification output as a JSON string ("{}" when not auto-detected)
   detectionMetadata: String!
   createdAt: Time!
@@ -238,6 +241,60 @@ input CreateDomainInput {
   templateIds: [ID!]!
   # When true, run recon + classifier to detect targetType and pick default templates
   autoDetect: Boolean
+  modelProvider: String!
+}
+
+# ==================== Scan Engagement Types (new wizard) ====================
+
+# Cloud engagement scope: internal (agent uses an account) vs external (outside attacker).
+enum ScanScope {
+  internal
+  external
+}
+
+# Web engagement posture: grey box (credentials provided) vs black box (none).
+enum ScanBox {
+  grey
+  black
+}
+
+# How each selected template runs.
+enum ScanRunMode {
+  automatic
+  assistant
+}
+
+# Kind of target credential supplied for an authenticated engagement.
+enum ScanCredentialKind {
+  web_token
+  email_password
+  cloud_keys
+}
+
+# Target credentials for an authenticated engagement. The value is the secret
+# payload (a token, a JSON {email,password}, or a cloud service-account key JSON).
+# It is encrypted at rest and only collected for internal (cloud) / grey-box (web)
+# engagements; ignored for external/black-box.
+input ScanCredentialInput {
+  kind: ScanCredentialKind!
+  value: String!
+}
+
+# A selected template plus the mode it should run in.
+input ScanTemplateInput {
+  templateId: ID!
+  runMode: ScanRunMode!
+}
+
+input CreateScanInput {
+  name: String!
+  targetType: TargetType!
+  # Cloud engagements set scope; web engagements set box. Drives whether credentials are used.
+  scope: ScanScope
+  box: ScanBox
+  templates: [ScanTemplateInput!]!
+  # Only used for internal (cloud) / grey-box (web); ignored otherwise.
+  credential: ScanCredentialInput
   modelProvider: String!
 }
 
@@ -965,6 +1022,10 @@ type Mutation {
   # Domain orchestration
   createDomain(input: CreateDomainInput!): Domain!
   deleteDomain(id: ID!): ResultType!
+
+  # Scan engagement (new wizard): one scan -> one flow per selected template,
+  # with engagement scope/box, per-template run mode, and optional credentials.
+  createScan(input: CreateScanInput!): Domain!
 }
 
 type Subscription {

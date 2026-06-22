@@ -29,11 +29,11 @@ RETURNING id, user_id, title, text, created_at, updated_at, target_types, defaul
 `
 
 type CreateFlowTemplateParams struct {
-	UserID          int64    `json:"user_id"`
-	Title           string   `json:"title"`
-	Text            string   `json:"text"`
-	TargetTypes     []string `json:"target_types"`
-	DefaultTemplate bool     `json:"default_template"`
+	UserID          int64        `json:"user_id"`
+	Title           string       `json:"title"`
+	Text            string       `json:"text"`
+	TargetTypes     []TargetType `json:"target_types"`
+	DefaultTemplate bool         `json:"default_template"`
 }
 
 func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplateParams) (FlowTemplate, error) {
@@ -83,8 +83,8 @@ ORDER BY system_owned DESC, created_at DESC
 `
 
 type GetDefaultFlowTemplatesByTargetTypeParams struct {
-	UserID  int64  `json:"user_id"`
-	Column2 string `json:"column_2"`
+	UserID  int64      `json:"user_id"`
+	Column2 TargetType `json:"column_2"`
 }
 
 func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
@@ -155,8 +155,8 @@ ORDER BY system_owned DESC, created_at DESC
 `
 
 type GetFlowTemplatesByTargetTypeParams struct {
-	UserID  int64  `json:"user_id"`
-	Column2 string `json:"column_2"`
+	UserID  int64      `json:"user_id"`
+	Column2 TargetType `json:"column_2"`
 }
 
 func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
@@ -279,9 +279,9 @@ RETURNING id, user_id, title, text, created_at, updated_at, target_types, defaul
 `
 
 type UpdateFlowTemplateTargetTypesParams struct {
-	ID              int64    `json:"id"`
-	TargetTypes     []string `json:"target_types"`
-	DefaultTemplate bool     `json:"default_template"`
+	ID              int64        `json:"id"`
+	TargetTypes     []TargetType `json:"target_types"`
+	DefaultTemplate bool         `json:"default_template"`
 }
 
 func (q *Queries) UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateFlowTemplateTargetTypesParams) (FlowTemplate, error) {

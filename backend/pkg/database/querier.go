@@ -26,6 +26,9 @@ type Querier interface {
 	CreateProvider(ctx context.Context, arg CreateProviderParams) (Provider, error)
 	CreateResultAssistantLog(ctx context.Context, arg CreateResultAssistantLogParams) (Assistantlog, error)
 	CreateResultMsgLog(ctx context.Context, arg CreateResultMsgLogParams) (Msglog, error)
+	// ciphertext must already be AES-256-GCM encrypted by pkg/crypt before insert;
+	// the plaintext credential must NEVER be passed here.
+	CreateScanCredential(ctx context.Context, arg CreateScanCredentialParams) (ScanCredential, error)
 	CreateScreenshot(ctx context.Context, arg CreateScreenshotParams) (Screenshot, error)
 	CreateSearchLog(ctx context.Context, arg CreateSearchLogParams) (Searchlog, error)
 	CreateSubtask(ctx context.Context, arg CreateSubtaskParams) (Subtask, error)
@@ -45,6 +48,7 @@ type Querier interface {
 	DeleteFlowTemplate(ctx context.Context, arg DeleteFlowTemplateParams) error
 	DeletePrompt(ctx context.Context, id int64) error
 	DeleteProvider(ctx context.Context, id int64) (Provider, error)
+	DeleteScanCredentialsForDomain(ctx context.Context, domainID int64) error
 	DeleteSubtask(ctx context.Context, id int64) error
 	DeleteSubtasks(ctx context.Context, ids []int64) error
 	DeleteUser(ctx context.Context, id int64) error
@@ -56,6 +60,7 @@ type Querier interface {
 	GetAPIToken(ctx context.Context, id int64) (ApiToken, error)
 	GetAPITokenByTokenID(ctx context.Context, tokenID string) (ApiToken, error)
 	GetAPITokens(ctx context.Context) ([]ApiToken, error)
+	GetActiveScanCredentialForDomain(ctx context.Context, domainID int64) (ScanCredential, error)
 	// Get toolcalls stats for all flows
 	GetAllFlowsToolcallsStats(ctx context.Context) ([]GetAllFlowsToolcallsStatsRow, error)
 	GetAllFlowsUsageStats(ctx context.Context) ([]GetAllFlowsUsageStatsRow, error)
@@ -66,6 +71,7 @@ type Querier interface {
 	GetCallToolcall(ctx context.Context, callID string) (Toolcall, error)
 	GetContainerTermLogs(ctx context.Context, containerID int64) ([]Termlog, error)
 	GetContainers(ctx context.Context) ([]Container, error)
+	GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
 	GetDomain(ctx context.Context, id int64) (Domain, error)
 	GetDomains(ctx context.Context) ([]Domain, error)
 	GetFlow(ctx context.Context, id int64) (Flow, error)
@@ -91,7 +97,6 @@ type Querier interface {
 	GetFlowTaskSubtasks(ctx context.Context, arg GetFlowTaskSubtasksParams) ([]Subtask, error)
 	GetFlowTaskTypeLastMsgChain(ctx context.Context, arg GetFlowTaskTypeLastMsgChainParams) (Msgchain, error)
 	GetFlowTasks(ctx context.Context, flowID int64) ([]Task, error)
-	GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
 	GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams) (FlowTemplate, error)
 	GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
 	GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([]FlowTemplate, error)
@@ -190,6 +195,8 @@ type Querier interface {
 	GetUserAPITokens(ctx context.Context, userID int64) ([]ApiToken, error)
 	GetUserByHash(ctx context.Context, hash string) (GetUserByHashRow, error)
 	GetUserContainers(ctx context.Context, userID int64) ([]Container, error)
+	GetUserDomain(ctx context.Context, arg GetUserDomainParams) (Domain, error)
+	GetUserDomains(ctx context.Context, userID int64) ([]Domain, error)
 	GetUserFlow(ctx context.Context, arg GetUserFlowParams) (Flow, error)
 	GetUserFlowAgentLogs(ctx context.Context, arg GetUserFlowAgentLogsParams) ([]Agentlog, error)
 	GetUserFlowAssistant(ctx context.Context, arg GetUserFlowAssistantParams) (Assistant, error)
@@ -205,8 +212,6 @@ type Querier interface {
 	GetUserFlowTasks(ctx context.Context, arg GetUserFlowTasksParams) ([]Task, error)
 	GetUserFlowTermLogs(ctx context.Context, arg GetUserFlowTermLogsParams) ([]Termlog, error)
 	GetUserFlowVectorStoreLogs(ctx context.Context, arg GetUserFlowVectorStoreLogsParams) ([]Vecstorelog, error)
-	GetUserDomain(ctx context.Context, arg GetUserDomainParams) (Domain, error)
-	GetUserDomains(ctx context.Context, userID int64) ([]Domain, error)
 	GetUserFlows(ctx context.Context, userID int64) ([]Flow, error)
 	GetUserPreferencesByUserID(ctx context.Context, userID int64) (UserPreference, error)
 	GetUserPrompt(ctx context.Context, arg GetUserPromptParams) (Prompt, error)
@@ -222,6 +227,7 @@ type Querier interface {
 	GetUserTotalToolcallsStats(ctx context.Context, userID int64) (GetUserTotalToolcallsStatsRow, error)
 	GetUserTotalUsageStats(ctx context.Context, userID int64) (GetUserTotalUsageStatsRow, error)
 	GetUsers(ctx context.Context) ([]GetUsersRow, error)
+	SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
 	UpdateAPIToken(ctx context.Context, arg UpdateAPITokenParams) (ApiToken, error)
 	UpdateAssistant(ctx context.Context, arg UpdateAssistantParams) (Assistant, error)

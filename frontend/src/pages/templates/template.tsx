@@ -524,7 +524,7 @@ const Template = () => {
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    Tag this template with the domains it applies to.
+                                                    Tag this template with the scan types it applies to.
                                                 </FormDescription>
                                             </FormItem>
                                         )}
@@ -533,14 +533,11 @@ const Template = () => {
                                         control={control}
                                         name="defaultTemplate"
                                         render={({ field }) => (
-                                            <FormItem className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+                                            <FormItem className="flex-row items-center justify-between gap-4">
                                                 <div className="space-y-0.5">
-                                                    <Label htmlFor="defaultTemplate">
-                                                        Mark as default for these target types
-                                                    </Label>
+                                                    <Label htmlFor="defaultTemplate">Mark as default</Label>
                                                     <FormDescription>
-                                                        Default templates can run automatically when a target type
-                                                        matches.
+                                                        Runs automatically when a target type matches.
                                                     </FormDescription>
                                                 </div>
                                                 <FormControl>

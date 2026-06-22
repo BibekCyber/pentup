@@ -1,6 +1,7 @@
-import { ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { DomainStatusBadge } from '@/components/forms/domain-status-badge';
 import { TargetTypeChip } from '@/components/forms/target-type-chip';
@@ -9,18 +10,205 @@ import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    type FlowFragmentFragment,
+    StatusType,
+    useDeleteFlowMutation,
+    useFinishFlowMutation,
+    useRenameFlowMutation,
+} from '@/graphql/types';
 import { useDomain } from '@/providers/domain-provider';
 import { useDomains } from '@/providers/domains-provider';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
 
+// A child-flow card on the scan detail page, with the same lifecycle actions a
+// flow has — Open / Finish / Rename / Delete — reusing the existing flow
+// mutations. onChanged refetches the parent scan so the list reflects the change.
+const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: () => void }) => {
+    const [finishFlow] = useFinishFlowMutation();
+    const [deleteFlow] = useDeleteFlowMutation();
+    const [renameFlow] = useRenameFlowMutation();
+    const navigate = useNavigate();
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isRenameOpen, setIsRenameOpen] = useState(false);
+    const [title, setTitle] = useState(flow.title);
+    const [isBusy, setIsBusy] = useState(false);
+
+    const isActive =
+        flow.status === StatusType.Created || flow.status === StatusType.Running || flow.status === StatusType.Waiting;
+
+    const handleFinish = async () => {
+        try {
+            await finishFlow({ variables: { flowId: flow.id } });
+            toast.success('Flow finished');
+            onChanged();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to finish flow');
+        }
+    };
+
+    const handleRename = async () => {
+        if (!title.trim()) {
+            return;
+        }
+
+        setIsBusy(true);
+
+        try {
+            await renameFlow({ variables: { flowId: flow.id, title: title.trim() } });
+            toast.success('Flow renamed');
+            setIsRenameOpen(false);
+            onChanged();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to rename flow');
+        } finally {
+            setIsBusy(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setIsDeleteOpen(false);
+
+        try {
+            await deleteFlow({ variables: { flowId: flow.id } });
+            toast.success('Flow deleted');
+            onChanged();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to delete flow');
+        }
+    };
+
+    return (
+        <Card
+            className="hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
+            onClick={() => navigate(`/flows/${flow.id}`)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigate(`/flows/${flow.id}`);
+                }
+            }}
+            role="button"
+            tabIndex={0}
+        >
+            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+                    <FlowStatusIcon
+                        status={flow.status}
+                        tooltip={flow.status}
+                    />
+                    <span className="truncate">{flow.title}</span>
+                </CardTitle>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            className="-mt-1 -mr-2 size-7 shrink-0"
+                            // the card itself opens the flow; keep the menu button from triggering that
+                            onClick={(e) => e.stopPropagation()}
+                            size="icon"
+                            variant="ghost"
+                        >
+                            <MoreVertical className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                // keep focus on the trigger so the dialog can grab it cleanly
+                                e.preventDefault();
+                                setTitle(flow.title);
+                                setIsRenameOpen(true);
+                            }}
+                        >
+                            <Pencil className="size-4" />
+                            Rename
+                        </DropdownMenuItem>
+                        {isActive ? (
+                            <DropdownMenuItem onSelect={() => void handleFinish()}>
+                                <CheckCircle2 className="size-4" />
+                                Finish
+                            </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                setIsDeleteOpen(true);
+                            }}
+                        >
+                            <Trash2 className="size-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </CardHeader>
+            <CardContent className="text-muted-foreground text-xs">Started {formatDate(flow.createdAt)}</CardContent>
+
+            <Dialog
+                onOpenChange={setIsRenameOpen}
+                open={isRenameOpen}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Rename flow</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                        autoFocus
+                        onChange={(event) => setTitle(event.target.value)}
+                        onKeyDown={(event) => event.key === 'Enter' && void handleRename()}
+                        value={title}
+                    />
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setIsRenameOpen(false)}
+                            variant="outline"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={isBusy || !title.trim()}
+                            onClick={() => void handleRename()}
+                        >
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ConfirmationDialog
+                confirmIcon={<Trash2 />}
+                confirmText="Delete"
+                confirmVariant="destructive"
+                description="This will delete this flow. This cannot be undone."
+                handleConfirm={() => void handleDelete()}
+                handleOpenChange={setIsDeleteOpen}
+                isOpen={isDeleteOpen}
+                itemName={flow.title}
+                itemType="flow"
+                title="Delete flow?"
+            />
+        </Card>
+    );
+};
+
 const Domain = () => {
     const navigate = useNavigate();
-    const { domain, isLoading } = useDomain();
+    const { domain, isLoading, refetch } = useDomain();
     const { deleteDomain } = useDomains();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -36,15 +224,15 @@ const Domain = () => {
         return (
             <Empty className="min-h-[calc(100dvh-3rem)]">
                 <EmptyHeader>
-                    <EmptyTitle>Domain not found</EmptyTitle>
-                    <EmptyDescription>This domain may have been deleted or you do not have access.</EmptyDescription>
+                    <EmptyTitle>Scan not found</EmptyTitle>
+                    <EmptyDescription>This scan may have been deleted or you do not have access.</EmptyDescription>
                 </EmptyHeader>
                 <Button
-                    onClick={() => navigate('/domains')}
+                    onClick={() => navigate('/scans')}
                     variant="outline"
                 >
                     <ArrowLeft />
-                    Back to domains
+                    Back to scans
                 </Button>
             </Empty>
         );
@@ -61,7 +249,7 @@ const Domain = () => {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <Link to="/domains">Domains</Link>
+                            <Link to="/scans">Scans</Link>
                         </BreadcrumbItem>
                         <BreadcrumbItem>
                             <BreadcrumbPage>{domain.name}</BreadcrumbPage>
@@ -81,7 +269,7 @@ const Domain = () => {
                         variant="destructive"
                     >
                         <Trash2 />
-                        Delete domain
+                        Delete scan
                     </Button>
                 </div>
 
@@ -89,36 +277,17 @@ const Domain = () => {
                     <Empty className="min-h-64">
                         <EmptyHeader>
                             <EmptyTitle>No flows</EmptyTitle>
-                            <EmptyDescription>This domain has no child flows.</EmptyDescription>
+                            <EmptyDescription>This scan has no child flows.</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {domain.flows.map((flow) => (
-                            <Card key={flow.id}>
-                                <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                                    <CardTitle className="flex min-w-0 items-center gap-2 text-base">
-                                        <FlowStatusIcon
-                                            status={flow.status}
-                                            tooltip={flow.status}
-                                        />
-                                        <span className="truncate">{flow.title}</span>
-                                    </CardTitle>
-                                    <Button
-                                        asChild
-                                        className="-mr-2 -mt-1 size-7 shrink-0"
-                                        size="icon"
-                                        variant="ghost"
-                                    >
-                                        <Link to={`/flows/${flow.id}`}>
-                                            <ExternalLink className="size-4" />
-                                        </Link>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="text-muted-foreground text-xs">
-                                    Started {formatDate(flow.createdAt)}
-                                </CardContent>
-                            </Card>
+                            <FlowCard
+                                flow={flow}
+                                key={flow.id}
+                                onChanged={refetch}
+                            />
                         ))}
                     </div>
                 )}
@@ -128,20 +297,20 @@ const Domain = () => {
                 confirmIcon={<Trash2 />}
                 confirmText="Delete"
                 confirmVariant="destructive"
-                description="This will soft-delete the domain and abort any running child flows. This cannot be undone."
+                description="This will soft-delete the scan and abort any running child flows. This cannot be undone."
                 handleConfirm={() => {
                     setIsDeleteOpen(false);
                     void deleteDomain(domain).then((ok) => {
                         if (ok) {
-                            navigate('/domains');
+                            navigate('/scans');
                         }
                     });
                 }}
                 handleOpenChange={setIsDeleteOpen}
                 isOpen={isDeleteOpen}
                 itemName={domain.name}
-                itemType="domain"
-                title="Delete domain?"
+                itemType="scan"
+                title="Delete scan?"
             />
         </>
     );

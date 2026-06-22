@@ -218,11 +218,13 @@ type ComplexityRoot struct {
 	}
 
 	Domain struct {
+		Box               func(childComplexity int) int
 		CreatedAt         func(childComplexity int) int
 		DetectionMetadata func(childComplexity int) int
 		Flows             func(childComplexity int) int
 		ID                func(childComplexity int) int
 		Name              func(childComplexity int) int
+		Scope             func(childComplexity int) int
 		Status            func(childComplexity int) int
 		TargetType        func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
@@ -329,6 +331,7 @@ type ComplexityRoot struct {
 		CreateFlowTemplate            func(childComplexity int, input model.CreateFlowTemplateInput) int
 		CreatePrompt                  func(childComplexity int, typeArg model.PromptType, template string) int
 		CreateProvider                func(childComplexity int, name string, typeArg model.ProviderType, agents model.AgentsConfig) int
+		CreateScan                    func(childComplexity int, input model.CreateScanInput) int
 		DeleteAPIToken                func(childComplexity int, tokenID string) int
 		DeleteAssistant               func(childComplexity int, flowID int64, assistantID int64) int
 		DeleteDomain                  func(childComplexity int, id int64) int
@@ -708,6 +711,7 @@ type MutationResolver interface {
 	DeleteFlowTemplate(ctx context.Context, templateID int64) (model.ResultType, error)
 	CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error)
 	DeleteDomain(ctx context.Context, id int64) (model.ResultType, error)
+	CreateScan(ctx context.Context, input model.CreateScanInput) (*model.Domain, error)
 }
 type QueryResolver interface {
 	Providers(ctx context.Context) ([]*model.Provider, error)
@@ -1594,6 +1598,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DefaultProvidersConfig.Qwen(childComplexity), true
 
+	case "Domain.box":
+		if e.complexity.Domain.Box == nil {
+			break
+		}
+
+		return e.complexity.Domain.Box(childComplexity), true
+
 	case "Domain.createdAt":
 		if e.complexity.Domain.CreatedAt == nil {
 			break
@@ -1628,6 +1639,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Domain.Name(childComplexity), true
+
+	case "Domain.scope":
+		if e.complexity.Domain.Scope == nil {
+			break
+		}
+
+		return e.complexity.Domain.Scope(childComplexity), true
 
 	case "Domain.status":
 		if e.complexity.Domain.Status == nil {
@@ -2163,6 +2181,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateProvider(childComplexity, args["name"].(string), args["type"].(model.ProviderType), args["agents"].(model.AgentsConfig)), true
+
+	case "Mutation.createScan":
+		if e.complexity.Mutation.CreateScan == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createScan_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateScan(childComplexity, args["input"].(model.CreateScanInput)), true
 
 	case "Mutation.deleteAPIToken":
 		if e.complexity.Mutation.DeleteAPIToken == nil {
@@ -4273,8 +4303,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateAPITokenInput,
 		ec.unmarshalInputCreateDomainInput,
 		ec.unmarshalInputCreateFlowTemplateInput,
+		ec.unmarshalInputCreateScanInput,
 		ec.unmarshalInputModelPriceInput,
 		ec.unmarshalInputReasoningConfigInput,
+		ec.unmarshalInputScanCredentialInput,
+		ec.unmarshalInputScanTemplateInput,
 		ec.unmarshalInputUpdateAPITokenInput,
 		ec.unmarshalInputUpdateFlowTemplateInput,
 	)
@@ -4965,6 +4998,38 @@ func (ec *executionContext) field_Mutation_createProvider_argsAgents(
 	}
 
 	var zeroVal model.AgentsConfig
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createScan_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_createScan_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createScan_argsInput(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (model.CreateScanInput, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["input"]
+	if !ok {
+		var zeroVal model.CreateScanInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalNCreateScanInput2pentagiᚋpkgᚋgraphᚋmodelᚐCreateScanInput(ctx, tmp)
+	}
+
+	var zeroVal model.CreateScanInput
 	return zeroVal, nil
 }
 
@@ -13189,6 +13254,88 @@ func (ec *executionContext) fieldContext_Domain_status(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Domain_scope(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_scope(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Scope, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ScanScope)
+	fc.Result = res
+	return ec.marshalOScanScope2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanScope(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_scope(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ScanScope does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Domain_box(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Domain_box(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Box, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ScanBox)
+	fc.Result = res
+	return ec.marshalOScanBox2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Domain_box(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Domain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ScanBox does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Domain_detectionMetadata(ctx context.Context, field graphql.CollectedField, obj *model.Domain) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Domain_detectionMetadata(ctx, field)
 	if err != nil {
@@ -17824,6 +17971,10 @@ func (ec *executionContext) fieldContext_Mutation_createDomain(ctx context.Conte
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -17899,6 +18050,83 @@ func (ec *executionContext) fieldContext_Mutation_deleteDomain(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteDomain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createScan(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createScan(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateScan(rctx, fc.Args["input"].(model.CreateScanInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Domain)
+	fc.Result = res
+	return ec.marshalNDomain2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐDomain(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createScan(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Domain_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Domain_name(ctx, field)
+			case "targetType":
+				return ec.fieldContext_Domain_targetType(ctx, field)
+			case "status":
+				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
+			case "detectionMetadata":
+				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Domain_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Domain_updatedAt(ctx, field)
+			case "flows":
+				return ec.fieldContext_Domain_flows(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Domain", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createScan_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -22927,6 +23155,10 @@ func (ec *executionContext) fieldContext_Query_domains(_ context.Context, field 
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -22986,6 +23218,10 @@ func (ec *executionContext) fieldContext_Query_domain(ctx context.Context, field
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -26690,6 +26926,10 @@ func (ec *executionContext) fieldContext_Subscription_domainCreated(_ context.Co
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -26766,6 +27006,10 @@ func (ec *executionContext) fieldContext_Subscription_domainUpdated(_ context.Co
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -26842,6 +27086,10 @@ func (ec *executionContext) fieldContext_Subscription_domainDeleted(_ context.Co
 				return ec.fieldContext_Domain_targetType(ctx, field)
 			case "status":
 				return ec.fieldContext_Domain_status(ctx, field)
+			case "scope":
+				return ec.fieldContext_Domain_scope(ctx, field)
+			case "box":
+				return ec.fieldContext_Domain_box(ctx, field)
 			case "detectionMetadata":
 				return ec.fieldContext_Domain_detectionMetadata(ctx, field)
 			case "createdAt":
@@ -32825,6 +33073,75 @@ func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateScanInput(ctx context.Context, obj interface{}) (model.CreateScanInput, error) {
+	var it model.CreateScanInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "targetType", "scope", "box", "templates", "credential", "modelProvider"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "targetType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetType"))
+			data, err := ec.unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetType = data
+		case "scope":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			data, err := ec.unmarshalOScanScope2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanScope(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Scope = data
+		case "box":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("box"))
+			data, err := ec.unmarshalOScanBox2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanBox(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Box = data
+		case "templates":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("templates"))
+			data, err := ec.unmarshalNScanTemplateInput2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanTemplateInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Templates = data
+		case "credential":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("credential"))
+			data, err := ec.unmarshalOScanCredentialInput2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanCredentialInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Credential = data
+		case "modelProvider":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModelProvider = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputModelPriceInput(ctx context.Context, obj interface{}) (model.ModelPrice, error) {
 	var it model.ModelPrice
 	asMap := map[string]interface{}{}
@@ -32901,6 +33218,74 @@ func (ec *executionContext) unmarshalInputReasoningConfigInput(ctx context.Conte
 				return it, err
 			}
 			it.MaxTokens = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputScanCredentialInput(ctx context.Context, obj interface{}) (model.ScanCredentialInput, error) {
+	var it model.ScanCredentialInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "value"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalNScanCredentialKind2pentagiᚋpkgᚋgraphᚋmodelᚐScanCredentialKind(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "value":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Value = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputScanTemplateInput(ctx context.Context, obj interface{}) (model.ScanTemplateInput, error) {
+	var it model.ScanTemplateInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"templateId", "runMode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "templateId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("templateId"))
+			data, err := ec.unmarshalNID2int64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TemplateID = data
+		case "runMode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("runMode"))
+			data, err := ec.unmarshalNScanRunMode2pentagiᚋpkgᚋgraphᚋmodelᚐScanRunMode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RunMode = data
 		}
 	}
 
@@ -34119,6 +34504,10 @@ func (ec *executionContext) _Domain(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "scope":
+			out.Values[i] = ec._Domain_scope(ctx, field, obj)
+		case "box":
+			out.Values[i] = ec._Domain_box(ctx, field, obj)
 		case "detectionMetadata":
 			out.Values[i] = ec._Domain_detectionMetadata(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -35027,6 +35416,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteDomain":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteDomain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createScan":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createScan(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -38321,6 +38717,11 @@ func (ec *executionContext) unmarshalNCreateFlowTemplateInput2pentagiᚋpkgᚋgr
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateScanInput2pentagiᚋpkgᚋgraphᚋmodelᚐCreateScanInput(ctx context.Context, v interface{}) (model.CreateScanInput, error) {
+	res, err := ec.unmarshalInputCreateScanInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNDailyFlowsStats2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐDailyFlowsStatsᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DailyFlowsStats) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -39306,6 +39707,48 @@ func (ec *executionContext) unmarshalNResultType2pentagiᚋpkgᚋgraphᚋmodel�
 
 func (ec *executionContext) marshalNResultType2pentagiᚋpkgᚋgraphᚋmodelᚐResultType(ctx context.Context, sel ast.SelectionSet, v model.ResultType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNScanCredentialKind2pentagiᚋpkgᚋgraphᚋmodelᚐScanCredentialKind(ctx context.Context, v interface{}) (model.ScanCredentialKind, error) {
+	var res model.ScanCredentialKind
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNScanCredentialKind2pentagiᚋpkgᚋgraphᚋmodelᚐScanCredentialKind(ctx context.Context, sel ast.SelectionSet, v model.ScanCredentialKind) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNScanRunMode2pentagiᚋpkgᚋgraphᚋmodelᚐScanRunMode(ctx context.Context, v interface{}) (model.ScanRunMode, error) {
+	var res model.ScanRunMode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNScanRunMode2pentagiᚋpkgᚋgraphᚋmodelᚐScanRunMode(ctx context.Context, sel ast.SelectionSet, v model.ScanRunMode) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNScanTemplateInput2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanTemplateInputᚄ(ctx context.Context, v interface{}) ([]*model.ScanTemplateInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.ScanTemplateInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNScanTemplateInput2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanTemplateInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNScanTemplateInput2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanTemplateInput(ctx context.Context, v interface{}) (*model.ScanTemplateInput, error) {
+	res, err := ec.unmarshalInputScanTemplateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNScreenshot2pentagiᚋpkgᚋgraphᚋmodelᚐScreenshot(ctx context.Context, sel ast.SelectionSet, v model.Screenshot) graphql.Marshaler {
@@ -40583,6 +41026,46 @@ func (ec *executionContext) unmarshalOReasoningEffort2ᚖpentagiᚋpkgᚋgraph�
 }
 
 func (ec *executionContext) marshalOReasoningEffort2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐReasoningEffort(ctx context.Context, sel ast.SelectionSet, v *model.ReasoningEffort) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOScanBox2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanBox(ctx context.Context, v interface{}) (*model.ScanBox, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ScanBox)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOScanBox2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanBox(ctx context.Context, sel ast.SelectionSet, v *model.ScanBox) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOScanCredentialInput2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanCredentialInput(ctx context.Context, v interface{}) (*model.ScanCredentialInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputScanCredentialInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOScanScope2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanScope(ctx context.Context, v interface{}) (*model.ScanScope, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ScanScope)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOScanScope2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐScanScope(ctx context.Context, sel ast.SelectionSet, v *model.ScanScope) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

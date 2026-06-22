@@ -143,51 +143,6 @@ func (ns NullContainerType) Value() (driver.Value, error) {
 	return string(ns.ContainerType), nil
 }
 
-type FlowStatus string
-
-const (
-	FlowStatusCreated  FlowStatus = "created"
-	FlowStatusRunning  FlowStatus = "running"
-	FlowStatusWaiting  FlowStatus = "waiting"
-	FlowStatusFinished FlowStatus = "finished"
-	FlowStatusFailed   FlowStatus = "failed"
-)
-
-func (e *FlowStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = FlowStatus(s)
-	case string:
-		*e = FlowStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for FlowStatus: %T", src)
-	}
-	return nil
-}
-
-type NullFlowStatus struct {
-	FlowStatus FlowStatus `json:"flow_status"`
-	Valid      bool       `json:"valid"` // Valid is true if FlowStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullFlowStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.FlowStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.FlowStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullFlowStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.FlowStatus), nil
-}
-
 type DomainStatus string
 
 const (
@@ -231,6 +186,51 @@ func (ns NullDomainStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DomainStatus), nil
+}
+
+type FlowStatus string
+
+const (
+	FlowStatusCreated  FlowStatus = "created"
+	FlowStatusRunning  FlowStatus = "running"
+	FlowStatusWaiting  FlowStatus = "waiting"
+	FlowStatusFinished FlowStatus = "finished"
+	FlowStatusFailed   FlowStatus = "failed"
+)
+
+func (e *FlowStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FlowStatus(s)
+	case string:
+		*e = FlowStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FlowStatus: %T", src)
+	}
+	return nil
+}
+
+type NullFlowStatus struct {
+	FlowStatus FlowStatus `json:"flow_status"`
+	Valid      bool       `json:"valid"` // Valid is true if FlowStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFlowStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.FlowStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FlowStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFlowStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FlowStatus), nil
 }
 
 type MsgchainType string
@@ -604,6 +604,54 @@ func (ns NullSubtaskStatus) Value() (driver.Value, error) {
 	return string(ns.SubtaskStatus), nil
 }
 
+type TargetType string
+
+const (
+	TargetTypeWebApp        TargetType = "web_app"
+	TargetTypeApi           TargetType = "api"
+	TargetTypeAws           TargetType = "aws"
+	TargetTypeAzure         TargetType = "azure"
+	TargetTypeGcp           TargetType = "gcp"
+	TargetTypeNetwork       TargetType = "network"
+	TargetTypeMobileBackend TargetType = "mobile_backend"
+	TargetTypeGeneral       TargetType = "general"
+)
+
+func (e *TargetType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TargetType(s)
+	case string:
+		*e = TargetType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TargetType: %T", src)
+	}
+	return nil
+}
+
+type NullTargetType struct {
+	TargetType TargetType `json:"target_type"`
+	Valid      bool       `json:"valid"` // Valid is true if TargetType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTargetType) Scan(value interface{}) error {
+	if value == nil {
+		ns.TargetType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TargetType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTargetType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TargetType), nil
+}
+
 type TaskStatus string
 
 const (
@@ -974,6 +1022,20 @@ type Container struct {
 	UpdatedAt sql.NullTime    `json:"updated_at"`
 }
 
+type Domain struct {
+	ID                int64           `json:"id"`
+	UserID            int64           `json:"user_id"`
+	Name              string          `json:"name"`
+	TargetType        TargetType      `json:"target_type"`
+	Status            DomainStatus    `json:"status"`
+	DetectionMetadata json.RawMessage `json:"detection_metadata"`
+	CreatedAt         sql.NullTime    `json:"created_at"`
+	UpdatedAt         sql.NullTime    `json:"updated_at"`
+	DeletedAt         sql.NullTime    `json:"deleted_at"`
+	Scope             sql.NullString  `json:"scope"`
+	Box               sql.NullString  `json:"box"`
+}
+
 type Flow struct {
 	ID                 int64           `json:"id"`
 	Status             FlowStatus      `json:"status"`
@@ -989,6 +1051,8 @@ type Flow struct {
 	TraceID            sql.NullString  `json:"trace_id"`
 	ModelProviderType  ProviderType    `json:"model_provider_type"`
 	ToolCallIDTemplate string          `json:"tool_call_id_template"`
+	DomainID           sql.NullInt64   `json:"domain_id"`
+	TemplateID         sql.NullInt64   `json:"template_id"`
 }
 
 type FlowTemplate struct {
@@ -998,21 +1062,9 @@ type FlowTemplate struct {
 	Text            string       `json:"text"`
 	CreatedAt       sql.NullTime `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`
-	TargetTypes     []string     `json:"target_types"`
+	TargetTypes     []TargetType `json:"target_types"`
 	DefaultTemplate bool         `json:"default_template"`
 	SystemOwned     bool         `json:"system_owned"`
-}
-
-type Domain struct {
-	ID                int64           `json:"id"`
-	UserID            int64           `json:"user_id"`
-	Name              string          `json:"name"`
-	TargetType        string          `json:"target_type"`
-	Status            DomainStatus    `json:"status"`
-	DetectionMetadata json.RawMessage `json:"detection_metadata"`
-	CreatedAt         sql.NullTime    `json:"created_at"`
-	UpdatedAt         sql.NullTime    `json:"updated_at"`
-	DeletedAt         sql.NullTime    `json:"deleted_at"`
 }
 
 type Msgchain struct {
@@ -1077,6 +1129,17 @@ type Provider struct {
 type Role struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
+}
+
+type ScanCredential struct {
+	ID         int64        `json:"id"`
+	UserID     int64        `json:"user_id"`
+	DomainID   int64        `json:"domain_id"`
+	Kind       string       `json:"kind"`
+	Ciphertext string       `json:"ciphertext"`
+	CreatedAt  sql.NullTime `json:"created_at"`
+	UpdatedAt  sql.NullTime `json:"updated_at"`
+	DeletedAt  sql.NullTime `json:"deleted_at"`
 }
 
 type Screenshot struct {

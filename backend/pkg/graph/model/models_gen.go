@@ -157,6 +157,16 @@ type CreateFlowTemplateInput struct {
 	DefaultTemplate *bool        `json:"defaultTemplate,omitempty"`
 }
 
+type CreateScanInput struct {
+	Name          string               `json:"name"`
+	TargetType    TargetType           `json:"targetType"`
+	Scope         *ScanScope           `json:"scope,omitempty"`
+	Box           *ScanBox             `json:"box,omitempty"`
+	Templates     []*ScanTemplateInput `json:"templates"`
+	Credential    *ScanCredentialInput `json:"credential,omitempty"`
+	ModelProvider string               `json:"modelProvider"`
+}
+
 type DailyFlowsStats struct {
 	Date  time.Time   `json:"date"`
 	Stats *FlowsStats `json:"stats"`
@@ -201,6 +211,8 @@ type Domain struct {
 	Name              string           `json:"name"`
 	TargetType        TargetType       `json:"targetType"`
 	Status            DomainStatusType `json:"status"`
+	Scope             *ScanScope       `json:"scope,omitempty"`
+	Box               *ScanBox         `json:"box,omitempty"`
 	DetectionMetadata string           `json:"detectionMetadata"`
 	CreatedAt         time.Time        `json:"createdAt"`
 	UpdatedAt         time.Time        `json:"updatedAt"`
@@ -396,6 +408,16 @@ type QuotaUsage struct {
 type ReasoningConfig struct {
 	Effort    *ReasoningEffort `json:"effort,omitempty"`
 	MaxTokens *int             `json:"maxTokens,omitempty"`
+}
+
+type ScanCredentialInput struct {
+	Kind  ScanCredentialKind `json:"kind"`
+	Value string             `json:"value"`
+}
+
+type ScanTemplateInput struct {
+	TemplateID int64       `json:"templateId"`
+	RunMode    ScanRunMode `json:"runMode"`
 }
 
 type Screenshot struct {
@@ -1146,6 +1168,172 @@ func (e *ResultType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e ResultType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ScanBox string
+
+const (
+	ScanBoxGrey  ScanBox = "grey"
+	ScanBoxBlack ScanBox = "black"
+)
+
+var AllScanBox = []ScanBox{
+	ScanBoxGrey,
+	ScanBoxBlack,
+}
+
+func (e ScanBox) IsValid() bool {
+	switch e {
+	case ScanBoxGrey, ScanBoxBlack:
+		return true
+	}
+	return false
+}
+
+func (e ScanBox) String() string {
+	return string(e)
+}
+
+func (e *ScanBox) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ScanBox(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ScanBox", str)
+	}
+	return nil
+}
+
+func (e ScanBox) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ScanCredentialKind string
+
+const (
+	ScanCredentialKindWebToken      ScanCredentialKind = "web_token"
+	ScanCredentialKindEmailPassword ScanCredentialKind = "email_password"
+	ScanCredentialKindCloudKeys     ScanCredentialKind = "cloud_keys"
+)
+
+var AllScanCredentialKind = []ScanCredentialKind{
+	ScanCredentialKindWebToken,
+	ScanCredentialKindEmailPassword,
+	ScanCredentialKindCloudKeys,
+}
+
+func (e ScanCredentialKind) IsValid() bool {
+	switch e {
+	case ScanCredentialKindWebToken, ScanCredentialKindEmailPassword, ScanCredentialKindCloudKeys:
+		return true
+	}
+	return false
+}
+
+func (e ScanCredentialKind) String() string {
+	return string(e)
+}
+
+func (e *ScanCredentialKind) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ScanCredentialKind(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ScanCredentialKind", str)
+	}
+	return nil
+}
+
+func (e ScanCredentialKind) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ScanRunMode string
+
+const (
+	ScanRunModeAutomatic ScanRunMode = "automatic"
+	ScanRunModeAssistant ScanRunMode = "assistant"
+)
+
+var AllScanRunMode = []ScanRunMode{
+	ScanRunModeAutomatic,
+	ScanRunModeAssistant,
+}
+
+func (e ScanRunMode) IsValid() bool {
+	switch e {
+	case ScanRunModeAutomatic, ScanRunModeAssistant:
+		return true
+	}
+	return false
+}
+
+func (e ScanRunMode) String() string {
+	return string(e)
+}
+
+func (e *ScanRunMode) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ScanRunMode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ScanRunMode", str)
+	}
+	return nil
+}
+
+func (e ScanRunMode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ScanScope string
+
+const (
+	ScanScopeInternal ScanScope = "internal"
+	ScanScopeExternal ScanScope = "external"
+)
+
+var AllScanScope = []ScanScope{
+	ScanScopeInternal,
+	ScanScopeExternal,
+}
+
+func (e ScanScope) IsValid() bool {
+	switch e {
+	case ScanScopeInternal, ScanScopeExternal:
+		return true
+	}
+	return false
+}
+
+func (e ScanScope) String() string {
+	return string(e)
+}
+
+func (e *ScanScope) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ScanScope(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ScanScope", str)
+	}
+	return nil
+}
+
+func (e ScanScope) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

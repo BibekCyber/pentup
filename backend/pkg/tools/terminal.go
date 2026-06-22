@@ -19,6 +19,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/sirupsen/logrus"
+	"github.com/vxcontrol/cloud/anonymizer"
 )
 
 const (
@@ -46,6 +47,9 @@ type terminal struct {
 	containerLID string
 	dockerClient docker.DockerClient
 	tlp          TermLogProvider
+	// replacer redacts secrets (incl. per-flow scan credentials) from command and
+	// output before they are persisted to the termlog / returned to the agent.
+	replacer anonymizer.Replacer
 }
 
 func NewTerminalTool(
@@ -54,6 +58,7 @@ func NewTerminalTool(
 	containerID int64, containerLID string,
 	dockerClient docker.DockerClient,
 	tlp TermLogProvider,
+	replacer anonymizer.Replacer,
 ) Tool {
 	return &terminal{
 		flowID:       flowID,
@@ -63,7 +68,17 @@ func NewTerminalTool(
 		containerLID: containerLID,
 		dockerClient: dockerClient,
 		tlp:          tlp,
+		replacer:     replacer,
 	}
+}
+
+// redact masks secrets (e.g. scan credentials) from terminal text before it is
+// persisted or returned. Safe with a nil replacer.
+func (t *terminal) redact(s string) string {
+	if t.replacer == nil {
+		return s
+	}
+	return t.replacer.ReplaceString(s)
 }
 
 func (t *terminal) wrapCommandResult(ctx context.Context, args json.RawMessage, name, result string, err error) (string, error) {
@@ -167,7 +182,7 @@ func (t *terminal) ExecCommand(
 
 	// Format command with working directory and ANSI styling
 	styledCommand := fmt.Sprintf("%s $ %s%s%s%s", cwd, ansiColorInputCmd, command, ansiColorReset, ansiLineTerminator)
-	_, err = t.tlp.PutMsg(ctx, database.TermlogTypeStdin, styledCommand, t.containerID, t.taskID, t.subtaskID)
+	_, err = t.tlp.PutMsg(ctx, database.TermlogTypeStdin, t.redact(styledCommand), t.containerID, t.taskID, t.subtaskID)
 	if err != nil {
 		return "", fmt.Errorf("failed to put terminal log (stdin): %w", err)
 	}
@@ -252,7 +267,7 @@ func (t *terminal) getExecResult(ctx context.Context, id string, timeout time.Du
 				"HINT: If this is an interactive command (shell/REPL/listener), use detach=true. "+
 				"For long batch commands, wrap with shell timeout utility: 'timeout %d <command>' to ensure clean completion",
 			ctx.Err(),
-			truncateString(dst.String(), 500),
+			truncateString(t.redact(dst.String()), 500),
 			suggestedTimeout,
 		)
 	}
@@ -264,6 +279,9 @@ func (t *terminal) getExecResult(ctx context.Context, id string, timeout time.Du
 	}
 
 	results := dst.String()
+	// Redact secrets (incl. scan credentials) from output before it is persisted
+	// to the termlog AND before it is returned to the agent / msglog / Langfuse.
+	results = t.redact(results)
 	// Style system output with color coding
 	styledOutput := fmt.Sprintf("%s%s%s%s", ansiColorSystemMsg, results, ansiColorReset, ansiLineTerminator)
 	_, err = t.tlp.PutMsg(ctx, database.TermlogTypeStdout, styledOutput, t.containerID, t.taskID, t.subtaskID)
@@ -294,7 +312,7 @@ func (t *terminal) ReadFile(ctx context.Context, flowID int64, path string) (str
 	catCommand := fmt.Sprintf("cat '%s'", escapedPath)
 	// Format read file command with styling
 	styledCommand := fmt.Sprintf("%s $ %s%s%s%s", cwd, ansiColorInputCmd, catCommand, ansiColorReset, ansiLineTerminator)
-	_, err = t.tlp.PutMsg(ctx, database.TermlogTypeStdin, styledCommand, t.containerID, t.taskID, t.subtaskID)
+	_, err = t.tlp.PutMsg(ctx, database.TermlogTypeStdin, t.redact(styledCommand), t.containerID, t.taskID, t.subtaskID)
 	if err != nil {
 		return "", fmt.Errorf("failed to put terminal log (read file cmd): %w", err)
 	}

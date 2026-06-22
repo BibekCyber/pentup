@@ -64,11 +64,25 @@ func ConvertDomain(domain database.Domain, flows []database.Flow) *model.Domain 
 		gflows = append(gflows, ConvertFlow(flow, nil))
 	}
 
+	var scope *model.ScanScope
+	if domain.Scope.Valid && domain.Scope.String != "" {
+		s := model.ScanScope(domain.Scope.String)
+		scope = &s
+	}
+
+	var box *model.ScanBox
+	if domain.Box.Valid && domain.Box.String != "" {
+		b := model.ScanBox(domain.Box.String)
+		box = &b
+	}
+
 	return &model.Domain{
 		ID:                domain.ID,
 		Name:              domain.Name,
 		TargetType:        model.TargetType(domain.TargetType),
 		Status:            model.DomainStatusType(string(domain.Status)),
+		Scope:             scope,
+		Box:               box,
 		DetectionMetadata: metadata,
 		CreatedAt:         domain.CreatedAt.Time,
 		UpdatedAt:         domain.UpdatedAt.Time,
@@ -524,7 +538,7 @@ func ConvertAPITokens(tokens []database.ApiToken) []*model.APIToken {
 	return result
 }
 
-func convertTargetTypes(targetTypes []string) []model.TargetType {
+func convertTargetTypes(targetTypes []database.TargetType) []model.TargetType {
 	result := make([]model.TargetType, 0, len(targetTypes))
 	for _, t := range targetTypes {
 		result = append(result, model.TargetType(t))

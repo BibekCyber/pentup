@@ -46,7 +46,7 @@ const Domains = () => {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbPage>Domains</BreadcrumbPage>
+                            <BreadcrumbPage>Scans</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -71,9 +71,9 @@ const Domains = () => {
                         </SelectContent>
                     </Select>
                     <Button asChild>
-                        <Link to="/domains/new">
+                        <Link to="/scans/new">
                             <Plus />
-                            New Domain
+                            New Scan
                         </Link>
                     </Button>
                 </div>
@@ -90,16 +90,16 @@ const Domains = () => {
                             <EmptyMedia variant="icon">
                                 <Globe />
                             </EmptyMedia>
-                            <EmptyTitle>No domains yet</EmptyTitle>
+                            <EmptyTitle>No scans yet</EmptyTitle>
                             <EmptyDescription>
-                                Create a domain to auto-detect its target type and run matching scans together.
+                                Create a scan to auto-detect its target type and run the matching templates together.
                             </EmptyDescription>
                         </EmptyHeader>
                         <EmptyContent>
                             <Button asChild>
-                                <Link to="/domains/new">
+                                <Link to="/scans/new">
                                     <Plus />
-                                    Create your first domain
+                                    Create your first scan
                                 </Link>
                             </Button>
                         </EmptyContent>
@@ -108,14 +108,14 @@ const Domains = () => {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {filteredDomains.map((domain) => (
                             <Card
-                                className="cursor-pointer transition-colors hover:border-primary/50"
+                                className="hover:border-primary/50 cursor-pointer transition-colors"
                                 key={domain.id}
-                                onClick={() => navigate(`/domains/${domain.id}`)}
+                                onClick={() => navigate(`/scans/${domain.id}`)}
                             >
                                 <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
                                     <CardTitle className="truncate text-base">{domain.name}</CardTitle>
                                     <Button
-                                        className="text-muted-foreground hover:text-destructive -mr-2 -mt-1 size-7 shrink-0"
+                                        className="text-muted-foreground hover:text-destructive -mt-1 -mr-2 size-7 shrink-0"
                                         onClick={(event) => {
                                             event.stopPropagation();
                                             setDeletingDomain(domain);
@@ -147,7 +147,7 @@ const Domains = () => {
                 confirmIcon={<Trash2 />}
                 confirmText="Delete"
                 confirmVariant="destructive"
-                description="This will soft-delete the domain and abort any running child flows. This cannot be undone."
+                description="This will soft-delete the scan and abort any running child flows. This cannot be undone."
                 handleConfirm={() => {
                     if (deletingDomain) {
                         void deleteDomain(deletingDomain);
@@ -161,8 +161,8 @@ const Domains = () => {
                 }}
                 isOpen={deletingDomain !== null}
                 itemName={deletingDomain?.name}
-                itemType="domain"
-                title="Delete domain?"
+                itemType="scan"
+                title="Delete scan?"
             />
         </>
     );

@@ -11,6 +11,7 @@ interface DomainContextValue {
     domainError: Error | undefined;
     domainId: null | string;
     isLoading: boolean;
+    refetch: () => void;
 }
 
 const DomainContext = createContext<DomainContextValue | undefined>(undefined);
@@ -26,6 +27,7 @@ export const DomainProvider = ({ children }: DomainProviderProps) => {
         data: domainData,
         error: domainError,
         loading: isLoading,
+        refetch,
     } = useDomainQuery({
         errorPolicy: 'all',
         fetchPolicy: 'cache-and-network',
@@ -40,8 +42,11 @@ export const DomainProvider = ({ children }: DomainProviderProps) => {
             domainError,
             domainId: domainId ?? null,
             isLoading,
+            refetch: () => {
+                void refetch();
+            },
         }),
-        [domainData, domainError, domainId, isLoading],
+        [domainData, domainError, domainId, isLoading, refetch],
     );
 
     return <DomainContext.Provider value={value}>{children}</DomainContext.Provider>;

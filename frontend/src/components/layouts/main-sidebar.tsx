@@ -93,7 +93,7 @@ const FlowMenuItem = ({ activeFlowId, flow, isFavorite, onToggleFavorite }: Flow
 export const MainSidebar = () => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const isDashboardActive = useMatch('/dashboard');
-    const isDomainsActive = useMatch('/domains/*');
+    const isDomainsActive = useMatch('/scans/*');
     const isFlowsActive = useMatch('/flows/*');
     const isTemplatesActive = useMatch('/templates/*');
     const isSettingsActive = useMatch('/settings/*');
@@ -169,9 +169,9 @@ export const MainSidebar = () => {
                                     asChild
                                     isActive={!!isDomainsActive}
                                 >
-                                    <Link to="/domains">
+                                    <Link to="/scans">
                                         <Globe />
-                                        Domains
+                                        Scans
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
@@ -179,7 +179,7 @@ export const MainSidebar = () => {
                                     className="data-[state=open]:bg-accent rounded-sm"
                                     showOnHover
                                 >
-                                    <Link to="/domains/new">
+                                    <Link to="/scans/new">
                                         <Plus />
                                     </Link>
                                 </SidebarMenuAction>

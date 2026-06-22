@@ -12,6 +12,21 @@ import (
 	"time"
 )
 
+const countActiveFlowsForUser = `-- name: CountActiveFlowsForUser :one
+SELECT COUNT(*)::bigint
+FROM flows
+WHERE user_id = $1
+  AND deleted_at IS NULL
+  AND status IN ('created', 'running', 'waiting')
+`
+
+func (q *Queries) CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countActiveFlowsForUser, userID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createFlow = `-- name: CreateFlow :one
 INSERT INTO flows (
   title, status, model, model_provider_name, model_provider_type, language, tool_call_id_template, functions, user_id
@@ -19,7 +34,7 @@ INSERT INTO flows (
 VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type CreateFlowParams struct {
@@ -62,6 +77,8 @@ func (q *Queries) CreateFlow(ctx context.Context, arg CreateFlowParams) (Flow, e
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -70,7 +87,7 @@ const deleteFlow = `-- name: DeleteFlow :one
 UPDATE flows
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 func (q *Queries) DeleteFlow(ctx context.Context, id int64) (Flow, error) {
@@ -91,91 +108,15 @@ func (q *Queries) DeleteFlow(ctx context.Context, id int64) (Flow, error) {
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
 
-const countActiveFlowsForUser = `-- name: CountActiveFlowsForUser :one
-SELECT COUNT(*)::bigint
-FROM flows
-WHERE user_id = $1
-  AND deleted_at IS NULL
-  AND status IN ('created', 'running', 'waiting')
-`
-
-func (q *Queries) CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActiveFlowsForUser, userID)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const setFlowDomain = `-- name: SetFlowDomain :exec
-UPDATE flows
-SET domain_id = $2, template_id = $3
-WHERE id = $1
-`
-
-type SetFlowDomainParams struct {
-	ID         int64         `json:"id"`
-	DomainID   sql.NullInt64 `json:"domain_id"`
-	TemplateID sql.NullInt64 `json:"template_id"`
-}
-
-func (q *Queries) SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error {
-	_, err := q.db.ExecContext(ctx, setFlowDomain, arg.ID, arg.DomainID, arg.TemplateID)
-	return err
-}
-
-const getFlowsForDomain = `-- name: GetFlowsForDomain :many
-SELECT
-  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
-FROM flows f
-WHERE f.domain_id = $1 AND f.deleted_at IS NULL
-ORDER BY f.created_at DESC
-`
-
-func (q *Queries) GetFlowsForDomain(ctx context.Context, domainID sql.NullInt64) ([]Flow, error) {
-	rows, err := q.db.QueryContext(ctx, getFlowsForDomain, domainID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Flow
-	for rows.Next() {
-		var i Flow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Status,
-			&i.Title,
-			&i.Model,
-			&i.ModelProviderName,
-			&i.Language,
-			&i.Functions,
-			&i.UserID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.TraceID,
-			&i.ModelProviderType,
-			&i.ToolCallIDTemplate,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getFlow = `-- name: GetFlow :one
 SELECT
-  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template, f.domain_id, f.template_id
 FROM flows f
 WHERE f.id = $1 AND f.deleted_at IS NULL
 `
@@ -198,6 +139,8 @@ func (q *Queries) GetFlow(ctx context.Context, id int64) (Flow, error) {
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -232,7 +175,7 @@ func (q *Queries) GetFlowStats(ctx context.Context, id int64) (GetFlowStatsRow, 
 
 const getFlows = `-- name: GetFlows :many
 SELECT
-  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template, f.domain_id, f.template_id
 FROM flows f
 WHERE f.deleted_at IS NULL
 ORDER BY f.created_at DESC
@@ -262,6 +205,56 @@ func (q *Queries) GetFlows(ctx context.Context) ([]Flow, error) {
 			&i.TraceID,
 			&i.ModelProviderType,
 			&i.ToolCallIDTemplate,
+			&i.DomainID,
+			&i.TemplateID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFlowsForDomain = `-- name: GetFlowsForDomain :many
+SELECT
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template, f.domain_id, f.template_id
+FROM flows f
+WHERE f.domain_id = $1 AND f.deleted_at IS NULL
+ORDER BY f.created_at DESC
+`
+
+func (q *Queries) GetFlowsForDomain(ctx context.Context, domainID sql.NullInt64) ([]Flow, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowsForDomain, domainID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Flow
+	for rows.Next() {
+		var i Flow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Title,
+			&i.Model,
+			&i.ModelProviderName,
+			&i.Language,
+			&i.Functions,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TraceID,
+			&i.ModelProviderType,
+			&i.ToolCallIDTemplate,
+			&i.DomainID,
+			&i.TemplateID,
 		); err != nil {
 			return nil, err
 		}
@@ -440,7 +433,7 @@ func (q *Queries) GetFlowsStatsByDayLastWeek(ctx context.Context, userID int64) 
 
 const getUserFlow = `-- name: GetUserFlow :one
 SELECT
-  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template, f.domain_id, f.template_id
 FROM flows f
 INNER JOIN users u ON f.user_id = u.id
 WHERE f.id = $1 AND f.user_id = $2 AND f.deleted_at IS NULL
@@ -469,13 +462,15 @@ func (q *Queries) GetUserFlow(ctx context.Context, arg GetUserFlowParams) (Flow,
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
 
 const getUserFlows = `-- name: GetUserFlows :many
 SELECT
-  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template
+  f.id, f.status, f.title, f.model, f.model_provider_name, f.language, f.functions, f.user_id, f.created_at, f.updated_at, f.deleted_at, f.trace_id, f.model_provider_type, f.tool_call_id_template, f.domain_id, f.template_id
 FROM flows f
 INNER JOIN users u ON f.user_id = u.id
 WHERE f.user_id = $1 AND f.deleted_at IS NULL
@@ -506,6 +501,8 @@ func (q *Queries) GetUserFlows(ctx context.Context, userID int64) ([]Flow, error
 			&i.TraceID,
 			&i.ModelProviderType,
 			&i.ToolCallIDTemplate,
+			&i.DomainID,
+			&i.TemplateID,
 		); err != nil {
 			return nil, err
 		}
@@ -553,11 +550,28 @@ func (q *Queries) GetUserTotalFlowsStats(ctx context.Context, userID int64) (Get
 	return i, err
 }
 
+const setFlowDomain = `-- name: SetFlowDomain :exec
+UPDATE flows
+SET domain_id = $2, template_id = $3
+WHERE id = $1
+`
+
+type SetFlowDomainParams struct {
+	ID         int64         `json:"id"`
+	DomainID   sql.NullInt64 `json:"domain_id"`
+	TemplateID sql.NullInt64 `json:"template_id"`
+}
+
+func (q *Queries) SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error {
+	_, err := q.db.ExecContext(ctx, setFlowDomain, arg.ID, arg.DomainID, arg.TemplateID)
+	return err
+}
+
 const updateFlow = `-- name: UpdateFlow :one
 UPDATE flows
 SET title = $1, model = $2, language = $3, tool_call_id_template = $4, functions = $5, trace_id = $6
 WHERE id = $7
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowParams struct {
@@ -596,6 +610,8 @@ func (q *Queries) UpdateFlow(ctx context.Context, arg UpdateFlowParams) (Flow, e
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -604,7 +620,7 @@ const updateFlowLanguage = `-- name: UpdateFlowLanguage :one
 UPDATE flows
 SET language = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowLanguageParams struct {
@@ -630,6 +646,8 @@ func (q *Queries) UpdateFlowLanguage(ctx context.Context, arg UpdateFlowLanguage
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -638,7 +656,7 @@ const updateFlowProvider = `-- name: UpdateFlowProvider :one
 UPDATE flows
 SET model_provider_name = $1, model_provider_type = $2, tool_call_id_template = $3, model = $4
 WHERE id = $5
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowProviderParams struct {
@@ -673,6 +691,8 @@ func (q *Queries) UpdateFlowProvider(ctx context.Context, arg UpdateFlowProvider
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -681,7 +701,7 @@ const updateFlowStatus = `-- name: UpdateFlowStatus :one
 UPDATE flows
 SET status = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowStatusParams struct {
@@ -707,6 +727,8 @@ func (q *Queries) UpdateFlowStatus(ctx context.Context, arg UpdateFlowStatusPara
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -715,7 +737,7 @@ const updateFlowTitle = `-- name: UpdateFlowTitle :one
 UPDATE flows
 SET title = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowTitleParams struct {
@@ -741,6 +763,8 @@ func (q *Queries) UpdateFlowTitle(ctx context.Context, arg UpdateFlowTitleParams
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -749,7 +773,7 @@ const updateFlowToolCallIDTemplate = `-- name: UpdateFlowToolCallIDTemplate :one
 UPDATE flows
 SET tool_call_id_template = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, user_id, created_at, updated_at, deleted_at, trace_id, model_provider_type, tool_call_id_template, domain_id, template_id
 `
 
 type UpdateFlowToolCallIDTemplateParams struct {
@@ -775,6 +799,8 @@ func (q *Queries) UpdateFlowToolCallIDTemplate(ctx context.Context, arg UpdateFl
 		&i.TraceID,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.DomainID,
+		&i.TemplateID,
 	)
 	return i, err
 }

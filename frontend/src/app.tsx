@@ -28,7 +28,10 @@ import { SystemSettingsProvider } from './providers/system-settings-provider';
 const Dashboard = lazy(() => import('@/pages/dashboard/dashboard'));
 const Domain = lazy(() => import('@/pages/domains/domain'));
 const Domains = lazy(() => import('@/pages/domains/domains'));
-const NewDomain = lazy(() => import('@/pages/domains/new-domain'));
+const NewEngagement = lazy(() => import('@/pages/domains/new-engagement'));
+// Note: new-domain (the original single-step scan form) and execution-preview
+// (the split-terminal demo) remain in the codebase but are no longer routed —
+// the engagement wizard is now the scan-creation flow at /scans/new.
 const Flow = lazy(() => import('@/pages/flows/flow'));
 const FlowReport = lazy(() => import('@/pages/flows/flow-report'));
 const Flows = lazy(() => import('@/pages/flows/flows'));
@@ -117,15 +120,15 @@ const App = () => {
                                                     />
                                                 </Route>
 
-                                                {/* Domains section with DomainsProvider */}
+                                                {/* Scans section with DomainsProvider */}
                                                 <Route element={<DomainsLayout />}>
                                                     <Route
                                                         element={<Domains />}
-                                                        path="domains"
+                                                        path="scans"
                                                     />
                                                     <Route
-                                                        element={<NewDomain />}
-                                                        path="domains/new"
+                                                        element={<NewEngagement />}
+                                                        path="scans/new"
                                                     />
                                                     <Route
                                                         element={
@@ -133,9 +136,38 @@ const App = () => {
                                                                 <Domain />
                                                             </DomainProvider>
                                                         }
-                                                        path="domains/:domainId"
+                                                        path="scans/:domainId"
                                                     />
                                                 </Route>
+
+                                                {/* Legacy /domains → /scans redirects (keep old links working) */}
+                                                <Route
+                                                    element={
+                                                        <Navigate
+                                                            replace
+                                                            to="/scans"
+                                                        />
+                                                    }
+                                                    path="domains"
+                                                />
+                                                <Route
+                                                    element={
+                                                        <Navigate
+                                                            replace
+                                                            to="/scans/new"
+                                                        />
+                                                    }
+                                                    path="domains/new"
+                                                />
+                                                <Route
+                                                    element={
+                                                        <Navigate
+                                                            replace
+                                                            to="/scans"
+                                                        />
+                                                    }
+                                                    path="domains/:domainId"
+                                                />
 
                                                 <Route
                                                     element={<Templates />}

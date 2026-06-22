@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -31,13 +32,13 @@ INSERT INTO domains (
 ) VALUES (
   $1, $2, $3, $4, $5
 )
-RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at
+RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box
 `
 
 type CreateDomainParams struct {
 	UserID            int64           `json:"user_id"`
 	Name              string          `json:"name"`
-	TargetType        string          `json:"target_type"`
+	TargetType        TargetType      `json:"target_type"`
 	Status            DomainStatus    `json:"status"`
 	DetectionMetadata json.RawMessage `json:"detection_metadata"`
 }
@@ -61,6 +62,8 @@ func (q *Queries) CreateDomain(ctx context.Context, arg CreateDomainParams) (Dom
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
@@ -69,7 +72,7 @@ const deleteDomain = `-- name: DeleteDomain :one
 UPDATE domains
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at
+RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box
 `
 
 func (q *Queries) DeleteDomain(ctx context.Context, id int64) (Domain, error) {
@@ -85,12 +88,14 @@ func (q *Queries) DeleteDomain(ctx context.Context, id int64) (Domain, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
 
 const getDomain = `-- name: GetDomain :one
-SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at FROM domains
+SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box FROM domains
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -107,12 +112,14 @@ func (q *Queries) GetDomain(ctx context.Context, id int64) (Domain, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
 
 const getDomains = `-- name: GetDomains :many
-SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at FROM domains
+SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box FROM domains
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC
 `
@@ -136,6 +143,8 @@ func (q *Queries) GetDomains(ctx context.Context) ([]Domain, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Scope,
+			&i.Box,
 		); err != nil {
 			return nil, err
 		}
@@ -151,7 +160,7 @@ func (q *Queries) GetDomains(ctx context.Context) ([]Domain, error) {
 }
 
 const getUserDomain = `-- name: GetUserDomain :one
-SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at FROM domains
+SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box FROM domains
 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
 `
 
@@ -173,12 +182,14 @@ func (q *Queries) GetUserDomain(ctx context.Context, arg GetUserDomainParams) (D
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
 
 const getUserDomains = `-- name: GetUserDomains :many
-SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at FROM domains
+SELECT id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box FROM domains
 WHERE user_id = $1 AND deleted_at IS NULL
 ORDER BY created_at DESC
 `
@@ -202,6 +213,8 @@ func (q *Queries) GetUserDomains(ctx context.Context, userID int64) ([]Domain, e
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Scope,
+			&i.Box,
 		); err != nil {
 			return nil, err
 		}
@@ -216,16 +229,33 @@ func (q *Queries) GetUserDomains(ctx context.Context, userID int64) ([]Domain, e
 	return items, nil
 }
 
+const setDomainScopeBox = `-- name: SetDomainScopeBox :exec
+UPDATE domains
+SET scope = $2, box = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+type SetDomainScopeBoxParams struct {
+	ID    int64          `json:"id"`
+	Scope sql.NullString `json:"scope"`
+	Box   sql.NullString `json:"box"`
+}
+
+func (q *Queries) SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error {
+	_, err := q.db.ExecContext(ctx, setDomainScopeBox, arg.ID, arg.Scope, arg.Box)
+	return err
+}
+
 const updateDomainDetectionMetadata = `-- name: UpdateDomainDetectionMetadata :one
 UPDATE domains
 SET target_type = $2, detection_metadata = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at
+RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box
 `
 
 type UpdateDomainDetectionMetadataParams struct {
 	ID                int64           `json:"id"`
-	TargetType        string          `json:"target_type"`
+	TargetType        TargetType      `json:"target_type"`
 	DetectionMetadata json.RawMessage `json:"detection_metadata"`
 }
 
@@ -242,6 +272,8 @@ func (q *Queries) UpdateDomainDetectionMetadata(ctx context.Context, arg UpdateD
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
@@ -250,7 +282,7 @@ const updateDomainStatus = `-- name: UpdateDomainStatus :one
 UPDATE domains
 SET status = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at
+RETURNING id, user_id, name, target_type, status, detection_metadata, created_at, updated_at, deleted_at, scope, box
 `
 
 type UpdateDomainStatusParams struct {
@@ -271,6 +303,8 @@ func (q *Queries) UpdateDomainStatus(ctx context.Context, arg UpdateDomainStatus
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Scope,
+		&i.Box,
 	)
 	return i, err
 }
