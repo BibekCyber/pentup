@@ -49,6 +49,7 @@ lowlight.register('yaml', yaml);
 interface MarkdownProps {
     children: string;
     className?: string;
+    disableHeadingIds?: boolean;
     searchValue?: string;
 }
 
@@ -96,7 +97,7 @@ const escapeRegExp = (string: string): string => {
     return string.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-const Markdown = ({ children, className, searchValue }: MarkdownProps) => {
+const Markdown = ({ children, className, disableHeadingIds, searchValue }: MarkdownProps) => {
     // Memoize the escaped search value to avoid recalculating regex
     const processedSearch = useMemo(() => {
         const trimmedSearch = searchValue?.trim();
@@ -270,7 +271,7 @@ const Markdown = ({ children, className, searchValue }: MarkdownProps) => {
                             },
                         },
                     ],
-                    rehypeSlug,
+                    ...(disableHeadingIds ? [] : [rehypeSlug]),
                 ]}
                 remarkPlugins={[remarkGfm]}
             >

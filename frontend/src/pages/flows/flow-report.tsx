@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+
+import type { ReportModel } from '@/lib/report-model';
 
 import Logo from '@/components/icons/logo';
-import Markdown from '@/components/shared/markdown';
+import FlowReportView from '@/features/flows/report/flow-report-view';
 import { useFlowReportQuery } from '@/graphql/types';
+import { buildReportMarkdown } from '@/lib/build-report-markdown';
+import { buildReportModel } from '@/lib/build-report-model';
 import { Log } from '@/lib/log';
-import { generateFileName, generatePDFFromMarkdown, generateReport } from '@/lib/report';
+import { copyToClipboard, downloadTextFile, generateFileName } from '@/lib/report';
+import { generateReportPdf } from '@/lib/report-pdf';
+import { sampleReportModel } from '@/lib/report-sample';
 
 type ReportState = 'content' | 'error' | 'generating' | 'loading';
 
@@ -14,10 +21,10 @@ const FlowReport = () => {
     const [searchParams] = useSearchParams();
     const download = searchParams.has('download');
     const silent = searchParams.has('silent');
+    const sample = searchParams.has('sample');
 
-    const [state, setState] = useState<ReportState>('loading');
-    const [error, setError] = useState<null | string>(null);
-    const [reportContent, setReportContent] = useState<string>('');
+    const [pdfGenerating, setPdfGenerating] = useState(false);
+    const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
 
     const {
         data,
@@ -25,114 +32,120 @@ const FlowReport = () => {
         loading,
     } = useFlowReportQuery({
         errorPolicy: 'all',
-        skip: !flowId,
+        skip: !flowId || sample,
         variables: { id: flowId! },
     });
 
-    // Reset state when component mounts or flowId changes
-    useEffect(() => {
-        setState('loading');
-        setError(null);
-        setReportContent('');
-    }, [flowId]);
+    const model: null | ReportModel = useMemo(() => {
+        if (sample) {
+            return sampleReportModel;
+        }
+
+        if (!data?.flow) {
+            return null;
+        }
+
+        return buildReportModel(data.flow, data.tasks ?? []);
+    }, [sample, data]);
+
+    const fileBaseName = useMemo(() => (sample ? 'report_sample' : data?.flow ? generateFileName(data.flow) : 'report'), [sample, data]);
 
     useEffect(() => {
-        if (loading) {
+        if (!download || !model) {
             return;
         }
 
-        if (queryError || !data?.flow) {
-            setError('Failed to load flow data');
-            setState('error');
+        setDownloadState('generating');
 
+        generateReportPdf(model, fileBaseName)
+            .then(() => {
+                if (silent) {
+                    setTimeout(() => window.close(), 1000);
+                } else {
+                    setDownloadState('content');
+                }
+            })
+            .catch((err) => {
+                Log.error('PDF generation failed:', err);
+                setDownloadState('error');
+            });
+    }, [download, model, fileBaseName, silent]);
+
+    const handleCopyMarkdown = async () => {
+        if (!model) {
             return;
         }
 
-        // Generate report content using flow and tasks from GraphQL response
-        const content = generateReport(data.tasks || [], data.flow);
-        setReportContent(content);
+        const ok = await copyToClipboard(buildReportMarkdown(model));
+        toast[ok ? 'success' : 'error'](ok ? 'Report copied to clipboard' : 'Failed to copy report');
+    };
 
-        if (download) {
-            // Download mode - generate PDF and download it
-            setState('generating');
-            const fileName = `${generateFileName(data.flow)}.pdf`;
-
-            generatePDFFromMarkdown(content, fileName)
-                .then(() => {
-                    if (silent) {
-                        // Silent download - close window after successful download
-                        setTimeout(() => window.close(), 1000);
-                    } else {
-                        // Normal download - show content after download
-                        setState('content');
-                    }
-                })
-                .catch((err) => {
-                    Log.error('PDF generation failed:', err);
-                    setError('Failed to generate PDF');
-                    setState('error');
-                });
-        } else {
-            setState('content');
+    const handleDownloadMarkdown = () => {
+        if (!model) {
+            return;
         }
-    }, [data, loading, queryError, download, silent]);
 
-    // Loading state (for all modes during initial loading and PDF generation)
-    if (state === 'loading' || state === 'generating') {
+        downloadTextFile(buildReportMarkdown(model), `${fileBaseName}.md`, 'text/markdown; charset=UTF-8');
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!model || pdfGenerating) {
+            return;
+        }
+
+        setPdfGenerating(true);
+
+        try {
+            await generateReportPdf(model, fileBaseName);
+        } catch (err) {
+            Log.error('PDF generation failed:', err);
+            toast.error('Failed to generate PDF');
+        } finally {
+            setPdfGenerating(false);
+        }
+    };
+
+    const isLoading = !sample && (loading || (!model && !queryError));
+    const isError = (!sample && queryError && !data?.flow) || downloadState === 'error';
+
+    if (isLoading || downloadState === 'generating') {
         return (
-            <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-                <div className="flex min-h-screen flex-col items-center justify-center p-8">
-                    <Logo className="animate-logo-spin mb-8 size-16 text-white" />
-                    <div className="flex flex-col gap-4 text-center">
-                        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                            {state === 'loading' ? 'Loading Report...' : 'Generating PDF...'}
-                        </h1>
-                        <div className="mx-auto size-8 animate-spin rounded-full border-b-2 border-blue-600" />
-                        <p className="max-w-md text-gray-600 dark:text-gray-400">
-                            {state === 'loading'
-                                ? 'Please wait while we prepare your penetration testing report.'
-                                : 'Creating your PDF document. This may take a few moments.'}
-                        </p>
-                    </div>
-                </div>
+            <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+                <Logo className="animate-logo-spin size-16" />
+                <h1 className="text-foreground text-2xl font-semibold">{downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}</h1>
+                <div className="size-8 animate-spin rounded-full border-b-2 border-blue-600" />
+                <p className="text-muted-foreground max-w-md">
+                    {downloadState === 'generating' ? 'Creating your PDF document. This may take a few moments.' : 'Please wait while we prepare your penetration testing report.'}
+                </p>
             </div>
         );
     }
 
-    // Error state
-    if (state === 'error') {
+    if (isError || !model) {
         return (
-            <div className="min-h-screen bg-linear-to-br from-red-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-                <div className="flex min-h-screen flex-col items-center justify-center p-8">
-                    <Logo className="mb-8 size-16" />
-                    <div className="flex flex-col gap-4 text-center">
-                        <h1 className="text-2xl font-semibold text-red-600 dark:text-red-400">Error Loading Report</h1>
-                        <p className="max-w-md text-gray-600 dark:text-gray-400">
-                            {error || 'An unexpected error occurred while loading the report.'}
-                        </p>
-                        <button
-                            className="mt-4 rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-                            onClick={() => window.close()}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
+            <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+                <Logo className="size-16" />
+                <h1 className="text-2xl font-semibold text-red-600 dark:text-red-400">Error Loading Report</h1>
+                <p className="text-muted-foreground max-w-md">We could not load this report. Please close this window and try again.</p>
+                <button
+                    className="mt-2 rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
+                    onClick={() => window.close()}
+                    type="button"
+                >
+                    Close
+                </button>
             </div>
         );
     }
 
-    // Content viewing state (normal mode without download)
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900">
-            <div className="h-screen w-full overflow-auto p-8">
-                <div className="mx-auto max-w-4xl">
-                    <div className="prose prose-slate dark:prose-invert max-w-none">
-                        <Markdown>{reportContent}</Markdown>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <FlowReportView
+            model={model}
+            onCopyMarkdown={handleCopyMarkdown}
+            onDownloadMarkdown={handleDownloadMarkdown}
+            onDownloadPdf={handleDownloadPdf}
+            pdfGenerating={pdfGenerating}
+        />
     );
 };
 

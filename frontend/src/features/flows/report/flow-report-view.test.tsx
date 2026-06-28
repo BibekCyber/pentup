@@ -1,0 +1,32 @@
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+
+import { sampleReportModel } from '@/lib/report-sample';
+
+import FlowReportView from './flow-report-view';
+
+describe('FlowReportView', () => {
+    it('renders the full web report tree to HTML without throwing', () => {
+        const html = renderToStaticMarkup(
+            <FlowReportView
+                model={sampleReportModel}
+                onCopyMarkdown={() => {}}
+                onDownloadMarkdown={() => {}}
+                onDownloadPdf={() => {}}
+            />,
+        );
+
+        expect(html).toContain('Executive Summary');
+        expect(html).toContain('Findings Summary');
+        expect(html).toContain('Insecure Direct Object Reference (IDOR) via Predictable User ID');
+        expect(html).toContain('Reconnaissance &amp; Infrastructure Assessment');
+        expect(html.length).toBeGreaterThan(5000);
+    });
+
+    it('renders the empty state for a flow with no content', () => {
+        const empty = { ...sampleReportModel, findings: [], sections: [] };
+        const html = renderToStaticMarkup(<FlowReportView model={empty} />);
+
+        expect(html).toContain('No content to report yet');
+    });
+});
