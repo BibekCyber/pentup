@@ -20,6 +20,8 @@ import FlowCentralTabs from '@/features/flows/flow-central-tabs';
 import FlowTabs from '@/features/flows/flow-tabs';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
+import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
+import { buildReportMarkdown } from '@/lib/build-report-markdown';
 import { Log } from '@/lib/log';
 import { copyToClipboard, downloadTextFile, generateFileName, generateReport } from '@/lib/report';
 import { formatName } from '@/lib/utils/format';
@@ -27,12 +29,16 @@ import { useFavorites } from '@/providers/favorites-provider';
 import { useFlow } from '@/providers/flow-provider';
 
 const FlowReportDropdown = () => {
-    const { flowData, flowId } = useFlow();
+    const { assistantLogs, assistants, flowData, flowId } = useFlow();
     const flow = flowData?.flow;
     const tasks = flowData?.tasks ?? [];
+    const isAssistant = tasks.length === 0 && assistants.length > 0;
 
     // Check if flow is available for report generation
     const isReportDisabled = !flow || !flowId;
+
+    const buildMarkdown = (): string =>
+        isAssistant ? buildReportMarkdown(buildAssistantReportModel(flow, assistants[0], assistantLogs)) : generateReport(tasks, flow);
 
     // Report export handlers
     const handleCopyToClipboard = async () => {
@@ -40,8 +46,7 @@ const FlowReportDropdown = () => {
             return;
         }
 
-        const reportContent = generateReport(tasks, flow);
-        const success = await copyToClipboard(reportContent);
+        const success = await copyToClipboard(buildMarkdown());
 
         if (success) {
             toast.success('Report copied to clipboard');
@@ -57,15 +62,8 @@ const FlowReportDropdown = () => {
         }
 
         try {
-            // Generate report content
-            const reportContent = generateReport(tasks, flow);
-
-            // Generate file name
-            const baseFileName = generateFileName(flow);
-            const fileName = `${baseFileName}.md`;
-
-            // Download file
-            downloadTextFile(reportContent, fileName, 'text/markdown; charset=UTF-8');
+            const fileName = `${generateFileName(flow)}.md`;
+            downloadTextFile(buildMarkdown(), fileName, 'text/markdown; charset=UTF-8');
         } catch (error) {
             Log.error('Failed to download markdown report:', error);
         }
@@ -146,7 +144,7 @@ const Flow = () => {
     const { isDesktop } = useBreakpoint();
     const navigate = useNavigate();
 
-    const { flowData, flowError, flowId, isLoading: isFlowLoading } = useFlow();
+    const { assistantLogs, flowData, flowError, flowId, isLoading: isFlowLoading } = useFlow();
     const { isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
 
     // Redirect to flows list if there's an error loading flow data or flow not found
@@ -218,7 +216,7 @@ const Flow = () => {
                                 <Star className={isFavoriteFlow(flowId) ? 'fill-yellow-500 stroke-yellow-500' : ''} />
                             </Button>
                         )}
-                        {!!(flowData?.tasks ?? [])?.length && <FlowReportDropdown />}
+                        {(!!(flowData?.tasks ?? []).length || assistantLogs.length > 0) && <FlowReportDropdown />}
                     </div>
                 </div>
             </header>

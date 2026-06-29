@@ -98,5 +98,36 @@ You MUST complete your evaluation by using the "{{.ReportResultToolName}}" tool 
 - A clear success/failure assessment in the "success" field (true/false)
 - A detailed report in the "result" field explaining your assessment with evidence
 - A concise message in the "message" field summarizing the key outcome for the user
+- A structured "findings" array capturing every distinct security finding (see below)
+
+## STRUCTURED FINDINGS EXTRACTION
+
+In addition to the markdown "result", populate the "findings" array with one entry
+for each DISTINCT security vulnerability, weakness or misconfiguration that the task
+actually discovered and substantiated with evidence. These power the client-facing
+report's finding cards and severity summary, so accuracy matters.
+
+For each finding:
+- "title": short, specific name of the issue (plain text, no markdown).
+- "severity": one of critical/high/medium/low/informational, aligned to its CVSS
+  v3.1 band (critical 9.0-10.0, high 7.0-8.9, medium 4.0-6.9, low 0.1-3.9,
+  informational 0.0). Judge technical risk, not subtask status claims.
+- "cvss"/"cve": include when you can reasonably determine them; otherwise omit.
+- "affected_urls": the concrete endpoints, hosts or assets affected.
+- "description": what the issue is, why it exists and how it is exploited.
+- "evidence": the concrete proof (request/response excerpts, command output).
+- "impact": the business/technical consequences, one item each.
+- "steps_to_reproduce": ordered steps to reproduce or verify the issue.
+- "recommendation": concrete remediation guidance.
+- "references": supporting links (OWASP, CWE, vendor advisories) when relevant.
+
+Rules:
+- Every string field MUST be plain prose with NO markdown markup (no **, ##, ` or
+  list markers) — these fields are rendered as styled report cards, not markdown.
+- Only include findings that are genuinely supported by evidence in this task; never
+  invent or pad findings.
+- Use an EMPTY array when the task produced no security findings (for example setup,
+  reconnaissance-only, infrastructure or failed tasks). Do not force findings.
+- Do not duplicate the same finding across multiple entries.
 
 {{.ToolPlaceholder}}

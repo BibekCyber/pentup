@@ -270,6 +270,7 @@ func NewFlowWorker(
 		Executor:   executor,
 		Provider:   flowProvider,
 		Publisher:  pub,
+		Subs:       fwc.subs,
 		MsgLog:     workers.mlw,
 		TermLog:    workers.tlw,
 		Screenshot: workers.sw,
@@ -420,6 +421,7 @@ func LoadFlowWorker(ctx context.Context, flow database.Flow, fwc flowWorkerCtx) 
 		Executor:   executor,
 		Provider:   flowProvider,
 		Publisher:  pub,
+		Subs:       fwc.subs,
 		MsgLog:     workers.mlw,
 		TermLog:    workers.tlw,
 		Screenshot: workers.sw,
@@ -538,6 +540,13 @@ func (fw *flowWorker) SetStatus(ctx context.Context, status database.FlowStatus)
 	}
 
 	fw.flowCtx.Publisher.FlowUpdated(ctx, flow, containers)
+
+	// When a child flow of a scan (domain) reaches a terminal state, recompute the
+	// parent scan's status so it doesn't stay "running" after its last flow ends.
+	if fw.flowCtx.Subs != nil && flow.DomainID.Valid &&
+		(status == database.FlowStatusFinished || status == database.FlowStatusFailed) {
+		reconcileDomainStatus(ctx, fw.flowCtx.DB, fw.flowCtx.Subs, flow.DomainID.Int64)
+	}
 
 	return nil
 }

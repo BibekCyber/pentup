@@ -1,9 +1,10 @@
-import { Document, Page, View } from '@react-pdf/renderer';
+import { Document, Page, Text, View } from '@react-pdf/renderer';
 
 import type { ReportModel } from '@/lib/report-model';
 
 import CoverPage from './cover-page';
 import ExecutiveSummaryPdf from './executive-summary-pdf';
+import FindingsDetailPdf from './findings-detail-pdf';
 import FindingsSummaryPdf from './findings-summary-pdf';
 import PageChrome from './page-chrome';
 import SectionPdf from './section-pdf';
@@ -30,6 +31,15 @@ const ReportDocument = ({ model }: ReportDocumentProps) => (
             {model.findings.length > 0 && (
                 <View style={{ marginTop: 18 }}>
                     <FindingsSummaryPdf findings={model.findings} />
+                </View>
+            )}
+
+            <FindingsDetailPdf findings={model.findings} />
+
+            {model.sectionsTitle && model.sections.length > 0 && (
+                <View break id="methodology">
+                    <Text style={reportPdfStyles.sectionHeading}>{model.sectionsTitle}</Text>
+                    <View style={reportPdfStyles.sectionDivider} />
                 </View>
             )}
 

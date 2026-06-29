@@ -1,5 +1,7 @@
 import { StyleSheet } from '@react-pdf/renderer';
 
+import { BRAND } from '@/lib/severity-palette';
+
 export const PDF_FOOTER_TEXT = 'Confidential — prepared by PentAGI';
 
 export const reportPdfStyles = StyleSheet.create({
@@ -49,7 +51,7 @@ export const reportPdfStyles = StyleSheet.create({
         paddingTop: 64,
     },
     sectionDivider: {
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: BRAND.solid,
         borderBottomWidth: 2,
         marginBottom: 10,
     },

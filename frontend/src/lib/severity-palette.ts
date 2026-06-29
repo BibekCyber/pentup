@@ -6,6 +6,17 @@ import { StatusType } from '@/graphql/types';
 
 import type { Severity } from './report-model';
 
+// Single brand accent. Used consistently for structural chrome (cover, section rules,
+// key-fact panels, remediation accent) so the report has ONE coordinated accent —
+// severity colours are the only other colour axis, reserved for finding severity.
+export const BRAND = {
+    border: '#99f6e4',
+    solid: '#0f766e',
+    subtle: '#ccfbf1',
+    text: '#0f766e',
+    tint: '#f0fdfa',
+};
+
 export interface SeverityStyle {
     badgeClass: string;
     borderClass: string;
@@ -21,6 +32,7 @@ export interface SeverityStyle {
         tint: string;
     };
     rowClass: string;
+    textClass: string;
     weight: number;
 }
 
@@ -34,6 +46,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
         label: 'Critical',
         pdf: { border: '#fecaca', onSolid: '#ffffff', solid: '#b91c1c', text: '#991b1b', tint: '#fef2f2' },
         rowClass: 'bg-red-50 dark:bg-red-950/30',
+        textClass: 'text-red-700 dark:text-red-400',
         weight: 5,
     },
     high: {
@@ -45,6 +58,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
         label: 'High',
         pdf: { border: '#fed7aa', onSolid: '#ffffff', solid: '#ea580c', text: '#c2410c', tint: '#fff7ed' },
         rowClass: 'bg-orange-50 dark:bg-orange-950/30',
+        textClass: 'text-orange-600 dark:text-orange-400',
         weight: 4,
     },
     informational: {
@@ -56,6 +70,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
         label: 'Informational',
         pdf: { border: '#e2e8f0', onSolid: '#ffffff', solid: '#475569', text: '#334155', tint: '#f8fafc' },
         rowClass: 'bg-slate-50 dark:bg-slate-900/40',
+        textClass: 'text-slate-600 dark:text-slate-400',
         weight: 1,
     },
     low: {
@@ -67,6 +82,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
         label: 'Low',
         pdf: { border: '#bfdbfe', onSolid: '#ffffff', solid: '#2563eb', text: '#1d4ed8', tint: '#eff6ff' },
         rowClass: 'bg-blue-50 dark:bg-blue-950/30',
+        textClass: 'text-blue-600 dark:text-blue-400',
         weight: 2,
     },
     medium: {
@@ -78,6 +94,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
         label: 'Medium',
         pdf: { border: '#fde68a', onSolid: '#ffffff', solid: '#d97706', text: '#b45309', tint: '#fffbeb' },
         rowClass: 'bg-amber-50 dark:bg-amber-950/30',
+        textClass: 'text-amber-600 dark:text-amber-400',
         weight: 3,
     },
 };

@@ -70,3 +70,16 @@ UPDATE tasks
 SET status = 'failed', result = $1
 WHERE id = $2
 RETURNING *;
+
+-- name: UpdateTaskFindings :exec
+UPDATE tasks
+SET findings = $1
+WHERE id = $2;
+
+-- name: GetFlowFindings :many
+SELECT t.id AS task_id, t.findings
+FROM tasks t
+INNER JOIN flows f ON t.flow_id = f.id
+WHERE t.flow_id = $1 AND f.deleted_at IS NULL
+  AND t.findings IS NOT NULL AND t.findings <> '[]'::jsonb
+ORDER BY t.created_at ASC;

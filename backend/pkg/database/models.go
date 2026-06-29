@@ -1178,14 +1178,15 @@ type Subtask struct {
 }
 
 type Task struct {
-	ID        int64        `json:"id"`
-	Status    TaskStatus   `json:"status"`
-	Title     string       `json:"title"`
-	Input     string       `json:"input"`
-	Result    string       `json:"result"`
-	FlowID    int64        `json:"flow_id"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt sql.NullTime `json:"updated_at"`
+	ID        int64           `json:"id"`
+	Status    TaskStatus      `json:"status"`
+	Title     string          `json:"title"`
+	Input     string          `json:"input"`
+	Result    string          `json:"result"`
+	FlowID    int64           `json:"flow_id"`
+	CreatedAt sql.NullTime    `json:"created_at"`
+	UpdatedAt sql.NullTime    `json:"updated_at"`
+	Findings  json.RawMessage `json:"findings"`
 }
 
 type Termlog struct {

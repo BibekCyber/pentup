@@ -6,9 +6,11 @@ import type { ReportModel } from '@/lib/report-model';
 
 import Logo from '@/components/icons/logo';
 import FlowReportView from '@/features/flows/report/flow-report-view';
-import { useFlowReportQuery } from '@/graphql/types';
+import { useAssistantLogsQuery, useAssistantsQuery, useFlowReportQuery } from '@/graphql/types';
+import { assistantSampleReportModel } from '@/lib/assistant-report-sample';
+import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
-import { buildReportModel } from '@/lib/build-report-model';
+import { buildReportModel, mapFindings } from '@/lib/build-report-model';
 import { Log } from '@/lib/log';
 import { copyToClipboard, downloadTextFile, generateFileName } from '@/lib/report';
 import { generateReportPdf } from '@/lib/report-pdf';
@@ -22,21 +24,40 @@ const FlowReport = () => {
     const download = searchParams.has('download');
     const silent = searchParams.has('silent');
     const sample = searchParams.has('sample');
+    const assistantSample = searchParams.get('sample') === 'assistant';
 
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
 
-    const {
-        data,
-        error: queryError,
-        loading,
-    } = useFlowReportQuery({
+    const { data, error: queryError } = useFlowReportQuery({
         errorPolicy: 'all',
         skip: !flowId || sample,
         variables: { id: flowId! },
     });
 
+    const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
+    const isAutomation = tasks.length > 0;
+
+    const { data: assistantsData, loading: assistantsLoading } = useAssistantsQuery({
+        errorPolicy: 'all',
+        skip: !flowId || sample || isAutomation,
+        variables: { flowId: flowId! },
+    });
+
+    const assistants = useMemo(() => assistantsData?.assistants ?? [], [assistantsData?.assistants]);
+    const primaryAssistantId = assistants[0]?.id;
+
+    const { data: logsData, loading: logsLoading } = useAssistantLogsQuery({
+        errorPolicy: 'all',
+        skip: !flowId || sample || isAutomation || !primaryAssistantId,
+        variables: { assistantId: primaryAssistantId ?? '', flowId: flowId! },
+    });
+
     const model: null | ReportModel = useMemo(() => {
+        if (assistantSample) {
+            return assistantSampleReportModel;
+        }
+
         if (sample) {
             return sampleReportModel;
         }
@@ -45,10 +66,24 @@ const FlowReport = () => {
             return null;
         }
 
-        return buildReportModel(data.flow, data.tasks ?? []);
-    }, [sample, data]);
+        const findings = mapFindings(data.flow.findings);
 
-    const fileBaseName = useMemo(() => (sample ? 'report_sample' : data?.flow ? generateFileName(data.flow) : 'report'), [sample, data]);
+        if (isAutomation) {
+            return buildReportModel(data.flow, tasks, findings);
+        }
+
+        if (assistantsLoading) {
+            return null;
+        }
+
+        if (assistants.length > 0) {
+            return logsLoading ? null : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? []);
+        }
+
+        return buildReportModel(data.flow, [], findings);
+    }, [assistantSample, sample, data, isAutomation, tasks, assistantsLoading, assistants, logsLoading, logsData]);
+
+    const fileBaseName = useMemo(() => (sample ? `report_sample${assistantSample ? '_assistant' : ''}` : data?.flow ? generateFileName(data.flow) : 'report'), [sample, assistantSample, data]);
 
     useEffect(() => {
         if (!download || !model) {
@@ -105,7 +140,7 @@ const FlowReport = () => {
         }
     };
 
-    const isLoading = !sample && (loading || (!model && !queryError));
+    const isLoading = !sample && !model && !queryError;
     const isError = (!sample && queryError && !data?.flow) || downloadState === 'error';
 
     if (isLoading || downloadState === 'generating') {

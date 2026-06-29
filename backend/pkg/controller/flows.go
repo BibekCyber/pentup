@@ -257,6 +257,17 @@ func (fc *flowController) loadScanCredential(ctx context.Context, userID, domain
 	return &flowCredential{Kind: sc.Kind, Value: value}, nil
 }
 
+// buildDomainFlowInput prepends the scan target to a template playbook so the
+// spawned flow knows WHAT to test. Templates are written generically ("test the
+// target web application"); without the target name the agent has to guess it or
+// (in assistant mode) ask the user for it.
+func buildDomainFlowInput(domain database.Domain, templateText string) string {
+	return fmt.Sprintf(
+		"The target for this engagement is: %s (%s).\n\n%s",
+		domain.Name, domain.TargetType, templateText,
+	)
+}
+
 func (fc *flowController) CreateFlowForDomain(
 	ctx context.Context,
 	userID int64,
@@ -280,6 +291,11 @@ func (fc *flowController) CreateFlowForDomain(
 		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
 	}
 
+	domain, err := fc.db.GetDomain(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain %d: %w", domainID, err)
+	}
+
 	// Authenticated engagements (internal cloud / grey-box web) carry an
 	// encrypted credential; decrypt it so the agent can authenticate. Its
 	// presence gates the authenticate-first directive + container delivery.
@@ -290,7 +306,7 @@ func (fc *flowController) CreateFlowForDomain(
 
 	fw, err := NewFlowWorker(ctx, newFlowWorkerCtx{
 		userID:     userID,
-		input:      template.Text,
+		input:      buildDomainFlowInput(domain, template.Text),
 		prvname:    prvname,
 		prvtype:    prvtype,
 		credential: cred,
@@ -352,9 +368,14 @@ func (fc *flowController) CreateAssistantForDomain(
 		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
 	}
 
+	domain, err := fc.db.GetDomain(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain %d: %w", domainID, err)
+	}
+
 	// flowID=0 -> CreateAssistant creates a dry-run host flow (Waiting) and
 	// attaches the assistant; useAgents=true gives the full sub-agent toolset.
-	aw, err := fc.CreateAssistant(ctx, userID, 0, template.Text, true, prvname, prvtype, nil)
+	aw, err := fc.CreateAssistant(ctx, userID, 0, buildDomainFlowInput(domain, template.Text), true, prvname, prvtype, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create assistant for domain %d: %w", domainID, err)
 	}

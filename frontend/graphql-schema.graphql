@@ -778,9 +778,27 @@ query assistantLogs($flowId: ID!, $assistantId: ID!) {
     }
 }
 
+fragment findingFragment on Finding {
+    taskId
+    title
+    severity
+    cvss
+    cve
+    affectedUrls
+    description
+    evidence
+    impact
+    stepsToReproduce
+    recommendation
+    references
+}
+
 query flowReport($id: ID!) {
     flow(flowId: $id) {
         ...flowFragment
+        findings {
+            ...findingFragment
+        }
     }
     tasks(flowId: $id) {
         ...taskFragment

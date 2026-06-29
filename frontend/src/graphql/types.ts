@@ -301,8 +301,24 @@ export enum DomainStatusType {
     Running = 'running',
 }
 
+export type Finding = {
+    affectedUrls?: Maybe<Array<Scalars['String']['output']>>;
+    cve?: Maybe<Scalars['String']['output']>;
+    cvss?: Maybe<Scalars['Float']['output']>;
+    description?: Maybe<Scalars['String']['output']>;
+    evidence?: Maybe<Scalars['String']['output']>;
+    impact?: Maybe<Array<Scalars['String']['output']>>;
+    recommendation?: Maybe<Scalars['String']['output']>;
+    references?: Maybe<Array<Scalars['String']['output']>>;
+    severity: Severity;
+    stepsToReproduce?: Maybe<Array<Scalars['String']['output']>>;
+    taskId: Scalars['ID']['output'];
+    title: Scalars['String']['output'];
+};
+
 export type Flow = {
     createdAt: Scalars['Time']['output'];
+    findings: Array<Finding>;
     id: Scalars['ID']['output'];
     provider: Provider;
     status: StatusType;
@@ -973,6 +989,14 @@ export type Settings = {
     debug: Scalars['Boolean']['output'];
     dockerInside: Scalars['Boolean']['output'];
 };
+
+export enum Severity {
+    Critical = 'critical',
+    High = 'high',
+    Informational = 'informational',
+    Low = 'low',
+    Medium = 'medium',
+}
 
 export enum StatusType {
     Created = 'created',
@@ -1719,11 +1743,29 @@ export type AssistantLogsQueryVariables = Exact<{
 
 export type AssistantLogsQuery = { assistantLogs?: Array<AssistantLogFragmentFragment> | null };
 
+export type FindingFragmentFragment = {
+    taskId: string;
+    title: string;
+    severity: Severity;
+    cvss?: number | null;
+    cve?: string | null;
+    affectedUrls?: Array<string> | null;
+    description?: string | null;
+    evidence?: string | null;
+    impact?: Array<string> | null;
+    stepsToReproduce?: Array<string> | null;
+    recommendation?: string | null;
+    references?: Array<string> | null;
+};
+
 export type FlowReportQueryVariables = Exact<{
     id: Scalars['ID']['input'];
 }>;
 
-export type FlowReportQuery = { flow: FlowFragmentFragment; tasks?: Array<TaskFragmentFragment> | null };
+export type FlowReportQuery = {
+    flow: { findings: Array<FindingFragmentFragment> } & FlowFragmentFragment;
+    tasks?: Array<TaskFragmentFragment> | null;
+};
 
 export type UsageStatsTotalQueryVariables = Exact<{ [key: string]: never }>;
 
@@ -2748,6 +2790,22 @@ export const FlowExecutionStatsFragmentFragmentDoc = gql`
     }
     ${TaskExecutionStatsFragmentFragmentDoc}
 `;
+export const FindingFragmentFragmentDoc = gql`
+    fragment findingFragment on Finding {
+        taskId
+        title
+        severity
+        cvss
+        cve
+        affectedUrls
+        description
+        evidence
+        impact
+        stepsToReproduce
+        recommendation
+        references
+    }
+`;
 export const UserPreferencesFragmentFragmentDoc = gql`
     fragment userPreferencesFragment on UserPreferences {
         id
@@ -3554,12 +3612,16 @@ export const FlowReportDocument = gql`
     query flowReport($id: ID!) {
         flow(flowId: $id) {
             ...flowFragment
+            findings {
+                ...findingFragment
+            }
         }
         tasks(flowId: $id) {
             ...taskFragment
         }
     }
     ${FlowFragmentFragmentDoc}
+    ${FindingFragmentFragmentDoc}
     ${TaskFragmentFragmentDoc}
 `;
 

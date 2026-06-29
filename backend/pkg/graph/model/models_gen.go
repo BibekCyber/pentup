@@ -219,6 +219,21 @@ type Domain struct {
 	Flows             []*Flow          `json:"flows"`
 }
 
+type Finding struct {
+	TaskID           int64    `json:"taskId"`
+	Title            string   `json:"title"`
+	Severity         Severity `json:"severity"`
+	Cvss             *float64 `json:"cvss,omitempty"`
+	Cve              *string  `json:"cve,omitempty"`
+	AffectedUrls     []string `json:"affectedUrls,omitempty"`
+	Description      *string  `json:"description,omitempty"`
+	Evidence         *string  `json:"evidence,omitempty"`
+	Impact           []string `json:"impact,omitempty"`
+	StepsToReproduce []string `json:"stepsToReproduce,omitempty"`
+	Recommendation   *string  `json:"recommendation,omitempty"`
+	References       []string `json:"references,omitempty"`
+}
+
 type Flow struct {
 	ID        int64       `json:"id"`
 	Title     string      `json:"title"`
@@ -227,6 +242,7 @@ type Flow struct {
 	Provider  *Provider   `json:"provider"`
 	CreatedAt time.Time   `json:"createdAt"`
 	UpdatedAt time.Time   `json:"updatedAt"`
+	Findings  []*Finding  `json:"findings"`
 }
 
 type FlowAssistant struct {
@@ -1334,6 +1350,53 @@ func (e *ScanScope) UnmarshalGQL(v interface{}) error {
 }
 
 func (e ScanScope) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Severity string
+
+const (
+	SeverityCritical      Severity = "critical"
+	SeverityHigh          Severity = "high"
+	SeverityMedium        Severity = "medium"
+	SeverityLow           Severity = "low"
+	SeverityInformational Severity = "informational"
+)
+
+var AllSeverity = []Severity{
+	SeverityCritical,
+	SeverityHigh,
+	SeverityMedium,
+	SeverityLow,
+	SeverityInformational,
+}
+
+func (e Severity) IsValid() bool {
+	switch e {
+	case SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInformational:
+		return true
+	}
+	return false
+}
+
+func (e Severity) String() string {
+	return string(e)
+}
+
+func (e *Severity) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Severity(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Severity", str)
+	}
+	return nil
+}
+
+func (e Severity) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

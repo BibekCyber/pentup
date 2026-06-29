@@ -372,3 +372,77 @@ func (dc *domainController) publishDomain(ctx context.Context, userID int64, dom
 		publisher.DomainUpdated(ctx, domain, flows)
 	}
 }
+
+// computeDomainStatusFromFlows derives a scan's status from its child flows:
+// running while any flow is still active (created/running/waiting), finished once
+// all are terminal and at least one finished, failed only if every flow failed.
+// The bool is false when there are no flows to derive a status from.
+func computeDomainStatusFromFlows(flows []database.Flow) (database.DomainStatus, bool) {
+	if len(flows) == 0 {
+		return "", false
+	}
+
+	active, finished := 0, 0
+	for _, flow := range flows {
+		switch flow.Status {
+		case database.FlowStatusCreated, database.FlowStatusRunning, database.FlowStatusWaiting:
+			active++
+		case database.FlowStatusFinished:
+			finished++
+		}
+	}
+
+	switch {
+	case active > 0:
+		return database.DomainStatusRunning, true
+	case finished > 0:
+		return database.DomainStatusFinished, true
+	default:
+		return database.DomainStatusFailed, true
+	}
+}
+
+// reconcileDomainStatus recomputes a scan's status from its child flows and, if it
+// changed, persists and publishes the update. It is best-effort: any error is
+// logged, never returned, so a child flow's own status update is never blocked by
+// it. It only acts on scans still in "running" — created/classifying are owned by
+// the create path and finished/failed are already terminal.
+func reconcileDomainStatus(
+	ctx context.Context,
+	db database.Querier,
+	subs subscriptions.SubscriptionsController,
+	domainID int64,
+) {
+	logger := logrus.WithContext(ctx).WithField("domain_id", domainID)
+
+	domain, err := db.GetDomain(ctx, domainID)
+	if err != nil {
+		logger.WithError(err).Warn("reconcile domain status: failed to load domain")
+		return
+	}
+	if domain.Status != database.DomainStatusRunning {
+		return
+	}
+
+	flows, err := db.GetFlowsForDomain(ctx, sql.NullInt64{Int64: domainID, Valid: true})
+	if err != nil {
+		logger.WithError(err).Warn("reconcile domain status: failed to load flows")
+		return
+	}
+
+	next, ok := computeDomainStatusFromFlows(flows)
+	if !ok || next == domain.Status {
+		return
+	}
+
+	updated, err := db.UpdateDomainStatus(ctx, database.UpdateDomainStatusParams{
+		ID:     domainID,
+		Status: next,
+	})
+	if err != nil {
+		logger.WithError(err).Warn("reconcile domain status: failed to update status")
+		return
+	}
+
+	subs.NewFlowPublisher(domain.UserID, domainID).DomainUpdated(ctx, updated, flows)
+}

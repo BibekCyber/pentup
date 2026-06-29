@@ -82,6 +82,7 @@ type Querier interface {
 	GetFlowAssistantLogs(ctx context.Context, arg GetFlowAssistantLogsParams) ([]Assistantlog, error)
 	GetFlowAssistants(ctx context.Context, flowID int64) ([]Assistant, error)
 	GetFlowContainers(ctx context.Context, flowID int64) ([]Container, error)
+	GetFlowFindings(ctx context.Context, flowID int64) ([]GetFlowFindingsRow, error)
 	GetFlowMsgChains(ctx context.Context, flowID int64) ([]Msgchain, error)
 	GetFlowMsgLogs(ctx context.Context, flowID int64) ([]Msglog, error)
 	GetFlowPrimaryContainer(ctx context.Context, flowID int64) (Container, error)
@@ -264,6 +265,7 @@ type Querier interface {
 	UpdateSubtaskResult(ctx context.Context, arg UpdateSubtaskResultParams) (Subtask, error)
 	UpdateSubtaskStatus(ctx context.Context, arg UpdateSubtaskStatusParams) (Subtask, error)
 	UpdateTaskFailedResult(ctx context.Context, arg UpdateTaskFailedResultParams) (Task, error)
+	UpdateTaskFindings(ctx context.Context, arg UpdateTaskFindingsParams) error
 	UpdateTaskFinishedResult(ctx context.Context, arg UpdateTaskFinishedResultParams) (Task, error)
 	UpdateTaskResult(ctx context.Context, arg UpdateTaskResultParams) (Task, error)
 	UpdateTaskStatus(ctx context.Context, arg UpdateTaskStatusParams) (Task, error)

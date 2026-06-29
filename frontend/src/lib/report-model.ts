@@ -11,10 +11,12 @@ export interface Finding {
     description?: string;
     evidence?: string;
     id: string;
+    impact?: string[];
     recommendation?: string;
     references?: string[];
     screenshots?: ReportScreenshot[];
     severity: Severity;
+    stepsToReproduce?: string[];
     taskId?: string;
     title: string;
 }
@@ -35,6 +37,7 @@ export interface ReportModel {
     };
     generatedAt: string;
     sections: ReportSection[];
+    sectionsTitle?: string;
     summary: ReportSummary;
     toc: ReportTocEntry[];
 }

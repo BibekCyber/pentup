@@ -15,32 +15,52 @@ const findingHeading = (finding: Finding, index: number): string => {
         parts.push(finding.cve);
     }
 
-    return `#### ${index}. ${finding.title} (${parts.join(' · ')})`;
+    return `### ${index}. ${finding.title} (${parts.join(' · ')})`;
 };
 
 const renderFinding = (finding: Finding, index: number): string => {
     const lines: string[] = [findingHeading(finding, index), ''];
 
+    const facts: string[] = [];
+
+    if (typeof finding.cvss === 'number') {
+        facts.push(`**CVSS:** ${finding.cvss.toFixed(1)}`);
+    }
+
+    facts.push(`**Risk Rating:** ${getSeverityStyle(finding.severity).label}`);
+
     if (finding.affectedUrls?.length) {
-        lines.push(`**Affected URL${finding.affectedUrls.length > 1 ? 's' : ''}:**`);
-        finding.affectedUrls.forEach((url) => lines.push(`- ${url}`));
+        facts.push(`**Affected URL${finding.affectedUrls.length > 1 ? 's' : ''}:** ${finding.affectedUrls.join(', ')}`);
+    }
+
+    lines.push(facts.join('  \n'), '');
+
+    if (finding.description) {
+        lines.push('**Details of Vulnerability**', '', finding.description.trim(), '');
+    }
+
+    if (finding.stepsToReproduce?.length) {
+        lines.push('**Steps to Reproduce**', '');
+        finding.stepsToReproduce.forEach((step, idx) => lines.push(`${idx + 1}. ${step}`));
         lines.push('');
     }
 
-    if (finding.description) {
-        lines.push(finding.description.trim(), '');
+    if (finding.evidence) {
+        lines.push('**Evidence**', '', finding.evidence.trim(), '');
     }
 
-    if (finding.evidence) {
-        lines.push('**Evidence:**', '', finding.evidence.trim(), '');
+    if (finding.impact?.length) {
+        lines.push('**Impact**', '');
+        finding.impact.forEach((item) => lines.push(`- ${item}`));
+        lines.push('');
     }
 
     if (finding.recommendation) {
-        lines.push('**Recommendation:**', '', finding.recommendation.trim(), '');
+        lines.push('**Remediation**', '', finding.recommendation.trim(), '');
     }
 
     if (finding.references?.length) {
-        lines.push('**References:**');
+        lines.push('**References**', '');
         finding.references.forEach((ref) => lines.push(`- ${ref}`));
         lines.push('');
     }
@@ -52,17 +72,8 @@ const renderSection = (section: ReportSection): string => {
     const status = getStatusStyle(section.status);
     const lines: string[] = [`## ${section.title} — ${status.label}`, ''];
 
-    if (section.input) {
-        lines.push('**Objective:**', '', section.input.trim(), '');
-    }
-
     if (section.resultMarkdown) {
         lines.push(section.resultMarkdown.trim(), '');
-    }
-
-    if (section.findings.length > 0) {
-        lines.push('### Findings', '');
-        section.findings.forEach((finding, idx) => lines.push(renderFinding(finding, idx + 1)));
     }
 
     if (section.subtasks.length > 0) {
@@ -70,10 +81,6 @@ const renderSection = (section: ReportSection): string => {
         section.subtasks.forEach((subtask) => {
             const subStatus = getStatusStyle(subtask.status);
             lines.push(`#### ${subtask.title} — ${subStatus.label}`, '');
-
-            if (subtask.description) {
-                lines.push(subtask.description.trim(), '');
-            }
 
             if (subtask.resultMarkdown) {
                 lines.push(subtask.resultMarkdown.trim(), '');
@@ -127,6 +134,13 @@ export const buildReportMarkdown = (model: ReportModel): string => {
             lines.push(`| ${idx + 1} | ${finding.title} | ${getSeverityStyle(finding.severity).label} | ${recommendation} |`);
         });
         lines.push('');
+
+        lines.push('## Detailed Findings', '', '_Findings are ordered by severity. Risk ratings are technical and based on CVSS v3.1._', '');
+        model.findings.forEach((finding, idx) => lines.push(renderFinding(finding, idx + 1)));
+    }
+
+    if (model.sectionsTitle && model.sections.length > 0) {
+        lines.push(`## ${model.sectionsTitle}`, '');
     }
 
     model.sections.forEach((section) => lines.push(renderSection(section)));

@@ -74,10 +74,28 @@ type SubtaskPatch struct {
 	Message    string             `json:"message" jsonschema:"required,title=Refinement summary" jsonschema_description:"Summary of changes made and justification for modifications to send to the user in user's language only"`
 }
 
+// Finding is a single structured security finding emitted by the reporter agent
+// alongside the markdown task result. It powers the report's finding cards and the
+// severity summary, so all string fields must be plain prose (no markdown markup).
+type Finding struct {
+	Title            string   `json:"title" jsonschema:"required,title=Finding title" jsonschema_description:"Short descriptive title of the vulnerability or weakness in plain text without markdown"`
+	Severity         string   `json:"severity" jsonschema:"required,enum=critical,enum=high,enum=medium,enum=low,enum=informational,title=Severity" jsonschema_description:"Technical risk rating aligned to CVSS v3.1: critical (9.0-10.0), high (7.0-8.9), medium (4.0-6.9), low (0.1-3.9), informational (0.0)"`
+	CVSS             *float64 `json:"cvss,omitempty" jsonschema:"title=CVSS score" jsonschema_description:"CVSS v3.1 base score from 0.0 to 10.0 when it can be reasonably estimated, otherwise omit"`
+	CVE              string   `json:"cve,omitempty" jsonschema:"title=CVE identifier" jsonschema_description:"Associated CVE identifier (e.g. CVE-2021-44228) when applicable, otherwise omit"`
+	AffectedURLs     []string `json:"affected_urls,omitempty" jsonschema:"title=Affected URLs" jsonschema_description:"Affected URLs, endpoints, hosts or assets in plain text"`
+	Description      string   `json:"description,omitempty" jsonschema:"title=Details of vulnerability" jsonschema_description:"Detailed explanation of the vulnerability: what it is, why it exists and how it can be exploited, in plain text without markdown"`
+	Evidence         string   `json:"evidence,omitempty" jsonschema:"title=Evidence" jsonschema_description:"Concrete proof of the finding such as request/response snippets or command output, in plain text"`
+	Impact           []string `json:"impact,omitempty" jsonschema:"title=Impact" jsonschema_description:"Concrete business or technical impacts if the vulnerability is exploited, one plain-text item per impact"`
+	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered steps to reproduce or verify the finding, one plain-text step per item"`
+	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"Concrete remediation guidance to fix the vulnerability, in plain text without markdown"`
+	References       []string `json:"references,omitempty" jsonschema:"title=References" jsonschema_description:"Reference URLs that support the finding (OWASP, CWE, vendor advisories)"`
+}
+
 type TaskResult struct {
-	Success Bool   `json:"success" jsonschema:"title=Execution result,type=boolean" jsonschema_description:"True if the task was executed successfully and the user task result was reached"`
-	Result  string `json:"result" jsonschema:"required,title=Task result description" jsonschema_description:"Fully detailed report or error message of the task or subtask result what was achieved or not (in user's language only)"`
-	Message string `json:"message" jsonschema:"required,title=Task result message" jsonschema_description:"Not so long message with the result and path to reach goal to send to the user in user's language only"`
+	Success  Bool      `json:"success" jsonschema:"title=Execution result,type=boolean" jsonschema_description:"True if the task was executed successfully and the user task result was reached"`
+	Result   string    `json:"result" jsonschema:"required,title=Task result description" jsonschema_description:"Fully detailed report or error message of the task or subtask result what was achieved or not (in user's language only)"`
+	Message  string    `json:"message" jsonschema:"required,title=Task result message" jsonschema_description:"Not so long message with the result and path to reach goal to send to the user in user's language only"`
+	Findings []Finding `json:"findings,omitempty" jsonschema:"title=Structured security findings" jsonschema_description:"Structured list of distinct security findings or vulnerabilities discovered during this task, one entry per finding with its severity and remediation. Use an empty array when the task produced no security findings (for example setup, reconnaissance-only or failed tasks)"`
 }
 
 type AskUser struct {

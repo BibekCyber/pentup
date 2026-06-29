@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 )
 
 const createTask = `-- name: CreateTask :one
@@ -18,7 +19,7 @@ INSERT INTO tasks (
 ) VALUES (
   $1, $2, $3, $4
 )
-RETURNING id, status, title, input, result, flow_id, created_at, updated_at
+RETURNING id, status, title, input, result, flow_id, created_at, updated_at, findings
 `
 
 type CreateTaskParams struct {
@@ -45,13 +46,51 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
 
+const getFlowFindings = `-- name: GetFlowFindings :many
+SELECT t.id AS task_id, t.findings
+FROM tasks t
+INNER JOIN flows f ON t.flow_id = f.id
+WHERE t.flow_id = $1 AND f.deleted_at IS NULL
+  AND t.findings IS NOT NULL AND t.findings <> '[]'::jsonb
+ORDER BY t.created_at ASC
+`
+
+type GetFlowFindingsRow struct {
+	TaskID   int64           `json:"task_id"`
+	Findings json.RawMessage `json:"findings"`
+}
+
+func (q *Queries) GetFlowFindings(ctx context.Context, flowID int64) ([]GetFlowFindingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowFindings, flowID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFlowFindingsRow
+	for rows.Next() {
+		var i GetFlowFindingsRow
+		if err := rows.Scan(&i.TaskID, &i.Findings); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFlowTask = `-- name: GetFlowTask :one
 SELECT
-  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at
+  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at, t.findings
 FROM tasks t
 INNER JOIN flows f ON t.flow_id = f.id
 WHERE t.id = $1 AND t.flow_id = $2 AND f.deleted_at IS NULL
@@ -74,13 +113,14 @@ func (q *Queries) GetFlowTask(ctx context.Context, arg GetFlowTaskParams) (Task,
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
 
 const getFlowTasks = `-- name: GetFlowTasks :many
 SELECT
-  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at
+  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at, t.findings
 FROM tasks t
 INNER JOIN flows f ON t.flow_id = f.id
 WHERE t.flow_id = $1 AND f.deleted_at IS NULL
@@ -105,6 +145,7 @@ func (q *Queries) GetFlowTasks(ctx context.Context, flowID int64) ([]Task, error
 			&i.FlowID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Findings,
 		); err != nil {
 			return nil, err
 		}
@@ -121,7 +162,7 @@ func (q *Queries) GetFlowTasks(ctx context.Context, flowID int64) ([]Task, error
 
 const getTask = `-- name: GetTask :one
 SELECT
-  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at
+  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at, t.findings
 FROM tasks t
 WHERE t.id = $1
 `
@@ -138,13 +179,14 @@ func (q *Queries) GetTask(ctx context.Context, id int64) (Task, error) {
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
 
 const getUserFlowTask = `-- name: GetUserFlowTask :one
 SELECT
-  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at
+  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at, t.findings
 FROM tasks t
 INNER JOIN flows f ON t.flow_id = f.id
 INNER JOIN users u ON f.user_id = u.id
@@ -169,13 +211,14 @@ func (q *Queries) GetUserFlowTask(ctx context.Context, arg GetUserFlowTaskParams
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
 
 const getUserFlowTasks = `-- name: GetUserFlowTasks :many
 SELECT
-  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at
+  t.id, t.status, t.title, t.input, t.result, t.flow_id, t.created_at, t.updated_at, t.findings
 FROM tasks t
 INNER JOIN flows f ON t.flow_id = f.id
 INNER JOIN users u ON f.user_id = u.id
@@ -206,6 +249,7 @@ func (q *Queries) GetUserFlowTasks(ctx context.Context, arg GetUserFlowTasksPara
 			&i.FlowID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Findings,
 		); err != nil {
 			return nil, err
 		}
@@ -224,7 +268,7 @@ const updateTaskFailedResult = `-- name: UpdateTaskFailedResult :one
 UPDATE tasks
 SET status = 'failed', result = $1
 WHERE id = $2
-RETURNING id, status, title, input, result, flow_id, created_at, updated_at
+RETURNING id, status, title, input, result, flow_id, created_at, updated_at, findings
 `
 
 type UpdateTaskFailedResultParams struct {
@@ -244,15 +288,32 @@ func (q *Queries) UpdateTaskFailedResult(ctx context.Context, arg UpdateTaskFail
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
+}
+
+const updateTaskFindings = `-- name: UpdateTaskFindings :exec
+UPDATE tasks
+SET findings = $1
+WHERE id = $2
+`
+
+type UpdateTaskFindingsParams struct {
+	Findings json.RawMessage `json:"findings"`
+	ID       int64           `json:"id"`
+}
+
+func (q *Queries) UpdateTaskFindings(ctx context.Context, arg UpdateTaskFindingsParams) error {
+	_, err := q.db.ExecContext(ctx, updateTaskFindings, arg.Findings, arg.ID)
+	return err
 }
 
 const updateTaskFinishedResult = `-- name: UpdateTaskFinishedResult :one
 UPDATE tasks
 SET status = 'finished', result = $1
 WHERE id = $2
-RETURNING id, status, title, input, result, flow_id, created_at, updated_at
+RETURNING id, status, title, input, result, flow_id, created_at, updated_at, findings
 `
 
 type UpdateTaskFinishedResultParams struct {
@@ -272,6 +333,7 @@ func (q *Queries) UpdateTaskFinishedResult(ctx context.Context, arg UpdateTaskFi
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
@@ -280,7 +342,7 @@ const updateTaskResult = `-- name: UpdateTaskResult :one
 UPDATE tasks
 SET result = $1
 WHERE id = $2
-RETURNING id, status, title, input, result, flow_id, created_at, updated_at
+RETURNING id, status, title, input, result, flow_id, created_at, updated_at, findings
 `
 
 type UpdateTaskResultParams struct {
@@ -300,6 +362,7 @@ func (q *Queries) UpdateTaskResult(ctx context.Context, arg UpdateTaskResultPara
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }
@@ -308,7 +371,7 @@ const updateTaskStatus = `-- name: UpdateTaskStatus :one
 UPDATE tasks
 SET status = $1
 WHERE id = $2
-RETURNING id, status, title, input, result, flow_id, created_at, updated_at
+RETURNING id, status, title, input, result, flow_id, created_at, updated_at, findings
 `
 
 type UpdateTaskStatusParams struct {
@@ -328,6 +391,7 @@ func (q *Queries) UpdateTaskStatus(ctx context.Context, arg UpdateTaskStatusPara
 		&i.FlowID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Findings,
 	)
 	return i, err
 }

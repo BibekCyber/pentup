@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -10,6 +11,8 @@ import (
 	obs "pentagi/pkg/observability"
 	"pentagi/pkg/providers"
 	"pentagi/pkg/tools"
+
+	"github.com/sirupsen/logrus"
 )
 
 type FlowUpdater interface {
@@ -260,6 +263,26 @@ func (tw *taskWorker) SetResult(ctx context.Context, result string) error {
 	return nil
 }
 
+func (tw *taskWorker) SetFindings(ctx context.Context, findings []tools.Finding) error {
+	if findings == nil {
+		findings = []tools.Finding{}
+	}
+
+	blob, err := json.Marshal(findings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task %d findings: %w", tw.taskCtx.TaskID, err)
+	}
+
+	if err := tw.taskCtx.DB.UpdateTaskFindings(ctx, database.UpdateTaskFindingsParams{
+		Findings: blob,
+		ID:       tw.taskCtx.TaskID,
+	}); err != nil {
+		return fmt.Errorf("failed to set task %d findings: %w", tw.taskCtx.TaskID, err)
+	}
+
+	return nil
+}
+
 func (tw *taskWorker) PutInput(ctx context.Context, input string) error {
 	if !tw.IsWaiting() {
 		return fmt.Errorf("task is not waiting")
@@ -324,6 +347,12 @@ func (tw *taskWorker) Run(ctx context.Context) error {
 
 	if err := tw.SetResult(ctx, jobResult.Result); err != nil {
 		return err
+	}
+
+	// Structured findings are best-effort report metadata: persist them but never
+	// block task completion if the write fails.
+	if err := tw.SetFindings(ctx, jobResult.Findings); err != nil {
+		logrus.WithContext(ctx).WithError(err).Warn("failed to persist task findings")
 	}
 
 	if err := tw.SetStatus(ctx, taskStatus); err != nil {

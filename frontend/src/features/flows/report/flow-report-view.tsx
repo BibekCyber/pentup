@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import FlowReportExecutiveSummary from './flow-report-executive-summary';
+import FlowReportFindingsDetail from './flow-report-findings-detail';
 import FlowReportFindingsSummary from './flow-report-findings-summary';
 import FlowReportSection from './flow-report-section';
 import FlowReportToc from './flow-report-toc';
@@ -93,6 +94,15 @@ const FlowReportView = ({ model, onCopyMarkdown, onDownloadMarkdown, onDownloadP
                     <main className="min-w-0 space-y-10">
                         <FlowReportExecutiveSummary model={model} />
                         <FlowReportFindingsSummary findings={model.findings} />
+                        <FlowReportFindingsDetail findings={model.findings} />
+                        {model.sectionsTitle && model.sections.length > 0 && (
+                            <h2
+                                className="text-foreground scroll-mt-24 border-b pb-2 text-xl font-semibold"
+                                id="methodology"
+                            >
+                                {model.sectionsTitle}
+                            </h2>
+                        )}
                         {model.sections.map((section) => (
                             <FlowReportSection
                                 key={section.id}

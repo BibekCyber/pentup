@@ -26,6 +26,9 @@ type FlowContext struct {
 	Executor  tools.FlowToolsExecutor
 	Provider  providers.FlowProvider
 	Publisher subscriptions.FlowPublisher
+	// Subs lets the worker publish events outside its own flow channel — used to
+	// reconcile the parent scan (domain) status when a child flow finishes.
+	Subs subscriptions.SubscriptionsController
 
 	TermLog    FlowTermLogWorker
 	MsgLog     FlowMsgLogWorker

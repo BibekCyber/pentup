@@ -4,7 +4,6 @@ import type { ReportSection } from '@/lib/report-model';
 
 import { getStatusStyle } from '@/lib/severity-palette';
 
-import FindingCardPdf from './finding-card-pdf';
 import { renderMarkdownBlocks } from './markdown-pdf';
 import { reportPdfStyles } from './styles';
 
@@ -14,16 +13,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 6,
-    },
-    objective: {
-        backgroundColor: '#f8fafc',
-        borderLeftColor: '#cbd5e1',
-        borderLeftWidth: 2,
-        color: '#475569',
-        fontSize: 9.5,
-        lineHeight: 1.5,
-        marginBottom: 8,
-        padding: 7,
     },
     section: {
         marginTop: 18,
@@ -41,12 +30,6 @@ const styles = StyleSheet.create({
         borderLeftWidth: 2,
         marginBottom: 12,
         paddingLeft: 10,
-    },
-    subtaskDescription: {
-        color: '#64748b',
-        fontSize: 9,
-        lineHeight: 1.45,
-        marginBottom: 2,
     },
     subtaskHeader: {
         alignItems: 'center',
@@ -78,20 +61,7 @@ const SectionPdf = ({ section }: SectionPdfProps) => {
             </View>
             <View style={reportPdfStyles.sectionDivider} />
 
-            {section.input && <Text style={styles.objective}>{section.input}</Text>}
-
             {section.resultMarkdown && <View>{renderMarkdownBlocks(section.resultMarkdown)}</View>}
-
-            {section.findings.length > 0 && (
-                <View>
-                    <Text minPresenceAhead={140} style={[reportPdfStyles.subHeading, { marginTop: 8 }]}>
-                        Findings
-                    </Text>
-                    {section.findings.map((finding) => (
-                        <FindingCardPdf finding={finding} key={finding.id} />
-                    ))}
-                </View>
-            )}
 
             {section.subtasks.length > 0 && (
                 <View>
@@ -107,7 +77,6 @@ const SectionPdf = ({ section }: SectionPdfProps) => {
                                     <Text style={styles.subtaskTitle}>{subtask.title}</Text>
                                     <Text style={[styles.statusPill, { backgroundColor: subStatus.pdf.solid }]}>{subStatus.label}</Text>
                                 </View>
-                                {subtask.description && <Text style={styles.subtaskDescription}>{subtask.description}</Text>}
                                 {subtask.resultMarkdown && <View>{renderMarkdownBlocks(subtask.resultMarkdown)}</View>}
                             </View>
                         );

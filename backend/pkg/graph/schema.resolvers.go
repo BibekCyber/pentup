@@ -32,6 +32,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Findings is the resolver for the findings field.
+func (r *flowResolver) Findings(ctx context.Context, obj *model.Flow) ([]*model.Finding, error) {
+	if _, err := validatePermissionWithFlowID(ctx, "flows.view", obj.ID, r.DB); err != nil {
+		return nil, err
+	}
+
+	rows, err := r.DB.GetFlowFindings(ctx, obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get findings for flow %d: %w", obj.ID, err)
+	}
+
+	return convertFlowFindings(rows), nil
+}
+
 // CreateFlow is the resolver for the createFlow field.
 func (r *mutationResolver) CreateFlow(ctx context.Context, modelProvider string, input string) (*model.Flow, error) {
 	uid, _, err := validatePermission(ctx, "flows.create")
@@ -2923,6 +2937,9 @@ func (r *subscriptionResolver) DomainDeleted(ctx context.Context) (<-chan *model
 	return subscriber.DomainDeleted(ctx)
 }
 
+// Flow returns FlowResolver implementation.
+func (r *Resolver) Flow() FlowResolver { return &flowResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -2932,6 +2949,7 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Subscription returns SubscriptionResolver implementation.
 func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
 
+type flowResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }

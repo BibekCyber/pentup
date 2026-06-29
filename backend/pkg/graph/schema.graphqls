@@ -334,6 +334,32 @@ type FlowAssistant {
   assistant: Assistant!
 }
 
+# Technical risk rating for a structured security finding, aligned to CVSS v3.1
+enum Severity {
+  critical
+  high
+  medium
+  low
+  informational
+}
+
+# A single structured security finding extracted by the reporter agent. Drives the
+# report's finding cards and severity summary. String fields are plain prose.
+type Finding {
+  taskId: ID!
+  title: String!
+  severity: Severity!
+  cvss: Float
+  cve: String
+  affectedUrls: [String!]
+  description: String
+  evidence: String
+  impact: [String!]
+  stepsToReproduce: [String!]
+  recommendation: String
+  references: [String!]
+}
+
 type Flow {
   id: ID!
   title: String!
@@ -342,6 +368,7 @@ type Flow {
   provider: Provider!
   createdAt: Time!
   updatedAt: Time!
+  findings: [Finding!]!
 }
 
 type Task {
