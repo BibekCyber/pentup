@@ -158,14 +158,6 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 		if crypt.IsInsecureSalt(dc.cfg.CookieSigningSalt) {
 			return nil, fmt.Errorf("cannot store scan credentials: set a strong COOKIE_SIGNING_SALT")
 		}
-		// Assistant-mode credential delivery is not wired yet (the assistant
-		// worker would not receive the credential file/redaction), so reject the
-		// silently-broken/insecure combination rather than dropping the credential.
-		for _, spec := range params.TemplateSpecs {
-			if spec.RunMode == runModeAssistant {
-				return nil, fmt.Errorf("assistant run mode is not yet supported for authenticated (internal/grey-box) engagements")
-			}
-		}
 	}
 
 	targetType := params.TargetType

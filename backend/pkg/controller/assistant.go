@@ -63,6 +63,11 @@ type newAssistantWorkerCtx struct {
 	prvname   provider.ProviderName
 	prvtype   provider.ProviderType
 	functions *tools.Functions
+	// credential, when set (authenticated scan engagements), seeds the redaction
+	// replacer for the assistant's tools and adds an authenticate-first directive
+	// to the assistant input. The credential file itself is written into the
+	// shared container by the host flow worker's executor.
+	credential *flowCredential
 
 	flowWorkerCtx
 }
@@ -92,6 +97,13 @@ func NewAssistantWorker(ctx context.Context, awc newAssistantWorkerCtx) (Assista
 		"provider_name": awc.prvname.String(),
 		"provider_type": awc.prvtype.String(),
 	})
+
+	// Authenticated engagements: prepend the authenticate-first directive so the
+	// assistant logs in before scanning. The raw credential is never in the input;
+	// it is delivered as a file in the shared container (written by the host flow).
+	if awc.credential != nil {
+		awc.input = buildAuthDirective(awc.credential.Kind) + awc.input
+	}
 
 	user, err := awc.db.GetUser(ctx, awc.userID)
 	if err != nil {
@@ -155,7 +167,13 @@ func NewAssistantWorker(ctx context.Context, awc newAssistantWorkerCtx) (Assista
 	}
 
 	prompter := templates.NewDefaultPrompter() // TODO: change to flow prompter by userID from DB
-	executor, err := tools.NewFlowToolsExecutor(awc.db, awc.cfg, awc.docker, awc.functions, awc.flowID)
+	// Seed the credential into the redaction replacer so the assistant's terminal
+	// output masks it (the file is written into the container by the host flow).
+	var extraSecrets []string
+	if awc.credential != nil {
+		extraSecrets = append(extraSecrets, awc.credential.Value)
+	}
+	executor, err := tools.NewFlowToolsExecutor(awc.db, awc.cfg, awc.docker, awc.functions, awc.flowID, extraSecrets...)
 	if err != nil {
 		return nil, wrapErrorEndSpan(ctx, assistantSpan, "failed to create flow tools executor", err)
 	}

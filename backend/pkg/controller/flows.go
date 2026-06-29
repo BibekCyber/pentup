@@ -70,6 +70,11 @@ type FlowController interface {
 		prvname provider.ProviderName,
 		prvtype provider.ProviderType,
 		functions *tools.Functions,
+		// credential, when non-nil (authenticated scan engagements), is delivered
+		// to the assistant the same way automatic flows get it: written to the
+		// container as a secret file, seeded into the redaction replacer, and
+		// referenced by an authenticate-first directive prepended to the input.
+		credential *flowCredential,
 	) (AssistantWorker, error)
 	LoadFlows(ctx context.Context) error
 	ListFlows(ctx context.Context) []FlowWorker
@@ -373,9 +378,17 @@ func (fc *flowController) CreateAssistantForDomain(
 		return nil, fmt.Errorf("failed to get domain %d: %w", domainID, err)
 	}
 
+	// Authenticated engagements (internal cloud / grey-box web) carry an encrypted
+	// credential; decrypt it so the assistant can authenticate (delivered as a
+	// container file + redaction seed + authenticate-first directive).
+	cred, err := fc.loadScanCredential(ctx, userID, domainID)
+	if err != nil {
+		return nil, err
+	}
+
 	// flowID=0 -> CreateAssistant creates a dry-run host flow (Waiting) and
 	// attaches the assistant; useAgents=true gives the full sub-agent toolset.
-	aw, err := fc.CreateAssistant(ctx, userID, 0, buildDomainFlowInput(domain, template.Text), true, prvname, prvtype, nil)
+	aw, err := fc.CreateAssistant(ctx, userID, 0, buildDomainFlowInput(domain, template.Text), true, prvname, prvtype, nil, cred)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create assistant for domain %d: %w", domainID, err)
 	}
@@ -400,6 +413,7 @@ func (fc *flowController) CreateAssistant(
 	prvname provider.ProviderName,
 	prvtype provider.ProviderType,
 	functions *tools.Functions,
+	credential *flowCredential,
 ) (AssistantWorker, error) {
 	fc.mx.Lock()
 	defer fc.mx.Unlock()
@@ -435,6 +449,7 @@ func (fc *flowController) CreateAssistant(
 			prvname:       prvname,
 			prvtype:       prvtype,
 			functions:     functions,
+			credential:    credential, // host flow's Prepare writes the credential file into the shared container
 			flowWorkerCtx: flowWorkerCtx,
 		})
 		if err != nil {
@@ -500,13 +515,15 @@ func (fc *flowController) CreateAssistant(
 	}
 
 	aw, err := NewAssistantWorker(ctx, newAssistantWorkerCtx{
-		userID:        userID,
-		flowID:        flowID,
-		input:         input,
-		prvname:       prvname,
-		prvtype:       prvtype,
-		useAgents:     useAgents,
-		functions:     functions,
+		userID:     userID,
+		flowID:     flowID,
+		input:      input,
+		prvname:    prvname,
+		prvtype:    prvtype,
+		useAgents:  useAgents,
+		functions:  functions,
+		credential: credential, // seeds the assistant's redaction replacer + auth directive
+
 		flowWorkerCtx: flowWorkerCtx,
 	})
 	if err != nil {

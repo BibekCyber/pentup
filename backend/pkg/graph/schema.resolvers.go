@@ -302,7 +302,7 @@ func (r *mutationResolver) CreateAssistant(ctx context.Context, flowID int64, mo
 	}
 	prvtype := prv.Type()
 
-	aw, err := r.Controller.CreateAssistant(ctx, uid, flowID, input, useAgents, prvname, prvtype, nil)
+	aw, err := r.Controller.CreateAssistant(ctx, uid, flowID, input, useAgents, prvname, prvtype, nil, nil)
 	if err != nil {
 		return nil, err
 	}

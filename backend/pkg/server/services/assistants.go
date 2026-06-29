@@ -293,6 +293,7 @@ func (s *AssistantService) CreateFlowAssistant(c *gin.Context) {
 		prvname,
 		prvtype,
 		createAssistant.Functions,
+		nil, // manual assistants have no scan credential
 	)
 	if err != nil {
 		logger.FromContext(c).WithError(err).Errorf("error creating assistant")
