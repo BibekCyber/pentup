@@ -91,6 +91,11 @@ SET tool_call_id_template = $1
 WHERE id = $2
 RETURNING *;
 
+-- name: UpdateAssistantFindings :exec
+UPDATE assistants
+SET findings = $1, findings_hash = $2
+WHERE id = $3;
+
 -- name: DeleteAssistant :one
 UPDATE assistants
 SET deleted_at = CURRENT_TIMESTAMP

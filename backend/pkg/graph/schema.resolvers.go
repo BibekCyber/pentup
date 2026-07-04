@@ -33,6 +33,20 @@ import (
 )
 
 // Findings is the resolver for the findings field.
+func (r *assistantResolver) Findings(ctx context.Context, obj *model.Assistant) ([]*model.Finding, error) {
+	if _, err := validatePermissionWithFlowID(ctx, "flows.view", obj.FlowID, r.DB); err != nil {
+		return nil, err
+	}
+
+	assistant, err := r.DB.GetAssistant(ctx, obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assistant %d for findings: %w", obj.ID, err)
+	}
+
+	return convertAssistantFindings(assistant.Findings), nil
+}
+
+// Findings is the resolver for the findings field.
 func (r *flowResolver) Findings(ctx context.Context, obj *model.Flow) ([]*model.Finding, error) {
 	if _, err := validatePermissionWithFlowID(ctx, "flows.view", obj.ID, r.DB); err != nil {
 		return nil, err
@@ -2937,6 +2951,9 @@ func (r *subscriptionResolver) DomainDeleted(ctx context.Context) (<-chan *model
 	return subscriber.DomainDeleted(ctx)
 }
 
+// Assistant returns AssistantResolver implementation.
+func (r *Resolver) Assistant() AssistantResolver { return &assistantResolver{r} }
+
 // Flow returns FlowResolver implementation.
 func (r *Resolver) Flow() FlowResolver { return &flowResolver{r} }
 
@@ -2949,6 +2966,7 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Subscription returns SubscriptionResolver implementation.
 func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
 
+type assistantResolver struct{ *Resolver }
 type flowResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

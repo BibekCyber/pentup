@@ -4,6 +4,8 @@ import type { AssistantLogFragmentFragment } from '@/graphql/types';
 
 import { MessageLogType, ResultFormat, StatusType } from '@/graphql/types';
 
+import type { Finding } from './report-model';
+
 import { assistantSampleLogs, assistantSampleReportModel } from './assistant-report-sample';
 import { buildAssistantReportModel } from './build-assistant-report-model';
 
@@ -68,6 +70,73 @@ describe('buildAssistantReportModel', () => {
 
         expect(model.sections[0]?.resultMarkdown).not.toContain('internal reasoning');
         expect(model.summary.subtasksTotal).toBe(2);
+    });
+});
+
+describe('assistant report hardening', () => {
+    const engagementInput = [
+        '<engagement_auth>',
+        'This is an AUTHENTICATED engagement (credential kind: email_password). The target credentials are stored in /work/.pentagi_target_credentials (do NOT print this file).',
+        '</engagement_auth>',
+        'The target for this engagement is: https://example.test/ (web_app).',
+        'Perform a full penetration test of the target web application.',
+    ].join('\n');
+
+    it('strips injected <engagement_auth> from the section title and prompt', () => {
+        const model = buildAssistantReportModel(
+            flow,
+            { title: 'Pentest' },
+            [mk(MessageLogType.Input, engagementInput), mk(MessageLogType.Report, 'Identified 3 critical issues.'), mk(MessageLogType.Done)],
+            { generatedAt: 'now' },
+        );
+        const section = model.sections[0];
+
+        expect(section?.title).not.toContain('engagement_auth');
+        expect(section?.title).not.toContain('AUTHENTICATED engagement');
+        expect(section?.resultMarkdown).not.toContain('engagement_auth');
+        expect(section?.resultMarkdown).not.toContain('do NOT print');
+        expect(section?.resultMarkdown).toContain('Perform a full penetration test');
+        expect(section?.resultMarkdown).toContain('Identified 3 critical issues.');
+    });
+
+    it('populates findings + severity summary when extracted findings are supplied', () => {
+        const findings: Finding[] = [
+            { cvss: 9.8, id: 'f1', severity: 'critical', title: 'Privilege Escalation via Registration' },
+            { cvss: 7.5, id: 'f2', severity: 'high', title: 'Missing Rate Limiting' },
+        ];
+        const model = buildAssistantReportModel(
+            flow,
+            { title: 'A' },
+            [mk(MessageLogType.Input, 'Pentest the app.'), mk(MessageLogType.Report, 'Identified issues.'), mk(MessageLogType.Done)],
+            { findings, generatedAt: 'now' },
+        );
+
+        expect(model.findings).toHaveLength(2);
+        expect(model.summary.findingsTotal).toBe(2);
+        expect(model.summary.findingsBySeverity.critical).toBe(1);
+        expect(model.summary.findingsBySeverity.high).toBe(1);
+        expect(model.sectionsTitle).toBe('Conversation');
+        expect(model.executiveSummary?.content).toContain('identified 2 findings');
+    });
+
+    it('drops transitional narration but keeps substantive answers', () => {
+        const model = buildAssistantReportModel(
+            flow,
+            null,
+            [
+                mk(MessageLogType.Input, 'Audit the login.'),
+                mk(MessageLogType.Answer, 'Let me explore the application structure first.'),
+                mk(MessageLogType.Answer, 'Found it! The login endpoint is /api/auth/login.'),
+                mk(MessageLogType.Answer, 'The login endpoint accepts unlimited authentication attempts with no rate limiting, enabling credential stuffing against any account.'),
+                mk(MessageLogType.Done),
+            ],
+            { generatedAt: 'now' },
+        );
+        const md = model.sections[0]?.resultMarkdown ?? '';
+
+        expect(md).not.toContain('Let me explore');
+        expect(md).not.toContain('Found it!');
+        expect(md).toContain('unlimited authentication attempts');
     });
 });
 

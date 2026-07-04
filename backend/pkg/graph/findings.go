@@ -18,27 +18,29 @@ var findingSeverityWeight = map[model.Severity]int{
 	model.SeverityInformational: 1,
 }
 
-// convertFlowFindings flattens the per-task findings JSONB blobs into a single
-// list of GraphQL findings sorted high-to-low (severity, then CVSS, then title).
-// Malformed blobs are skipped so one bad task never breaks the whole report.
-func convertFlowFindings(rows []database.GetFlowFindingsRow) []*model.Finding {
-	findings := make([]*model.Finding, 0, len(rows))
-
-	for _, row := range rows {
-		if len(row.Findings) == 0 {
-			continue
-		}
-
-		var parsed []tools.Finding
-		if err := json.Unmarshal(row.Findings, &parsed); err != nil {
-			continue
-		}
-
-		for _, finding := range parsed {
-			findings = append(findings, convertFinding(row.TaskID, finding))
-		}
+// parseFindings unmarshals one findings JSONB blob into GraphQL findings tagged
+// with their source taskID. A malformed blob yields no findings rather than an error,
+// so one bad source never breaks the whole report.
+func parseFindings(blob json.RawMessage, taskID int64) []*model.Finding {
+	if len(blob) == 0 {
+		return nil
 	}
 
+	var parsed []tools.Finding
+	if err := json.Unmarshal(blob, &parsed); err != nil {
+		return nil
+	}
+
+	findings := make([]*model.Finding, 0, len(parsed))
+	for _, finding := range parsed {
+		findings = append(findings, convertFinding(taskID, finding))
+	}
+
+	return findings
+}
+
+// sortFindings orders findings high-to-low (severity, then CVSS, then title).
+func sortFindings(findings []*model.Finding) {
 	sort.SliceStable(findings, func(i, j int) bool {
 		if wi, wj := findingSeverityWeight[findings[i].Severity], findingSeverityWeight[findings[j].Severity]; wi != wj {
 			return wi > wj
@@ -51,6 +53,25 @@ func convertFlowFindings(rows []database.GetFlowFindingsRow) []*model.Finding {
 
 		return findings[i].Title < findings[j].Title
 	})
+}
+
+// convertFlowFindings flattens the per-task findings blobs into one sorted list.
+func convertFlowFindings(rows []database.GetFlowFindingsRow) []*model.Finding {
+	findings := make([]*model.Finding, 0, len(rows))
+	for _, row := range rows {
+		findings = append(findings, parseFindings(row.Findings, row.TaskID)...)
+	}
+
+	sortFindings(findings)
+
+	return findings
+}
+
+// convertAssistantFindings parses an assistant's findings blob into a sorted list.
+// Assistant findings are not task-bound, so their taskID is left as 0.
+func convertAssistantFindings(blob json.RawMessage) []*model.Finding {
+	findings := parseFindings(blob, 0)
+	sortFindings(findings)
 
 	return findings
 }

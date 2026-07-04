@@ -41,6 +41,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Assistant() AssistantResolver
 	Flow() FlowResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -157,6 +158,7 @@ type ComplexityRoot struct {
 
 	Assistant struct {
 		CreatedAt func(childComplexity int) int
+		Findings  func(childComplexity int) int
 		FlowID    func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Provider  func(childComplexity int) int
@@ -697,6 +699,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type AssistantResolver interface {
+	Findings(ctx context.Context, obj *model.Assistant) ([]*model.Finding, error)
+}
 type FlowResolver interface {
 	Findings(ctx context.Context, obj *model.Flow) ([]*model.Finding, error)
 }
@@ -1351,6 +1356,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Assistant.CreatedAt(childComplexity), true
+
+	case "Assistant.findings":
+		if e.complexity.Assistant.Findings == nil {
+			break
+		}
+
+		return e.complexity.Assistant.Findings(childComplexity), true
 
 	case "Assistant.flowId":
 		if e.complexity.Assistant.FlowID == nil {
@@ -11624,6 +11636,76 @@ func (ec *executionContext) fieldContext_Assistant_updatedAt(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Assistant_findings(ctx context.Context, field graphql.CollectedField, obj *model.Assistant) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Assistant_findings(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Assistant().Findings(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Finding)
+	fc.Result = res
+	return ec.marshalNFinding2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFindingᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Assistant_findings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Assistant",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "taskId":
+				return ec.fieldContext_Finding_taskId(ctx, field)
+			case "title":
+				return ec.fieldContext_Finding_title(ctx, field)
+			case "severity":
+				return ec.fieldContext_Finding_severity(ctx, field)
+			case "cvss":
+				return ec.fieldContext_Finding_cvss(ctx, field)
+			case "cve":
+				return ec.fieldContext_Finding_cve(ctx, field)
+			case "affectedUrls":
+				return ec.fieldContext_Finding_affectedUrls(ctx, field)
+			case "description":
+				return ec.fieldContext_Finding_description(ctx, field)
+			case "evidence":
+				return ec.fieldContext_Finding_evidence(ctx, field)
+			case "impact":
+				return ec.fieldContext_Finding_impact(ctx, field)
+			case "stepsToReproduce":
+				return ec.fieldContext_Finding_stepsToReproduce(ctx, field)
+			case "recommendation":
+				return ec.fieldContext_Finding_recommendation(ctx, field)
+			case "references":
+				return ec.fieldContext_Finding_references(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Finding", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AssistantLog_id(ctx context.Context, field graphql.CollectedField, obj *model.AssistantLog) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AssistantLog_id(ctx, field)
 	if err != nil {
@@ -14654,6 +14736,8 @@ func (ec *executionContext) fieldContext_FlowAssistant_assistant(_ context.Conte
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -17351,6 +17435,8 @@ func (ec *executionContext) fieldContext_Mutation_stopAssistant(ctx context.Cont
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -21572,6 +21658,8 @@ func (ec *executionContext) fieldContext_Query_assistants(ctx context.Context, f
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -25814,6 +25902,8 @@ func (ec *executionContext) fieldContext_Subscription_assistantCreated(ctx conte
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -25901,6 +25991,8 @@ func (ec *executionContext) fieldContext_Subscription_assistantUpdated(ctx conte
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -25988,6 +26080,8 @@ func (ec *executionContext) fieldContext_Subscription_assistantDeleted(ctx conte
 				return ec.fieldContext_Assistant_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Assistant_updatedAt(ctx, field)
+			case "findings":
+				return ec.fieldContext_Assistant_findings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Assistant", field.Name)
 		},
@@ -34745,43 +34839,79 @@ func (ec *executionContext) _Assistant(ctx context.Context, sel ast.SelectionSet
 		case "id":
 			out.Values[i] = ec._Assistant_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "title":
 			out.Values[i] = ec._Assistant_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._Assistant_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "provider":
 			out.Values[i] = ec._Assistant_provider(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "flowId":
 			out.Values[i] = ec._Assistant_flowId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "useAgents":
 			out.Values[i] = ec._Assistant_useAgents(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._Assistant_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Assistant_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "findings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Assistant_findings(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

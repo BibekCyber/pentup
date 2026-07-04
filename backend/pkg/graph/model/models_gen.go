@@ -122,6 +122,7 @@ type Assistant struct {
 	UseAgents bool       `json:"useAgents"`
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
+	Findings  []*Finding `json:"findings"`
 }
 
 type AssistantLog struct {

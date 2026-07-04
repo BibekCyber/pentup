@@ -17,7 +17,7 @@ INSERT INTO assistants (
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type CreateAssistantParams struct {
@@ -64,6 +64,8 @@ func (q *Queries) CreateAssistant(ctx context.Context, arg CreateAssistantParams
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -72,7 +74,7 @@ const deleteAssistant = `-- name: DeleteAssistant :one
 UPDATE assistants
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 func (q *Queries) DeleteAssistant(ctx context.Context, id int64) (Assistant, error) {
@@ -95,13 +97,15 @@ func (q *Queries) DeleteAssistant(ctx context.Context, id int64) (Assistant, err
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
 
 const getAssistant = `-- name: GetAssistant :one
 SELECT
-  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template
+  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template, a.findings, a.findings_hash
 FROM assistants a
 WHERE a.id = $1 AND a.deleted_at IS NULL
 `
@@ -126,6 +130,8 @@ func (q *Queries) GetAssistant(ctx context.Context, id int64) (Assistant, error)
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -145,7 +151,7 @@ func (q *Queries) GetAssistantUseAgents(ctx context.Context, id int64) (bool, er
 
 const getFlowAssistant = `-- name: GetFlowAssistant :one
 SELECT
-  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template
+  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template, a.findings, a.findings_hash
 FROM assistants a
 INNER JOIN flows f ON a.flow_id = f.id
 WHERE a.id = $1 AND a.flow_id = $2 AND f.deleted_at IS NULL AND a.deleted_at IS NULL
@@ -176,13 +182,15 @@ func (q *Queries) GetFlowAssistant(ctx context.Context, arg GetFlowAssistantPara
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
 
 const getFlowAssistants = `-- name: GetFlowAssistants :many
 SELECT
-  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template
+  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template, a.findings, a.findings_hash
 FROM assistants a
 INNER JOIN flows f ON a.flow_id = f.id
 WHERE a.flow_id = $1 AND f.deleted_at IS NULL AND a.deleted_at IS NULL
@@ -215,6 +223,8 @@ func (q *Queries) GetFlowAssistants(ctx context.Context, flowID int64) ([]Assist
 			&i.DeletedAt,
 			&i.ModelProviderType,
 			&i.ToolCallIDTemplate,
+			&i.Findings,
+			&i.FindingsHash,
 		); err != nil {
 			return nil, err
 		}
@@ -231,7 +241,7 @@ func (q *Queries) GetFlowAssistants(ctx context.Context, flowID int64) ([]Assist
 
 const getUserFlowAssistant = `-- name: GetUserFlowAssistant :one
 SELECT
-  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template
+  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template, a.findings, a.findings_hash
 FROM assistants a
 INNER JOIN flows f ON a.flow_id = f.id
 INNER JOIN users u ON f.user_id = u.id
@@ -264,13 +274,15 @@ func (q *Queries) GetUserFlowAssistant(ctx context.Context, arg GetUserFlowAssis
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
 
 const getUserFlowAssistants = `-- name: GetUserFlowAssistants :many
 SELECT
-  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template
+  a.id, a.status, a.title, a.model, a.model_provider_name, a.language, a.functions, a.trace_id, a.flow_id, a.use_agents, a.msgchain_id, a.created_at, a.updated_at, a.deleted_at, a.model_provider_type, a.tool_call_id_template, a.findings, a.findings_hash
 FROM assistants a
 INNER JOIN flows f ON a.flow_id = f.id
 INNER JOIN users u ON f.user_id = u.id
@@ -309,6 +321,8 @@ func (q *Queries) GetUserFlowAssistants(ctx context.Context, arg GetUserFlowAssi
 			&i.DeletedAt,
 			&i.ModelProviderType,
 			&i.ToolCallIDTemplate,
+			&i.Findings,
+			&i.FindingsHash,
 		); err != nil {
 			return nil, err
 		}
@@ -327,7 +341,7 @@ const updateAssistant = `-- name: UpdateAssistant :one
 UPDATE assistants
 SET title = $1, model = $2, language = $3, tool_call_id_template = $4, functions = $5, trace_id = $6, msgchain_id = $7
 WHERE id = $8
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantParams struct {
@@ -370,15 +384,34 @@ func (q *Queries) UpdateAssistant(ctx context.Context, arg UpdateAssistantParams
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
+}
+
+const updateAssistantFindings = `-- name: UpdateAssistantFindings :exec
+UPDATE assistants
+SET findings = $1, findings_hash = $2
+WHERE id = $3
+`
+
+type UpdateAssistantFindingsParams struct {
+	Findings     json.RawMessage `json:"findings"`
+	FindingsHash string          `json:"findings_hash"`
+	ID           int64           `json:"id"`
+}
+
+func (q *Queries) UpdateAssistantFindings(ctx context.Context, arg UpdateAssistantFindingsParams) error {
+	_, err := q.db.ExecContext(ctx, updateAssistantFindings, arg.Findings, arg.FindingsHash, arg.ID)
+	return err
 }
 
 const updateAssistantLanguage = `-- name: UpdateAssistantLanguage :one
 UPDATE assistants
 SET language = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantLanguageParams struct {
@@ -406,6 +439,8 @@ func (q *Queries) UpdateAssistantLanguage(ctx context.Context, arg UpdateAssista
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -414,7 +449,7 @@ const updateAssistantModel = `-- name: UpdateAssistantModel :one
 UPDATE assistants
 SET model = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantModelParams struct {
@@ -442,6 +477,8 @@ func (q *Queries) UpdateAssistantModel(ctx context.Context, arg UpdateAssistantM
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -450,7 +487,7 @@ const updateAssistantStatus = `-- name: UpdateAssistantStatus :one
 UPDATE assistants
 SET status = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantStatusParams struct {
@@ -478,6 +515,8 @@ func (q *Queries) UpdateAssistantStatus(ctx context.Context, arg UpdateAssistant
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -486,7 +525,7 @@ const updateAssistantTitle = `-- name: UpdateAssistantTitle :one
 UPDATE assistants
 SET title = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantTitleParams struct {
@@ -514,6 +553,8 @@ func (q *Queries) UpdateAssistantTitle(ctx context.Context, arg UpdateAssistantT
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -522,7 +563,7 @@ const updateAssistantToolCallIDTemplate = `-- name: UpdateAssistantToolCallIDTem
 UPDATE assistants
 SET tool_call_id_template = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantToolCallIDTemplateParams struct {
@@ -550,6 +591,8 @@ func (q *Queries) UpdateAssistantToolCallIDTemplate(ctx context.Context, arg Upd
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }
@@ -558,7 +601,7 @@ const updateAssistantUseAgents = `-- name: UpdateAssistantUseAgents :one
 UPDATE assistants
 SET use_agents = $1
 WHERE id = $2
-RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template
+RETURNING id, status, title, model, model_provider_name, language, functions, trace_id, flow_id, use_agents, msgchain_id, created_at, updated_at, deleted_at, model_provider_type, tool_call_id_template, findings, findings_hash
 `
 
 type UpdateAssistantUseAgentsParams struct {
@@ -586,6 +629,8 @@ func (q *Queries) UpdateAssistantUseAgents(ctx context.Context, arg UpdateAssist
 		&i.DeletedAt,
 		&i.ModelProviderType,
 		&i.ToolCallIDTemplate,
+		&i.Findings,
+		&i.FindingsHash,
 	)
 	return i, err
 }

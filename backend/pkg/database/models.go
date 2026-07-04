@@ -995,6 +995,8 @@ type Assistant struct {
 	DeletedAt          sql.NullTime    `json:"deleted_at"`
 	ModelProviderType  ProviderType    `json:"model_provider_type"`
 	ToolCallIDTemplate string          `json:"tool_call_id_template"`
+	Findings           json.RawMessage `json:"findings"`
+	FindingsHash       string          `json:"findings_hash"`
 }
 
 type Assistantlog struct {

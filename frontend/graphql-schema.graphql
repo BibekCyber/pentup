@@ -139,6 +139,9 @@ fragment assistantFragment on Assistant {
     useAgents
     createdAt
     updatedAt
+    findings {
+        ...findingFragment
+    }
 }
 
 fragment assistantLogFragment on AssistantLog {

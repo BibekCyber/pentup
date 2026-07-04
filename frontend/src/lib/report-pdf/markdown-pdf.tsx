@@ -108,33 +108,52 @@ export const markdownPdfStyles = StyleSheet.create({
     },
 });
 
-const emojiMap: Record<string, string> = {
+// Standard Helvetica (the PDF base font) is Latin-1 only, so emoji and many symbols
+// render as mojibake. The agent uses them heavily in conversational/assistant output.
+// Map the few that carry meaning to ASCII tags, strip the rest.
+const glyphMap: Record<string, string> = {
+    '←': '<-',
+    '→': '->',
+    '↔': '<->',
+    '⇒': '=>',
     '⏳': '[WAIT]',
     '⚠️': '[WARN]',
-    '⚡': '[RUN]',
+    '⚠': '[WARN]',
+    '⛔': '[BLOCKED]',
     '✅': '[OK]',
-    '✨': '[NEW]',
+    '✓': '[OK]',
+    '✔': '[OK]',
+    '✗': '[FAIL]',
+    '✘': '[FAIL]',
     '❌': '[FAIL]',
-    '🎯': '[TARGET]',
-    '🐛': '[BUG]',
-    '💡': '[IDEA]',
-    '📊': '[DATA]',
-    '📝': '[NOTE]',
-    '🔍': '[SEARCH]',
-    '🔐': '[SEC]',
-    '🔧': '[TOOL]',
-    '🚀': '[START]',
+    '➜': '->',
+    '➡️': '->',
+    '➡': '->',
+    '🚫': '[BLOCKED]',
 };
 
-const replaceEmojis = (text: string): string => {
+// Intentionally strips emoji building blocks (regional indicators, variation selectors,
+// ZWJ) one codepoint at a time — that is exactly the misleading-class the rule warns about.
+// eslint-disable-next-line no-misleading-character-class
+const glyphStrip = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2500}-\u{259F}\u{FE00}-\u{FE0F}\u{200D}]/gu;
+
+// stripGlyphs is safe for code (keeps markdown markers); sanitizeProse additionally
+// removes leftover bold markers that marked could not pair (e.g. "** text **"), so they
+// never render literally in the PDF.
+const stripGlyphs = (text: string): string => {
     let result = text;
 
-    for (const [emoji, replacement] of Object.entries(emojiMap)) {
-        result = result.replaceAll(emoji, replacement);
+    for (const [glyph, replacement] of Object.entries(glyphMap)) {
+        result = result.replaceAll(glyph, replacement);
     }
 
-    return result;
+    return result.replace(glyphStrip, '');
 };
+
+const sanitizeProse = (text: string): string =>
+    stripGlyphs(text)
+        .replace(/\*\*|__/g, '')
+        .replace(/ {2,}/g, ' ');
 
 interface InlineToken {
     bold?: boolean;
@@ -165,34 +184,34 @@ const parseInlineTokens = (text: string): InlineToken[] => {
         paragraphTokens.forEach((token) => {
             switch (token.type) {
                 case 'codespan': {
-                    tokens.push({ code: true, text: replaceEmojis(String(token.text || '')) });
+                    tokens.push({ code: true, text: stripGlyphs(String(token.text || '')) });
                     break;
                 }
 
                 case 'em': {
-                    tokens.push({ italic: true, text: replaceEmojis(String(token.text || '')) });
+                    tokens.push({ italic: true, text: sanitizeProse(String(token.text || '')) });
                     break;
                 }
 
                 case 'link': {
-                    tokens.push({ link: String(token.href || ''), text: replaceEmojis(String(token.text || '')) });
+                    tokens.push({ link: String(token.href || ''), text: sanitizeProse(String(token.text || '')) });
                     break;
                 }
 
                 case 'strong': {
-                    tokens.push({ bold: true, text: replaceEmojis(String(token.text || '')) });
+                    tokens.push({ bold: true, text: sanitizeProse(String(token.text || '')) });
                     break;
                 }
 
                 default: {
                     if ('text' in token) {
-                        tokens.push({ text: replaceEmojis(String(token.text || '')) });
+                        tokens.push({ text: sanitizeProse(String(token.text || '')) });
                     }
                 }
             }
         });
     } else {
-        tokens.push({ text: replaceEmojis(text) });
+        tokens.push({ text: sanitizeProse(text) });
     }
 
     return tokens;
@@ -205,7 +224,7 @@ const parseMarkdownTokens = (markdown: string): ParsedContent[] => {
     const processToken = (token: Record<string, unknown>): void => {
         switch (token.type) {
             case 'code': {
-                result.push({ content: replaceEmojis(String(token.text || '')), type: 'code' });
+                result.push({ content: stripGlyphs(String(token.text || '')), type: 'code' });
                 break;
             }
 

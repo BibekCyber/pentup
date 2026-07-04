@@ -327,6 +327,7 @@ type Assistant {
   useAgents: Boolean!
   createdAt: Time!
   updatedAt: Time!
+  findings: [Finding!]!
 }
 
 type FlowAssistant {

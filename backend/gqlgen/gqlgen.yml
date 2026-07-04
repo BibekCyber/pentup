@@ -55,8 +55,12 @@ models:
       - encoding/json.RawMessage
   
   # Findings are loaded lazily from the database only when the report query asks
-  # for them, so keep them out of the eagerly-built model.Flow.
+  # for them, so keep them out of the eagerly-built model.Flow / model.Assistant.
   Flow:
+    fields:
+      findings:
+        resolver: true
+  Assistant:
     fields:
       findings:
         resolver: true

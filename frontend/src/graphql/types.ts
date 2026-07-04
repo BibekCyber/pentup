@@ -189,6 +189,7 @@ export type AgentsPrompts = {
 
 export type Assistant = {
     createdAt: Scalars['Time']['output'];
+    findings: Array<Finding>;
     flowId: Scalars['ID']['output'];
     id: Scalars['ID']['output'];
     provider: Provider;
@@ -1399,6 +1400,7 @@ export type AssistantFragmentFragment = {
     createdAt: any;
     updatedAt: any;
     provider: ProviderFragmentFragment;
+    findings: Array<FindingFragmentFragment>;
 };
 
 export type AssistantLogFragmentFragment = {
@@ -2413,6 +2415,22 @@ export const ProviderFragmentFragmentDoc = gql`
         type
     }
 `;
+export const FindingFragmentFragmentDoc = gql`
+    fragment findingFragment on Finding {
+        taskId
+        title
+        severity
+        cvss
+        cve
+        affectedUrls
+        description
+        evidence
+        impact
+        stepsToReproduce
+        recommendation
+        references
+    }
+`;
 export const AssistantFragmentFragmentDoc = gql`
     fragment assistantFragment on Assistant {
         id
@@ -2425,8 +2443,12 @@ export const AssistantFragmentFragmentDoc = gql`
         useAgents
         createdAt
         updatedAt
+        findings {
+            ...findingFragment
+        }
     }
     ${ProviderFragmentFragmentDoc}
+    ${FindingFragmentFragmentDoc}
 `;
 export const AssistantLogFragmentFragmentDoc = gql`
     fragment assistantLogFragment on AssistantLog {
@@ -2789,22 +2811,6 @@ export const FlowExecutionStatsFragmentFragmentDoc = gql`
         }
     }
     ${TaskExecutionStatsFragmentFragmentDoc}
-`;
-export const FindingFragmentFragmentDoc = gql`
-    fragment findingFragment on Finding {
-        taskId
-        title
-        severity
-        cvss
-        cve
-        affectedUrls
-        description
-        evidence
-        impact
-        stepsToReproduce
-        recommendation
-        references
-    }
 `;
 export const UserPreferencesFragmentFragmentDoc = gql`
     fragment userPreferencesFragment on UserPreferences {

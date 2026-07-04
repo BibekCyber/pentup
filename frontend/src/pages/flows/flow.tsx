@@ -22,6 +22,7 @@ import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
 import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
+import { mapFindings } from '@/lib/build-report-model';
 import { Log } from '@/lib/log';
 import { copyToClipboard, downloadTextFile, generateFileName, generateReport } from '@/lib/report';
 import { formatName } from '@/lib/utils/format';
@@ -38,7 +39,7 @@ const FlowReportDropdown = () => {
     const isReportDisabled = !flow || !flowId;
 
     const buildMarkdown = (): string =>
-        isAssistant ? buildReportMarkdown(buildAssistantReportModel(flow, assistants[0], assistantLogs)) : generateReport(tasks, flow);
+        isAssistant ? buildReportMarkdown(buildAssistantReportModel(flow, assistants[0], assistantLogs, { findings: mapFindings(assistants[0]?.findings) })) : generateReport(tasks, flow);
 
     // Report export handlers
     const handleCopyToClipboard = async () => {

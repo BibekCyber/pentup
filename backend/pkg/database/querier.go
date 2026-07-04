@@ -232,6 +232,7 @@ type Querier interface {
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
 	UpdateAPIToken(ctx context.Context, arg UpdateAPITokenParams) (ApiToken, error)
 	UpdateAssistant(ctx context.Context, arg UpdateAssistantParams) (Assistant, error)
+	UpdateAssistantFindings(ctx context.Context, arg UpdateAssistantFindingsParams) error
 	UpdateAssistantLanguage(ctx context.Context, arg UpdateAssistantLanguageParams) (Assistant, error)
 	UpdateAssistantLog(ctx context.Context, arg UpdateAssistantLogParams) (Assistantlog, error)
 	UpdateAssistantLogContent(ctx context.Context, arg UpdateAssistantLogContentParams) (Assistantlog, error)

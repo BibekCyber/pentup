@@ -39,6 +39,47 @@ type AssistantProvider interface {
 	PerformAgentChain(ctx context.Context) error
 	PutInputToAgentChain(ctx context.Context, input string) error
 	EnsureChainConsistency(ctx context.Context) error
+	ExtractFindings(ctx context.Context, content string) ([]tools.Finding, error)
+}
+
+const assistantFindingsSystemPrompt = `You are a security report analyst. You are given the output of a completed security assessment performed by an AI assistant. Your ONLY job is to extract the distinct, evidence-backed security findings into structured form by calling the "%s" tool exactly once.
+
+In that tool call:
+- Set "success" to true and put a short one-line note in "result" and "message".
+- Populate "findings" with one entry per DISTINCT vulnerability, weakness or misconfiguration that the assessment actually identified and substantiated with evidence.
+- For each finding provide: title; severity (one of critical/high/medium/low/informational, aligned to its CVSS v3.1 band); cvss and cve when stated; affected_urls; description; evidence; impact; steps_to_reproduce; recommendation; and references when available.
+- Every string field MUST be plain prose with NO markdown markup. Never invent or pad findings. Use an empty "findings" array if the assessment reported no security issues.`
+
+const assistantFindingsUserPrompt = `<assistant_assessment>
+%s
+</assistant_assessment>
+
+Extract the structured security findings from the assessment above.`
+
+// ExtractFindings runs a single constrained reporter call (the report_result tool only)
+// over the assistant's report output to extract structured findings. It reuses the
+// existing reporter machinery, so no new LLM client or executor is introduced.
+func (ap *assistantProvider) ExtractFindings(ctx context.Context, content string) ([]tools.Finding, error) {
+	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.assistantProvider.ExtractFindings")
+	defer span.End()
+
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil, nil
+	}
+
+	systemPrompt := fmt.Sprintf(assistantFindingsSystemPrompt, tools.ReportResultToolName)
+	userPrompt := fmt.Sprintf(assistantFindingsUserPrompt, content)
+
+	result, err := ap.fp.performTaskResultReporter(ctx, nil, nil, systemPrompt, userPrompt, "assistant findings extraction")
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract assistant findings: %w", err)
+	}
+	if result == nil {
+		return nil, nil
+	}
+
+	return result.Findings, nil
 }
 
 type assistantProvider struct {

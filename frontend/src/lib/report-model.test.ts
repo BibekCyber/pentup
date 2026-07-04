@@ -150,7 +150,7 @@ describe('mapFindings + buildReportModel (backend findings drive a coherent repo
         const findings = mapFindings(gqlFindings);
 
         expect(findings).toHaveLength(4);
-        expect(findings[0].severity).toBe('critical');
+        expect(findings[0]?.severity).toBe('critical');
         expect(new Set(findings.map((f) => f.id)).size).toBe(4);
     });
 

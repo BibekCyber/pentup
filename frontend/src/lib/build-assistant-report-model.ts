@@ -2,7 +2,7 @@ import type { AssistantFragmentFragment, AssistantLogFragmentFragment, FlowFragm
 
 import { MessageLogType, StatusType } from '@/graphql/types';
 
-import type { ReportModel, ReportSection, ReportTocEntry } from './report-model';
+import type { Finding, ReportModel, ReportSection, ReportTocEntry } from './report-model';
 
 import { formatDuration, pluralize } from './build-report-model';
 import { emptySeverityCounts } from './report-model';
@@ -11,6 +11,24 @@ const oneLine = (text: string, max = 140): string => {
     const flat = text.replace(/\s+/g, ' ').trim();
 
     return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
+};
+
+// Strip system-injected engagement directives (e.g. <engagement_auth>…</engagement_auth>)
+// from a user prompt so the credential-handling boilerplate never leaks into the report.
+const cleanInput = (text: string): string =>
+    text
+        .replace(/<(engagement_\w+)>[\s\S]*?<\/\1>/gi, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+// Short, purely transitional narration ("Let me check…", "Found it!", "Now I'll…")
+// reads as a chat log, not a report. Substantive answers/reports are longer and kept.
+const TRANSITIONAL = /^(let me|let's|lets|now (?:let me|i)|next|then|first|i'll|i will|i'm going to|found it|great|excellent|perfect|good|ok|okay|alright|sure)\b/i;
+
+const isTransitional = (text: string): boolean => {
+    const flat = text.replace(/\s+/g, ' ').trim();
+
+    return flat.length <= 160 && (TRANSITIONAL.test(flat) || flat.endsWith(':'));
 };
 
 const sectionTitle = (input: string, max = 80): string => {
@@ -90,6 +108,7 @@ const flushSection = (open: null | OpenSection, sections: ReportSection[]): void
 };
 
 interface BuildAssistantReportModelOptions {
+    findings?: readonly Finding[];
     generatedAt?: string;
 }
 
@@ -109,7 +128,8 @@ export const buildAssistantReportModel = (
     for (const log of ordered) {
         if (log.type === MessageLogType.Input) {
             flushSection(open, sections);
-            open = newSection(sectionTitle(log.message || `Exchange ${sections.length + 1}`), log.message?.trim() || undefined);
+            const prompt = cleanInput(log.message ?? '');
+            open = newSection(sectionTitle(prompt || `Exchange ${sections.length + 1}`), prompt || undefined);
 
             continue;
         }
@@ -136,9 +156,10 @@ export const buildAssistantReportModel = (
                 break;
             }
 
-            case MessageLogType.Answer:
-            case MessageLogType.Report: {
-                if (message) {
+            case MessageLogType.Answer: {
+                // Keep substantive answers; drop short transitional narration so the
+                // section reads as a report, not a turn-by-turn chat log.
+                if (message && !isTransitional(message)) {
                     open.narrative.push(message);
                 }
 
@@ -154,6 +175,7 @@ export const buildAssistantReportModel = (
             }
 
             case MessageLogType.Browser:
+
             case MessageLogType.File:
             case MessageLogType.Search:
             case MessageLogType.Terminal: {
@@ -162,6 +184,14 @@ export const buildAssistantReportModel = (
 
                 if (action) {
                     open.actions.push(action);
+                }
+
+                break;
+            }
+
+            case MessageLogType.Report: {
+                if (message) {
+                    open.narrative.push(message);
                 }
 
                 break;
@@ -179,16 +209,36 @@ export const buildAssistantReportModel = (
     const startMs = flow?.createdAt ? new Date(flow.createdAt).getTime() : Number.NaN;
     const endMs = flow?.updatedAt ? new Date(flow.updatedAt).getTime() : Number.NaN;
 
-    const toc: ReportTocEntry[] = [{ id: 'executive-summary', level: 1, title: 'Executive Summary' }, ...sections.map((section) => ({ id: section.id, level: 1, title: section.title }))];
+    // Findings arrive already sorted high-to-low from the backend extractor.
+    const reportFindings = [...(options.findings ?? [])];
+    const hasFindings = reportFindings.length > 0;
+
+    const findingsBySeverity = emptySeverityCounts();
+
+    for (const finding of reportFindings) {
+        findingsBySeverity[finding.severity] += 1;
+    }
+
+    // When findings exist the conversation topics become the "Conversation" methodology
+    // below the finding cards; otherwise they are the report body directly.
+    const sectionsTitle = hasFindings && sections.length > 0 ? 'Conversation' : undefined;
+
+    const toc: ReportTocEntry[] = [
+        { id: 'executive-summary', level: 1, title: 'Executive Summary' },
+        ...(hasFindings ? ([{ id: 'findings-summary', level: 1, title: 'Findings Summary' }, { id: 'detailed-findings', level: 1, title: 'Detailed Findings' }] as ReportTocEntry[]) : []),
+        ...(sectionsTitle ? ([{ id: 'methodology', level: 1, title: sectionsTitle }] as ReportTocEntry[]) : []),
+        ...sections.map((section) => ({ id: section.id, level: sectionsTitle ? 2 : 1, title: section.title })),
+    ];
 
     const summaryTarget = assistant?.title ? `with the ${assistant.title}` : 'session';
     const toolClause = toolCalls > 0 ? ` and ran ${toolCalls} tool ${pluralize(toolCalls, 'action')}` : '';
+    const findingsClause = hasFindings ? ` and identified ${reportFindings.length} ${pluralize(reportFindings.length, 'finding')}` : '';
     const executiveSummary =
-        sections.length > 0 ? { content: `This assistant ${summaryTarget} worked through ${sections.length} conversation ${pluralize(sections.length, 'topic')}${toolClause}.`, generatedAt } : undefined;
+        sections.length > 0 ? { content: `This assistant ${summaryTarget} worked through ${sections.length} conversation ${pluralize(sections.length, 'topic')}${toolClause}${findingsClause}.`, generatedAt } : undefined;
 
     return {
         executiveSummary,
-        findings: [],
+        findings: reportFindings,
         flow: {
             finishedAt: flow?.updatedAt ? new Date(flow.updatedAt).toISOString() : undefined,
             id: flow?.id ?? '',
@@ -199,10 +249,11 @@ export const buildAssistantReportModel = (
         },
         generatedAt,
         sections,
+        sectionsTitle,
         summary: {
             duration: formatDuration(startMs, endMs),
-            findingsBySeverity: emptySeverityCounts(),
-            findingsTotal: 0,
+            findingsBySeverity,
+            findingsTotal: reportFindings.length,
             screenshotCount: 0,
             subtasksTotal: toolCalls,
             tasksDone: sections.length,

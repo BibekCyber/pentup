@@ -98,11 +98,12 @@ interface ExecutiveSummaryPdfProps {
 
 const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
     const { summary } = model;
+    const hasFindings = summary.findingsTotal > 0;
     const posture = SEVERITY_ORDER.find((severity) => summary.findingsBySeverity[severity] > 0);
 
     const tiles: Array<{ label: string; value: string }> = [
         { label: 'Tasks completed', value: `${summary.tasksDone}/${summary.tasksTotal}` },
-        { label: 'Findings', value: String(summary.findingsTotal) },
+        ...(hasFindings ? [{ label: 'Findings', value: String(summary.findingsTotal) }] : []),
         { label: pluralize(summary.screenshotCount, 'Screenshot'), value: String(summary.screenshotCount) },
         { label: 'Duration', value: summary.duration ?? '—' },
     ];
@@ -125,29 +126,33 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
                 ))}
             </View>
 
-            <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Severity</Text>
-                <Text style={[styles.tableHeaderCell, { textAlign: 'center', width: '20%' }]}>Findings</Text>
-                <Text style={[styles.tableHeaderCell, { width: '30%' }]}>CVSS Range</Text>
-            </View>
-
-            {SEVERITY_ORDER.map((severity) => {
-                const style = getSeverityStyle(severity);
-                const count = summary.findingsBySeverity[severity];
-
-                return (
-                    <View key={severity} style={[styles.row, count > 0 ? { backgroundColor: style.pdf.tint } : {}]}>
-                        <View style={styles.sevCell}>
-                            <View style={[styles.dot, { backgroundColor: style.pdf.solid }]} />
-                            <Text style={styles.sevLabel}>{style.label}</Text>
-                        </View>
-                        <Text style={styles.countCell}>{count}</Text>
-                        <Text style={styles.rangeCell}>{style.cvssRange}</Text>
+            {hasFindings && (
+                <>
+                    <View style={styles.tableHeader}>
+                        <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Severity</Text>
+                        <Text style={[styles.tableHeaderCell, { textAlign: 'center', width: '20%' }]}>Findings</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '30%' }]}>CVSS Range</Text>
                     </View>
-                );
-            })}
 
-            {posture && <Text style={styles.posture}>Overall risk posture: {getSeverityStyle(posture).label}</Text>}
+                    {SEVERITY_ORDER.map((severity) => {
+                        const style = getSeverityStyle(severity);
+                        const count = summary.findingsBySeverity[severity];
+
+                        return (
+                            <View key={severity} style={[styles.row, count > 0 ? { backgroundColor: style.pdf.tint } : {}]}>
+                                <View style={styles.sevCell}>
+                                    <View style={[styles.dot, { backgroundColor: style.pdf.solid }]} />
+                                    <Text style={styles.sevLabel}>{style.label}</Text>
+                                </View>
+                                <Text style={styles.countCell}>{count}</Text>
+                                <Text style={styles.rangeCell}>{style.cvssRange}</Text>
+                            </View>
+                        );
+                    })}
+
+                    {posture && <Text style={styles.posture}>Overall risk posture: {getSeverityStyle(posture).label}</Text>}
+                </>
+            )}
         </View>
     );
 };

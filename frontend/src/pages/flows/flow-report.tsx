@@ -77,7 +77,7 @@ const FlowReport = () => {
         }
 
         if (assistants.length > 0) {
-            return logsLoading ? null : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? []);
+            return logsLoading ? null : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], { findings: mapFindings(assistants[0]?.findings) });
         }
 
         return buildReportModel(data.flow, [], findings);

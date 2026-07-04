@@ -2,9 +2,11 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -483,7 +485,94 @@ func (aw *assistantWorker) worker() {
 				aw.logger.WithError(err).Error("failed to perform assistant chain")
 			}
 			ain.done <- err
+
+			// After the turn is signalled complete, refresh structured findings from the
+			// assistant's report output. Runs only when the report content changed and is
+			// fully best-effort — a failure here must never affect the conversation.
+			if err == nil {
+				aw.refreshFindings(aw.ctx)
+			}
 		}
+	}
+}
+
+// assistantFindingsContentLimit caps the assessment text sent to the extractor so a
+// very long conversation can't blow up the prompt; the tail holds the latest report.
+const assistantFindingsContentLimit = 60000
+
+func (aw *assistantWorker) refreshFindings(ctx context.Context) {
+	logs, err := aw.db.GetFlowAssistantLogs(ctx, database.GetFlowAssistantLogsParams{
+		FlowID:      aw.flowID,
+		AssistantID: aw.id,
+	})
+	if err != nil {
+		aw.logger.WithError(err).Warn("failed to load assistant logs for findings extraction")
+		return
+	}
+
+	var sb strings.Builder
+	for _, log := range logs {
+		if log.Type != database.MsglogTypeReport && log.Type != database.MsglogTypeAnswer {
+			continue
+		}
+
+		message := strings.TrimSpace(log.Message)
+		if message == "" {
+			continue
+		}
+
+		sb.WriteString(message)
+		sb.WriteString("\n\n")
+	}
+
+	content := strings.TrimSpace(sb.String())
+	if content == "" {
+		return
+	}
+
+	if len(content) > assistantFindingsContentLimit {
+		content = content[len(content)-assistantFindingsContentLimit:]
+	}
+
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+
+	assistant, err := aw.db.GetAssistant(ctx, aw.id)
+	if err != nil {
+		aw.logger.WithError(err).Warn("failed to load assistant for findings cache check")
+		return
+	}
+
+	if assistant.FindingsHash == hash {
+		return // report content unchanged since the last extraction
+	}
+
+	findings, err := aw.ap.ExtractFindings(ctx, content)
+	if err != nil {
+		aw.logger.WithError(err).Warn("failed to extract assistant findings")
+		return
+	}
+
+	if findings == nil {
+		findings = []tools.Finding{}
+	}
+
+	blob, err := json.Marshal(findings)
+	if err != nil {
+		aw.logger.WithError(err).Warn("failed to marshal assistant findings")
+		return
+	}
+
+	if err := aw.db.UpdateAssistantFindings(ctx, database.UpdateAssistantFindingsParams{
+		Findings:     blob,
+		FindingsHash: hash,
+		ID:           aw.id,
+	}); err != nil {
+		aw.logger.WithError(err).Warn("failed to persist assistant findings")
+		return
+	}
+
+	if updated, err := aw.db.GetAssistant(ctx, aw.id); err == nil {
+		aw.pub.AssistantUpdated(ctx, updated)
 	}
 }
 

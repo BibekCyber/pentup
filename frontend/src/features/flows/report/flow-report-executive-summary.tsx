@@ -30,6 +30,7 @@ interface FlowReportExecutiveSummaryProps {
 const FlowReportExecutiveSummary = ({ model }: FlowReportExecutiveSummaryProps) => {
     const { summary } = model;
     const posture = overallPosture(model);
+    const hasFindings = summary.findingsTotal > 0;
 
     return (
         <section
@@ -53,17 +54,19 @@ const FlowReportExecutiveSummary = ({ model }: FlowReportExecutiveSummaryProps) 
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className={cn('grid grid-cols-2 gap-3', hasFindings ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
                 <StatTile
                     icon={ListChecks}
                     label="Tasks completed"
                     value={`${summary.tasksDone}/${summary.tasksTotal}`}
                 />
-                <StatTile
-                    icon={FileText}
-                    label="Findings"
-                    value={String(summary.findingsTotal)}
-                />
+                {hasFindings && (
+                    <StatTile
+                        icon={FileText}
+                        label="Findings"
+                        value={String(summary.findingsTotal)}
+                    />
+                )}
                 <StatTile
                     icon={Camera}
                     label={pluralize(summary.screenshotCount, 'Screenshot')}
@@ -76,41 +79,43 @@ const FlowReportExecutiveSummary = ({ model }: FlowReportExecutiveSummaryProps) 
                 />
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="text-muted-foreground border-border border-b text-left text-xs uppercase">
-                                <th className="px-4 py-2.5 font-medium">Severity</th>
-                                <th className="px-4 py-2.5 text-center font-medium">Findings</th>
-                                <th className="px-4 py-2.5 font-medium">CVSS Range</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {SEVERITY_ORDER.map((severity) => {
-                                const style = getSeverityStyle(severity);
-                                const count = summary.findingsBySeverity[severity];
+            {hasFindings && (
+                <Card>
+                    <CardContent className="p-0">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-muted-foreground border-border border-b text-left text-xs uppercase">
+                                    <th className="px-4 py-2.5 font-medium">Severity</th>
+                                    <th className="px-4 py-2.5 text-center font-medium">Findings</th>
+                                    <th className="px-4 py-2.5 font-medium">CVSS Range</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {SEVERITY_ORDER.map((severity) => {
+                                    const style = getSeverityStyle(severity);
+                                    const count = summary.findingsBySeverity[severity];
 
-                                return (
-                                    <tr
-                                        className={cn('border-border border-b last:border-b-0', count > 0 && style.rowClass)}
-                                        key={severity}
-                                    >
-                                        <td className="px-4 py-2.5">
-                                            <span className="flex items-center gap-2">
-                                                <span className={cn('size-2.5 rounded-full', style.dotClass)} />
-                                                <span className="font-medium">{style.label}</span>
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums">{count}</td>
-                                        <td className="text-muted-foreground px-4 py-2.5 font-mono text-xs">{style.cvssRange}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </CardContent>
-            </Card>
+                                    return (
+                                        <tr
+                                            className={cn('border-border border-b last:border-b-0', count > 0 && style.rowClass)}
+                                            key={severity}
+                                        >
+                                            <td className="px-4 py-2.5">
+                                                <span className="flex items-center gap-2">
+                                                    <span className={cn('size-2.5 rounded-full', style.dotClass)} />
+                                                    <span className="font-medium">{style.label}</span>
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center font-semibold tabular-nums">{count}</td>
+                                            <td className="text-muted-foreground px-4 py-2.5 font-mono text-xs">{style.cvssRange}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+            )}
         </section>
     );
 };
