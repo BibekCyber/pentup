@@ -541,10 +541,13 @@ func (fw *flowWorker) SetStatus(ctx context.Context, status database.FlowStatus)
 
 	fw.flowCtx.Publisher.FlowUpdated(ctx, flow, containers)
 
-	// When a child flow of a scan (domain) reaches a terminal state, recompute the
-	// parent scan's status so it doesn't stay "running" after its last flow ends.
+	// When a child flow of a scan (domain) changes lifecycle state, recompute the
+	// parent scan's status so it tracks its children: it must not stay "running"
+	// after its last flow ends, and it must read "waiting" while every active flow
+	// is waiting rather than running.
 	if fw.flowCtx.Subs != nil && flow.DomainID.Valid &&
-		(status == database.FlowStatusFinished || status == database.FlowStatusFailed) {
+		(status == database.FlowStatusFinished || status == database.FlowStatusFailed ||
+			status == database.FlowStatusWaiting || status == database.FlowStatusRunning) {
 		reconcileDomainStatus(ctx, fw.flowCtx.DB, fw.flowCtx.Subs, flow.DomainID.Int64)
 	}
 

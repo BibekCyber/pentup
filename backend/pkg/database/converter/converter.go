@@ -553,7 +553,6 @@ func ConvertFlowTemplate(template database.FlowTemplate) *model.FlowTemplate {
 		Title:           template.Title,
 		Text:            template.Text,
 		TargetTypes:     convertTargetTypes(template.TargetTypes),
-		DefaultTemplate: template.DefaultTemplate,
 		SystemOwned:     template.SystemOwned,
 		CreatedAt:       template.CreatedAt.Time,
 		UpdatedAt:       template.UpdatedAt.Time,
@@ -606,6 +605,7 @@ func ConvertProvider(prv database.Provider, cfg *pconfig.ProviderConfig) *model.
 		Name:      prv.Name,
 		Type:      model.ProviderType(prv.Type),
 		Agents:    ConvertProviderConfigToGqlModel(cfg),
+		IsDefault: prv.IsDefault,
 		CreatedAt: prv.CreatedAt.Time,
 		UpdatedAt: prv.UpdatedAt.Time,
 	}

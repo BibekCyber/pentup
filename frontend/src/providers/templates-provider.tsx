@@ -17,7 +17,6 @@ import { useUser } from '@/providers/user-provider';
 
 export interface Template {
     createdAt: Date;
-    defaultTemplate: boolean;
     id: string;
     systemOwned: boolean;
     targetTypes: TargetType[];
@@ -28,7 +27,6 @@ export interface Template {
 }
 
 interface CreateTemplatePayload {
-    defaultTemplate?: boolean;
     targetTypes?: TargetType[];
     text: string;
     title: string;
@@ -48,7 +46,6 @@ interface TemplatesProviderProps {
 }
 
 interface UpdateTemplatePayload {
-    defaultTemplate?: boolean;
     targetTypes?: TargetType[];
     text: string;
     title: string;
@@ -92,7 +89,6 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
 
         return rawTemplates.map((t) => ({
             createdAt: new Date(t.createdAt),
-            defaultTemplate: t.defaultTemplate,
             id: t.id,
             systemOwned: t.systemOwned,
             targetTypes: t.targetTypes,
@@ -116,7 +112,6 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
                 await createTemplateMutation({
                     variables: {
                         input: {
-                            defaultTemplate: payload.defaultTemplate,
                             targetTypes: payload.targetTypes,
                             text: payload.text,
                             title: payload.title,
@@ -154,7 +149,6 @@ export const TemplatesProvider = ({ children }: TemplatesProviderProps) => {
                 if (payload.targetTypes !== undefined) {
                     await updateTemplateTargetTypesMutation({
                         variables: {
-                            defaultTemplate: payload.defaultTemplate,
                             targetTypes: payload.targetTypes,
                             templateId: id,
                         },

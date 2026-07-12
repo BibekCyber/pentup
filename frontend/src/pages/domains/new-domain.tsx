@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -29,10 +29,6 @@ import { useTemplates } from '@/providers/templates-provider';
 // preview. Not a billing figure — quotas, not cost, gate what users may run.
 const PER_FLOW_COST_LOW = 0.5;
 const PER_FLOW_COST_HIGH = 2.0;
-
-// The model provider is hardcoded for now (provider selection was removed from
-// the scan-creation form). Change here if a different default is needed.
-const DEFAULT_MODEL_PROVIDER = 'kimi';
 
 const formSchema = z
     .object({
@@ -68,7 +64,6 @@ const NewDomain = () => {
         formState: { errors },
         handleSubmit,
         register,
-        setValue,
         watch,
     } = useForm<DomainFormValues>({
         defaultValues: {
@@ -111,18 +106,6 @@ const NewDomain = () => {
         return templates.filter((template) => template.targetTypes.includes(targetType));
     }, [templates, targetType]);
 
-    // When the target type changes (manual path), pre-select its default templates.
-    useEffect(() => {
-        if (autoDetect || !targetType) {
-            return;
-        }
-
-        const defaults = templates
-            .filter((template) => template.targetTypes.includes(targetType) && template.defaultTemplate)
-            .map((template) => template.id);
-        setValue('templateIds', defaults, { shouldValidate: true });
-    }, [autoDetect, targetType, templates, setValue]);
-
     const flowsPerDomainMax = quota?.flowsPerDomainMax ?? 5;
     const selectedCount = autoDetect ? Math.min(flowsPerDomainMax, 3) : templateIds.length;
     const cappedCount = Math.min(selectedCount, flowsPerDomainMax);
@@ -141,7 +124,6 @@ const NewDomain = () => {
         try {
             const domain = await createDomain({
                 autoDetect: values.autoDetect,
-                modelProvider: DEFAULT_MODEL_PROVIDER,
                 name: values.name.trim(),
                 targetType: values.autoDetect ? undefined : values.targetType,
                 templateIds: values.autoDetect ? [] : values.templateIds,
@@ -318,11 +300,6 @@ const NewDomain = () => {
                                                                 <span className="flex min-w-0 flex-1 flex-col">
                                                                     <span className="truncate text-sm font-medium">
                                                                         {template.title}
-                                                                        {template.defaultTemplate ? (
-                                                                            <span className="text-muted-foreground ml-1 text-xs font-normal">
-                                                                                (default)
-                                                                            </span>
-                                                                        ) : null}
                                                                     </span>
                                                                     <span className="text-muted-foreground line-clamp-1 text-xs">
                                                                         {template.text}

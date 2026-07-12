@@ -95,72 +95,83 @@ const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: 
     };
 
     return (
-        <Card
-            className="hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
-            onClick={() => navigate(`/flows/${flow.id}`)}
-            onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    navigate(`/flows/${flow.id}`);
-                }
-            }}
-            role="button"
-            tabIndex={0}
-        >
-            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                <CardTitle className="flex min-w-0 items-center gap-2 text-base">
-                    <FlowStatusIcon
-                        status={flow.status}
-                        tooltip={flow.status}
-                    />
-                    <span className="truncate">{flow.title}</span>
-                </CardTitle>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            className="-mt-1 -mr-2 size-7 shrink-0"
-                            // the card itself opens the flow; keep the menu button from triggering that
+        <>
+            <Card
+                className="hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                onClick={() => navigate(`/flows/${flow.id}`)}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/flows/${flow.id}`);
+                    }
+                }}
+                role="button"
+                tabIndex={0}
+            >
+                <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                    <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+                        <FlowStatusIcon
+                            status={flow.status}
+                            tooltip={flow.status}
+                        />
+                        <span className="truncate">{flow.title}</span>
+                    </CardTitle>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                className="-mt-1 -mr-2 size-7 shrink-0"
+                                // the card itself opens the flow; keep the menu button from triggering that
+                                onClick={(e) => e.stopPropagation()}
+                                size="icon"
+                                variant="ghost"
+                            >
+                                <MoreVertical className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            // portaled menu content still bubbles through the React tree to the card's
+                            // onClick — stop it so item clicks don't navigate to the flow
                             onClick={(e) => e.stopPropagation()}
-                            size="icon"
-                            variant="ghost"
                         >
-                            <MoreVertical className="size-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                            onSelect={(e) => {
-                                // keep focus on the trigger so the dialog can grab it cleanly
-                                e.preventDefault();
-                                setTitle(flow.title);
-                                setIsRenameOpen(true);
-                            }}
-                        >
-                            <Pencil className="size-4" />
-                            Rename
-                        </DropdownMenuItem>
-                        {isActive ? (
-                            <DropdownMenuItem onSelect={() => void handleFinish()}>
-                                <CheckCircle2 className="size-4" />
-                                Finish
+                            <DropdownMenuItem
+                                onSelect={(e) => {
+                                    // keep focus on the trigger so the dialog can grab it cleanly
+                                    e.preventDefault();
+                                    setTitle(flow.title);
+                                    setIsRenameOpen(true);
+                                }}
+                            >
+                                <Pencil className="size-4" />
+                                Rename
                             </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={(e) => {
-                                e.preventDefault();
-                                setIsDeleteOpen(true);
-                            }}
-                        >
-                            <Trash2 className="size-4" />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </CardHeader>
-            <CardContent className="text-muted-foreground text-xs">Started {formatDate(flow.createdAt)}</CardContent>
+                            {isActive ? (
+                                <DropdownMenuItem onSelect={() => void handleFinish()}>
+                                    <CheckCircle2 className="size-4" />
+                                    Finish
+                                </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setIsDeleteOpen(true);
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </CardHeader>
+                <CardContent className="text-muted-foreground text-xs">
+                    Started {formatDate(flow.createdAt)}
+                </CardContent>
+            </Card>
 
+            {/* Dialogs are siblings of the Card (not descendants) so their button clicks don't
+                bubble to the card's onClick and navigate to the flow. */}
             <Dialog
                 onOpenChange={setIsRenameOpen}
                 open={isRenameOpen}
@@ -204,7 +215,7 @@ const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: 
                 itemType="flow"
                 title="Delete flow?"
             />
-        </Card>
+        </>
     );
 };
 

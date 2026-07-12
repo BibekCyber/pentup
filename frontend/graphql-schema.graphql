@@ -228,6 +228,7 @@ fragment modelConfigFragment on ModelConfig {
 fragment providerFragment on Provider {
     name
     type
+    isDefault
 }
 
 fragment providerConfigFragment on ProviderConfig {
@@ -237,6 +238,7 @@ fragment providerConfigFragment on ProviderConfig {
     agents {
         ...agentsConfigFragment
     }
+    isDefault
     createdAt
     updatedAt
 }
@@ -359,7 +361,6 @@ fragment flowTemplateFragment on FlowTemplate {
     title
     text
     targetTypes
-    defaultTemplate
     systemOwned
     createdAt
     updatedAt
@@ -971,8 +972,8 @@ mutation updateFlowTemplate($templateId: ID!, $input: UpdateFlowTemplateInput!) 
     }
 }
 
-mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!, $defaultTemplate: Boolean) {
-    updateFlowTemplateTargetTypes(templateId: $templateId, targetTypes: $targetTypes, defaultTemplate: $defaultTemplate) {
+mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!) {
+    updateFlowTemplateTargetTypes(templateId: $templateId, targetTypes: $targetTypes) {
         ...flowTemplateFragment
     }
 }
@@ -1060,6 +1061,12 @@ mutation updateProvider($providerId: ID!, $name: String!, $agents: AgentsConfigI
 
 mutation deleteProvider($providerId: ID!) {
     deleteProvider(providerId: $providerId)
+}
+
+mutation setDefaultProvider($providerId: ID!) {
+    setDefaultProvider(providerId: $providerId) {
+        ...providerConfigFragment
+    }
 }
 
 mutation validatePrompt($type: PromptType!, $template: String!) {

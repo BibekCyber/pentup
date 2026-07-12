@@ -26,6 +26,10 @@ export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
         badgeClassName: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300',
         label: 'Azure',
     },
+    [TargetType.Cloud]: {
+        badgeClassName: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300',
+        label: 'Cloud',
+    },
     [TargetType.Gcp]: {
         badgeClassName: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
         label: 'GCP',
@@ -44,21 +48,12 @@ export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
     },
     [TargetType.WebApp]: {
         badgeClassName: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-        label: 'Web App',
+        label: 'Web',
     },
 };
 
 /** Ordered list of all target types, used to render pickers/filters. */
-export const ALL_TARGET_TYPES: TargetType[] = [
-    TargetType.WebApp,
-    TargetType.Api,
-    TargetType.Aws,
-    TargetType.Azure,
-    TargetType.Gcp,
-    TargetType.Network,
-    TargetType.MobileBackend,
-    TargetType.General,
-];
+export const ALL_TARGET_TYPES: TargetType[] = [TargetType.WebApp, TargetType.Cloud];
 
 /** Returns the display metadata for a target type, falling back to General. */
 export const getTargetTypeMeta = (type: TargetType): TargetTypeMeta =>

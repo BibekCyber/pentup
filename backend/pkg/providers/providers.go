@@ -117,6 +117,15 @@ type ProviderController interface {
 		userID int64,
 		prvID int64,
 	) (database.Provider, error)
+	SetDefaultProvider(
+		ctx context.Context,
+		userID int64,
+		prvID int64,
+	) (database.Provider, error)
+	GetDefaultProviderName(
+		ctx context.Context,
+		userID int64,
+	) (string, error)
 
 	TestAgent(
 		ctx context.Context,
@@ -931,6 +940,86 @@ func (pc *providerController) DeleteProvider(
 	}
 
 	return result, nil
+}
+
+// SetDefaultProvider marks a single user-owned provider as the default. It uses
+// a clear-then-set sequence so it never transiently violates the partial-unique
+// index that enforces one default per user.
+func (pc *providerController) SetDefaultProvider(
+	ctx context.Context,
+	userID int64,
+	prvID int64,
+) (database.Provider, error) {
+	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.SetDefaultProvider")
+	defer span.End()
+
+	var result database.Provider
+
+	// Clear any existing default first to avoid clashing with the
+	// providers_one_default_per_user partial-unique index.
+	if err := pc.db.ClearDefaultProviders(ctx, userID); err != nil {
+		return result, fmt.Errorf("failed to clear default providers: %w", err)
+	}
+
+	// The WHERE id=$1 AND user_id=$2 clause enforces ownership: a row that is
+	// not the user's yields sql.ErrNoRows.
+	result, err := pc.db.SetDefaultProvider(ctx, database.SetDefaultProviderParams{
+		ID:     prvID,
+		UserID: userID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return result, fmt.Errorf("provider %d not found for user", prvID)
+		}
+		return result, fmt.Errorf("failed to set default provider: %w", err)
+	}
+
+	return result, nil
+}
+
+// GetDefaultProviderName resolves the provider name the system should use for
+// new flows/scans/engagements. It follows a fallback chain and never returns an
+// error for a brand-new user with zero provider rows.
+func (pc *providerController) GetDefaultProviderName(
+	ctx context.Context,
+	userID int64,
+) (string, error) {
+	// 1. Explicit user default, if any.
+	def, err := pc.db.GetDefaultProvider(ctx, userID)
+	if err != nil && err != sql.ErrNoRows {
+		return "", fmt.Errorf("failed to get default provider: %w", err)
+	}
+	if err == nil {
+		return def.Name, nil
+	}
+
+	// 2. Oldest user-defined provider by created_at (GetUserProviders orders ASC).
+	userProviders, err := pc.db.GetUserProviders(ctx, userID)
+	if err != nil && err != sql.ErrNoRows {
+		return "", fmt.Errorf("failed to get user providers: %w", err)
+	}
+	if len(userProviders) > 0 {
+		oldest := userProviders[0]
+		for _, prv := range userProviders[1:] {
+			if prv.CreatedAt.Valid && oldest.CreatedAt.Valid && prv.CreatedAt.Time.Before(oldest.CreatedAt.Time) {
+				oldest = prv
+			}
+		}
+		return oldest.Name, nil
+	}
+
+	// 3. Configured built-in provider.
+	if pc.cfg != nil && pc.cfg.LLMServerProvider != "" {
+		return pc.cfg.LLMServerProvider, nil
+	}
+
+	// 4. First available enabled built-in provider (deterministic order).
+	for _, prvname := range pc.Providers.ListNames() {
+		return string(prvname), nil
+	}
+
+	// 5. Last resort: a sensible built-in default.
+	return string(provider.DefaultProviderNameOpenAI), nil
 }
 
 func (pc *providerController) TestAgent(

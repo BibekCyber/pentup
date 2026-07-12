@@ -82,3 +82,17 @@ UPDATE providers
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
 RETURNING *;
+
+-- name: SetDefaultProvider :one
+UPDATE providers SET is_default = true
+WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: ClearDefaultProviders :exec
+UPDATE providers SET is_default = false
+WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL;
+
+-- name: GetDefaultProvider :one
+SELECT * FROM providers
+WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL
+LIMIT 1;

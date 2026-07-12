@@ -61,27 +61,36 @@ func (r *flowResolver) Findings(ctx context.Context, obj *model.Flow) ([]*model.
 }
 
 // CreateFlow is the resolver for the createFlow field.
-func (r *mutationResolver) CreateFlow(ctx context.Context, modelProvider string, input string) (*model.Flow, error) {
+func (r *mutationResolver) CreateFlow(ctx context.Context, modelProvider *string, input string) (*model.Flow, error) {
 	uid, _, err := validatePermission(ctx, "flows.create")
 	if err != nil {
 		return nil, err
 	}
 
+	providerName := ""
+	if modelProvider != nil {
+		providerName = *modelProvider
+	}
+
 	r.Logger.WithFields(logrus.Fields{
 		"uid":      uid,
-		"provider": modelProvider,
+		"provider": providerName,
 		"input":    input[:min(len(input), 1000)],
 	}).Debug("create flow")
-
-	if modelProvider == "" {
-		return nil, fmt.Errorf("model provider is required")
-	}
 
 	if input == "" {
 		return nil, fmt.Errorf("user input is required")
 	}
 
-	prvname := provider.ProviderName(modelProvider)
+	// When no provider is supplied, fall back to the user's default provider.
+	if providerName == "" {
+		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	prvname := provider.ProviderName(providerName)
 	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
 	if err != nil {
 		return nil, err
@@ -204,31 +213,9 @@ func (r *mutationResolver) DeleteFlow(ctx context.Context, flowID int64) (model.
 		"flow": flowID,
 	}).Debug("delete flow")
 
-	if fw, err := r.Controller.GetFlow(ctx, flowID); err == nil {
-		if err := fw.Finish(ctx); err != nil {
-			return model.ResultTypeError, err
-		}
-	} else if !errors.Is(err, controller.ErrFlowNotFound) {
+	if err := r.Controller.DeleteFlow(ctx, flowID); err != nil {
 		return model.ResultTypeError, err
 	}
-
-	flow, err := r.DB.GetFlow(ctx, flowID)
-	if err != nil {
-		return model.ResultTypeError, err
-	}
-
-	containers, err := r.DB.GetFlowContainers(ctx, flow.ID)
-	if err != nil {
-		return model.ResultTypeError, err
-	}
-
-	if _, err := r.DB.DeleteFlow(ctx, flow.ID); err != nil {
-		return model.ResultTypeError, err
-	}
-
-	publisher := r.Subscriptions.NewFlowPublisher(flow.UserID, flow.ID)
-	publisher.FlowUpdated(ctx, flow, containers)
-	publisher.FlowDeleted(ctx, flow, containers)
 
 	return model.ResultTypeSuccess, nil
 }
@@ -564,6 +551,36 @@ func (r *mutationResolver) DeleteProvider(ctx context.Context, providerID int64)
 	r.Subscriptions.NewFlowPublisher(uid, 0).ProviderDeleted(ctx, prv, &cfg)
 
 	return model.ResultTypeSuccess, nil
+}
+
+// SetDefaultProvider is the resolver for the setDefaultProvider field.
+func (r *mutationResolver) SetDefaultProvider(ctx context.Context, providerID int64) (*model.ProviderConfig, error) {
+	uid, _, err := validatePermission(ctx, "settings.providers.edit")
+	if err != nil {
+		return nil, err
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"uid":      uid,
+		"provider": providerID,
+	}).Debug("set default provider")
+
+	prv, err := r.ProvidersCtrl.SetDefaultProvider(ctx, uid, providerID)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg pconfig.ProviderConfig
+	if len(prv.Config) == 0 {
+		prv.Config = []byte(pconfig.EmptyProviderConfigRaw)
+	}
+	if err := json.Unmarshal(prv.Config, &cfg); err != nil {
+		return nil, err
+	}
+
+	r.Subscriptions.NewFlowPublisher(uid, 0).ProviderUpdated(ctx, prv, &cfg)
+
+	return converter.ConvertProvider(prv, &cfg), nil
 }
 
 // ValidatePrompt is the resolver for the validatePrompt field.
@@ -1011,17 +1028,11 @@ func (r *mutationResolver) CreateFlowTemplate(ctx context.Context, input model.C
 		return nil, err
 	}
 
-	defaultTemplate := false
-	if input.DefaultTemplate != nil {
-		defaultTemplate = *input.DefaultTemplate
-	}
-
 	template, err := r.DB.CreateFlowTemplate(ctx, database.CreateFlowTemplateParams{
-		UserID:          uid,
-		Title:           input.Title,
-		Text:            input.Text,
-		TargetTypes:     targetTypes,
-		DefaultTemplate: defaultTemplate,
+		UserID:      uid,
+		Title:       input.Title,
+		Text:        input.Text,
+		TargetTypes: targetTypes,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create template: %w", err)
@@ -1093,7 +1104,7 @@ func (r *mutationResolver) UpdateFlowTemplate(ctx context.Context, templateID in
 }
 
 // UpdateFlowTemplateTargetTypes is the resolver for the updateFlowTemplateTargetTypes field.
-func (r *mutationResolver) UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) (*model.FlowTemplate, error) {
+func (r *mutationResolver) UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType) (*model.FlowTemplate, error) {
 	uid, isAdmin, err := validatePermission(ctx, "templates.edit")
 	if err != nil {
 		return nil, err
@@ -1139,16 +1150,9 @@ func (r *mutationResolver) UpdateFlowTemplateTargetTypes(ctx context.Context, te
 		return nil, err
 	}
 
-	// Preserve the existing default flag unless the caller supplies a new value.
-	defaultFlag := existing.DefaultTemplate
-	if defaultTemplate != nil {
-		defaultFlag = *defaultTemplate
-	}
-
 	template, err := r.DB.UpdateFlowTemplateTargetTypes(ctx, database.UpdateFlowTemplateTargetTypesParams{
-		ID:              templateID,
-		TargetTypes:     normalized,
-		DefaultTemplate: defaultFlag,
+		ID:          templateID,
+		TargetTypes: normalized,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update template target types: %w", err)
@@ -1216,9 +1220,6 @@ func (r *mutationResolver) CreateDomain(ctx context.Context, input model.CreateD
 	if input.Name == "" {
 		return nil, fmt.Errorf("domain name is required")
 	}
-	if input.ModelProvider == "" {
-		return nil, fmt.Errorf("model provider is required")
-	}
 
 	autoDetect := input.AutoDetect != nil && *input.AutoDetect
 	if !autoDetect {
@@ -1230,7 +1231,19 @@ func (r *mutationResolver) CreateDomain(ctx context.Context, input model.CreateD
 		}
 	}
 
-	prvname := provider.ProviderName(input.ModelProvider)
+	// When no provider is supplied, fall back to the user's default provider.
+	providerName := ""
+	if input.ModelProvider != nil {
+		providerName = *input.ModelProvider
+	}
+	if providerName == "" {
+		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	prvname := provider.ProviderName(providerName)
 	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
 	if err != nil {
 		return nil, err
@@ -1299,14 +1312,23 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 	if input.Name == "" {
 		return nil, fmt.Errorf("scan name is required")
 	}
-	if input.ModelProvider == "" {
-		return nil, fmt.Errorf("model provider is required")
-	}
 	if len(input.Templates) == 0 {
 		return nil, fmt.Errorf("at least one template is required")
 	}
 
-	prvname := provider.ProviderName(input.ModelProvider)
+	// When no provider is supplied, fall back to the user's default provider.
+	providerName := ""
+	if input.ModelProvider != nil {
+		providerName = *input.ModelProvider
+	}
+	if providerName == "" {
+		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	prvname := provider.ProviderName(providerName)
 	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
 	if err != nil {
 		return nil, err
@@ -1374,11 +1396,15 @@ func (r *queryResolver) Providers(ctx context.Context) ([]*model.Provider, error
 		return nil, err
 	}
 
+	// Resolve the user's default provider name once so each entry can flag itself.
+	defaultName, _ := r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
+
 	providersList := make([]*model.Provider, len(providers))
 	for i, prvname := range providers.ListNames() {
 		providersList[i] = &model.Provider{
-			Name: string(prvname),
-			Type: model.ProviderType(providers[prvname].Type()),
+			Name:      string(prvname),
+			Type:      model.ProviderType(providers[prvname].Type()),
+			IsDefault: string(prvname) == defaultName,
 		}
 	}
 

@@ -48,8 +48,6 @@ import { getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
 import { useTemplates } from '@/providers/templates-provider';
 
-const DEFAULT_MODEL_PROVIDER = 'kimi';
-
 type CloudProvider = TargetType.Aws | TargetType.Azure | TargetType.Gcp;
 type StepKey = 'credentials' | 'review' | 'scope' | 'target' | 'templates';
 type TargetClass = 'cloud' | 'web';
@@ -144,8 +142,10 @@ const NewEngagement = () => {
     const setCred = (key: keyof typeof creds, value: string) => setCreds((prev) => ({ ...prev, [key]: value }));
 
     // The concrete target type that drives template filtering + the scan record.
+    // Cloud maps to the single TargetType.Cloud regardless of which provider
+    // (AWS/Azure/GCP) the user picked; the provider only selects the credential kind.
     const targetType: null | TargetType =
-        targetClass === 'cloud' ? cloudProvider : targetClass === 'web' ? TargetType.WebApp : null;
+        targetClass === 'cloud' ? TargetType.Cloud : targetClass === 'web' ? TargetType.WebApp : null;
 
     // Credentials only for internal (cloud) / grey box (web).
     const needsCredentials =
@@ -153,7 +153,7 @@ const NewEngagement = () => {
 
     const availableTemplates = useMemo(() => {
         if (targetClass === 'cloud' && cloudProvider) {
-            return templates.filter((t) => t.targetTypes.includes(cloudProvider));
+            return templates.filter((t) => t.targetTypes.includes(TargetType.Cloud));
         }
 
         if (targetClass === 'web') {
@@ -309,7 +309,6 @@ const NewEngagement = () => {
                     input: {
                         box: targetClass === 'web' ? box : undefined,
                         credential: buildCredential(),
-                        modelProvider: DEFAULT_MODEL_PROVIDER,
                         name: name.trim(),
                         scope: targetClass === 'cloud' ? scope : undefined,
                         targetType,

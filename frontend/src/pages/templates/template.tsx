@@ -14,19 +14,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextareaAutosize } from '@/components/ui/input-group';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
-import { Switch } from '@/components/ui/switch';
 import { TargetType, useFlowTemplateQuery } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { cn } from '@/lib/utils';
 import { useTemplates } from '@/providers/templates-provider';
 
 const formSchema = z.object({
-    defaultTemplate: z.boolean(),
     targetTypes: z.array(z.nativeEnum(TargetType)).min(1, { message: 'Select at least one target type' }),
     text: z.string().trim().min(1, { message: 'Text is required' }),
     title: z.string().trim().min(1, { message: 'Title is required' }),
@@ -231,7 +228,7 @@ const Template = () => {
     });
 
     const form = useForm<FormValues>({
-        defaultValues: { defaultTemplate: false, targetTypes: [TargetType.General], text: '', title: '' },
+        defaultValues: { targetTypes: [TargetType.General], text: '', title: '' },
         mode: 'onChange',
         resolver: zodResolver(formSchema),
     });
@@ -244,10 +241,9 @@ const Template = () => {
             return;
         }
 
-        const { defaultTemplate, targetTypes, text, title } = templateData.flowTemplate;
+        const { targetTypes, text, title } = templateData.flowTemplate;
         reset(
             {
-                defaultTemplate,
                 targetTypes: targetTypes.length > 0 ? targetTypes : [TargetType.General],
                 text,
                 title,
@@ -272,7 +268,6 @@ const Template = () => {
         try {
             if (isNew) {
                 await createTemplate({
-                    defaultTemplate: values.defaultTemplate,
                     targetTypes: values.targetTypes,
                     text: values.text,
                     title: values.title,
@@ -280,7 +275,6 @@ const Template = () => {
                 navigate('/templates');
             } else if (templateId) {
                 await updateTemplate(templateId, {
-                    defaultTemplate: values.defaultTemplate,
                     targetTypes: values.targetTypes,
                     text: values.text,
                     title: values.title,
@@ -526,28 +520,6 @@ const Template = () => {
                                                 <FormDescription>
                                                     Tag this template with the scan types it applies to.
                                                 </FormDescription>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name="defaultTemplate"
-                                        render={({ field }) => (
-                                            <FormItem className="flex-row items-center justify-between gap-4">
-                                                <div className="space-y-0.5">
-                                                    <Label htmlFor="defaultTemplate">Mark as default</Label>
-                                                    <FormDescription>
-                                                        Runs automatically when a target type matches.
-                                                    </FormDescription>
-                                                </div>
-                                                <FormControl>
-                                                    <Switch
-                                                        checked={field.value}
-                                                        disabled={isSaving}
-                                                        id="defaultTemplate"
-                                                        onCheckedChange={field.onChange}
-                                                    />
-                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />

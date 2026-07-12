@@ -1,6 +1,7 @@
 import { ProviderType } from '@/graphql/types';
 
 export interface Provider {
+    isDefault?: boolean;
     name: string;
     type: ProviderType;
 }

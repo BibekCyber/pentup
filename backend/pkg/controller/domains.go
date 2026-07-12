@@ -291,8 +291,16 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 		spawned++
 	}
 
-	finalStatus := database.DomainStatusRunning
-	if spawned == 0 {
+	flows, err := dc.db.GetFlowsForDomain(ctx, sql.NullInt64{Int64: domain.ID, Valid: true})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flows for domain %d: %w", domain.ID, err)
+	}
+
+	// Derive the scan's status from the actual child flows just spawned rather than
+	// hardcoding "running": if every flow came up waiting, the scan reads "waiting".
+	// No successful spawn (or nothing to derive from) means the scan failed.
+	finalStatus, ok := computeDomainStatusFromFlows(flows)
+	if spawned == 0 || !ok {
 		finalStatus = database.DomainStatusFailed
 	}
 	domain, err = dc.db.UpdateDomainStatus(ctx, database.UpdateDomainStatusParams{
@@ -301,11 +309,6 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update domain %d status: %w", domain.ID, err)
-	}
-
-	flows, err := dc.db.GetFlowsForDomain(ctx, sql.NullInt64{Int64: domain.ID, Valid: true})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get flows for domain %d: %w", domain.ID, err)
 	}
 
 	dc.publishDomain(ctx, params.UserID, domain, false)
@@ -325,13 +328,14 @@ func (dc *domainController) DeleteDomain(ctx context.Context, userID, domainID i
 		return fmt.Errorf("failed to get flows for domain %d: %w", domainID, err)
 	}
 
+	// Cascade-delete every child flow regardless of status (finished/failed too):
+	// full teardown releases each flow's Docker container and soft-deletes its
+	// row. Best-effort — a single flow's failure is logged and never aborts the
+	// domain delete, so we can't leave the domain half-deleted.
 	for _, flow := range flows {
-		switch flow.Status {
-		case database.FlowStatusCreated, database.FlowStatusRunning, database.FlowStatusWaiting:
-			if err := dc.fc.StopFlow(ctx, flow.ID); err != nil && !errors.Is(err, ErrFlowNotFound) {
-				logrus.WithContext(ctx).WithError(err).WithField("flow_id", flow.ID).
-					Warn("failed to stop child flow during domain delete")
-			}
+		if err := dc.fc.DeleteFlow(ctx, flow.ID); err != nil {
+			logrus.WithContext(ctx).WithError(err).WithField("flow_id", flow.ID).
+				Warn("failed to delete child flow during domain delete")
 		}
 	}
 
@@ -366,27 +370,32 @@ func (dc *domainController) publishDomain(ctx context.Context, userID int64, dom
 }
 
 // computeDomainStatusFromFlows derives a scan's status from its child flows:
-// running while any flow is still active (created/running/waiting), finished once
-// all are terminal and at least one finished, failed only if every flow failed.
-// The bool is false when there are no flows to derive a status from.
+// running while any flow is still actively working (created/running); waiting when
+// no flow is actively working but at least one is waiting; finished once all are
+// terminal and at least one finished; failed only if every flow failed. The bool is
+// false when there are no flows to derive a status from.
 func computeDomainStatusFromFlows(flows []database.Flow) (database.DomainStatus, bool) {
 	if len(flows) == 0 {
 		return "", false
 	}
 
-	active, finished := 0, 0
+	running, waiting, finished := 0, 0, 0
 	for _, flow := range flows {
 		switch flow.Status {
-		case database.FlowStatusCreated, database.FlowStatusRunning, database.FlowStatusWaiting:
-			active++
+		case database.FlowStatusCreated, database.FlowStatusRunning:
+			running++
+		case database.FlowStatusWaiting:
+			waiting++
 		case database.FlowStatusFinished:
 			finished++
 		}
 	}
 
 	switch {
-	case active > 0:
+	case running > 0:
 		return database.DomainStatusRunning, true
+	case waiting > 0:
+		return database.DomainStatusWaiting, true
 	case finished > 0:
 		return database.DomainStatusFinished, true
 	default:
@@ -397,7 +406,8 @@ func computeDomainStatusFromFlows(flows []database.Flow) (database.DomainStatus,
 // reconcileDomainStatus recomputes a scan's status from its child flows and, if it
 // changed, persists and publishes the update. It is best-effort: any error is
 // logged, never returned, so a child flow's own status update is never blocked by
-// it. It only acts on scans still in "running" — created/classifying are owned by
+// it. It only acts on scans in a live state ("running" or "waiting") so it can flip
+// between them and settle on a terminal status — created/classifying are owned by
 // the create path and finished/failed are already terminal.
 func reconcileDomainStatus(
 	ctx context.Context,
@@ -412,7 +422,7 @@ func reconcileDomainStatus(
 		logger.WithError(err).Warn("reconcile domain status: failed to load domain")
 		return
 	}
-	if domain.Status != database.DomainStatusRunning {
+	if domain.Status != database.DomainStatusRunning && domain.Status != database.DomainStatusWaiting {
 		return
 	}
 

@@ -16,7 +16,6 @@ ORDER BY system_owned DESC, created_at DESC;
 -- name: GetDefaultFlowTemplatesByTargetType :many
 SELECT * FROM flow_templates
 WHERE (user_id = $1 OR system_owned = true)
-  AND default_template = true
   AND $2::TARGET_TYPE = ANY(target_types)
 ORDER BY system_owned DESC, created_at DESC;
 
@@ -25,14 +24,12 @@ INSERT INTO flow_templates (
   user_id,
   title,
   text,
-  target_types,
-  default_template
+  target_types
 ) VALUES (
   $1,
   $2,
   $3,
-  $4,
-  $5
+  $4
 )
 RETURNING *;
 
@@ -47,8 +44,7 @@ RETURNING *;
 -- name: UpdateFlowTemplateTargetTypes :one
 UPDATE flow_templates
 SET
-  target_types = $2,
-  default_template = $3
+  target_types = $2
 WHERE id = $1
 RETURNING *;
 

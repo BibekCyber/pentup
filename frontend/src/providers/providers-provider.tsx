@@ -50,8 +50,9 @@ export const ProvidersProvider = ({ children }: ProvidersProviderProps) => {
             }
         }
 
-        // If no saved provider or not found, return first provider
-        return providers[0] ?? null;
+        // If no saved provider or not found, prefer the user's default provider,
+        // then fall back to the first provider in the list.
+        return providers.find((provider) => provider.isDefault) ?? providers[0] ?? null;
     }, [providers, selectedProviderName]);
 
     // Save to localStorage when selected provider changes

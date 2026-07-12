@@ -148,14 +148,13 @@ type CreateDomainInput struct {
 	TargetType    *TargetType `json:"targetType,omitempty"`
 	TemplateIds   []int64     `json:"templateIds"`
 	AutoDetect    *bool       `json:"autoDetect,omitempty"`
-	ModelProvider string      `json:"modelProvider"`
+	ModelProvider *string     `json:"modelProvider,omitempty"`
 }
 
 type CreateFlowTemplateInput struct {
-	Title           string       `json:"title"`
-	Text            string       `json:"text"`
-	TargetTypes     []TargetType `json:"targetTypes,omitempty"`
-	DefaultTemplate *bool        `json:"defaultTemplate,omitempty"`
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	TargetTypes []TargetType `json:"targetTypes,omitempty"`
 }
 
 type CreateScanInput struct {
@@ -165,7 +164,7 @@ type CreateScanInput struct {
 	Box           *ScanBox             `json:"box,omitempty"`
 	Templates     []*ScanTemplateInput `json:"templates"`
 	Credential    *ScanCredentialInput `json:"credential,omitempty"`
-	ModelProvider string               `json:"modelProvider"`
+	ModelProvider *string              `json:"modelProvider,omitempty"`
 }
 
 type DailyFlowsStats struct {
@@ -267,15 +266,14 @@ type FlowStats struct {
 }
 
 type FlowTemplate struct {
-	ID              int64        `json:"id"`
-	UserID          int64        `json:"userId"`
-	Title           string       `json:"title"`
-	Text            string       `json:"text"`
-	TargetTypes     []TargetType `json:"targetTypes"`
-	DefaultTemplate bool         `json:"defaultTemplate"`
-	SystemOwned     bool         `json:"systemOwned"`
-	CreatedAt       time.Time    `json:"createdAt"`
-	UpdatedAt       time.Time    `json:"updatedAt"`
+	ID          int64        `json:"id"`
+	UserID      int64        `json:"userId"`
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	TargetTypes []TargetType `json:"targetTypes"`
+	SystemOwned bool         `json:"systemOwned"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
 }
 
 type FlowsStats struct {
@@ -344,8 +342,9 @@ type PromptsConfig struct {
 }
 
 type Provider struct {
-	Name string       `json:"name"`
-	Type ProviderType `json:"type"`
+	Name      string       `json:"name"`
+	Type      ProviderType `json:"type"`
+	IsDefault bool         `json:"isDefault"`
 }
 
 type ProviderConfig struct {
@@ -353,6 +352,7 @@ type ProviderConfig struct {
 	Name      string        `json:"name"`
 	Type      ProviderType  `json:"type"`
 	Agents    *AgentsConfig `json:"agents"`
+	IsDefault bool          `json:"isDefault"`
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
 }
@@ -740,6 +740,7 @@ const (
 	DomainStatusTypeCreated     DomainStatusType = "created"
 	DomainStatusTypeClassifying DomainStatusType = "classifying"
 	DomainStatusTypeRunning     DomainStatusType = "running"
+	DomainStatusTypeWaiting     DomainStatusType = "waiting"
 	DomainStatusTypeFinished    DomainStatusType = "finished"
 	DomainStatusTypeFailed      DomainStatusType = "failed"
 )
@@ -748,13 +749,14 @@ var AllDomainStatusType = []DomainStatusType{
 	DomainStatusTypeCreated,
 	DomainStatusTypeClassifying,
 	DomainStatusTypeRunning,
+	DomainStatusTypeWaiting,
 	DomainStatusTypeFinished,
 	DomainStatusTypeFailed,
 }
 
 func (e DomainStatusType) IsValid() bool {
 	switch e {
-	case DomainStatusTypeCreated, DomainStatusTypeClassifying, DomainStatusTypeRunning, DomainStatusTypeFinished, DomainStatusTypeFailed:
+	case DomainStatusTypeCreated, DomainStatusTypeClassifying, DomainStatusTypeRunning, DomainStatusTypeWaiting, DomainStatusTypeFinished, DomainStatusTypeFailed:
 		return true
 	}
 	return false
@@ -1456,6 +1458,7 @@ const (
 	TargetTypeAWS           TargetType = "aws"
 	TargetTypeAzure         TargetType = "azure"
 	TargetTypeGCP           TargetType = "gcp"
+	TargetTypeCloud         TargetType = "cloud"
 	TargetTypeNetwork       TargetType = "network"
 	TargetTypeMobileBackend TargetType = "mobile_backend"
 	TargetTypeGeneral       TargetType = "general"
@@ -1467,6 +1470,7 @@ var AllTargetType = []TargetType{
 	TargetTypeAWS,
 	TargetTypeAzure,
 	TargetTypeGCP,
+	TargetTypeCloud,
 	TargetTypeNetwork,
 	TargetTypeMobileBackend,
 	TargetTypeGeneral,
@@ -1474,7 +1478,7 @@ var AllTargetType = []TargetType{
 
 func (e TargetType) IsValid() bool {
 	switch e {
-	case TargetTypeWebApp, TargetTypeAPI, TargetTypeAWS, TargetTypeAzure, TargetTypeGCP, TargetTypeNetwork, TargetTypeMobileBackend, TargetTypeGeneral:
+	case TargetTypeWebApp, TargetTypeAPI, TargetTypeAWS, TargetTypeAzure, TargetTypeGCP, TargetTypeCloud, TargetTypeNetwork, TargetTypeMobileBackend, TargetTypeGeneral:
 		return true
 	}
 	return false

@@ -280,15 +280,14 @@ type ComplexityRoot struct {
 	}
 
 	FlowTemplate struct {
-		CreatedAt       func(childComplexity int) int
-		DefaultTemplate func(childComplexity int) int
-		ID              func(childComplexity int) int
-		SystemOwned     func(childComplexity int) int
-		TargetTypes     func(childComplexity int) int
-		Text            func(childComplexity int) int
-		Title           func(childComplexity int) int
-		UpdatedAt       func(childComplexity int) int
-		UserID          func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		SystemOwned func(childComplexity int) int
+		TargetTypes func(childComplexity int) int
+		Text        func(childComplexity int) int
+		Title       func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
+		UserID      func(childComplexity int) int
 	}
 
 	FlowsStats struct {
@@ -346,7 +345,7 @@ type ComplexityRoot struct {
 		CreateAPIToken                func(childComplexity int, input model.CreateAPITokenInput) int
 		CreateAssistant               func(childComplexity int, flowID int64, modelProvider string, input string, useAgents bool) int
 		CreateDomain                  func(childComplexity int, input model.CreateDomainInput) int
-		CreateFlow                    func(childComplexity int, modelProvider string, input string) int
+		CreateFlow                    func(childComplexity int, modelProvider *string, input string) int
 		CreateFlowTemplate            func(childComplexity int, input model.CreateFlowTemplateInput) int
 		CreatePrompt                  func(childComplexity int, typeArg model.PromptType, template string) int
 		CreateProvider                func(childComplexity int, name string, typeArg model.ProviderType, agents model.AgentsConfig) int
@@ -362,13 +361,14 @@ type ComplexityRoot struct {
 		FinishFlow                    func(childComplexity int, flowID int64) int
 		PutUserInput                  func(childComplexity int, flowID int64, input string, modelProvider *string) int
 		RenameFlow                    func(childComplexity int, flowID int64, title string) int
+		SetDefaultProvider            func(childComplexity int, providerID int64) int
 		StopAssistant                 func(childComplexity int, flowID int64, assistantID int64) int
 		StopFlow                      func(childComplexity int, flowID int64) int
 		TestAgent                     func(childComplexity int, typeArg model.ProviderType, agentType model.AgentConfigType, agent model.AgentConfig) int
 		TestProvider                  func(childComplexity int, typeArg model.ProviderType, agents model.AgentsConfig) int
 		UpdateAPIToken                func(childComplexity int, tokenID string, input model.UpdateAPITokenInput) int
 		UpdateFlowTemplate            func(childComplexity int, templateID int64, input model.UpdateFlowTemplateInput) int
-		UpdateFlowTemplateTargetTypes func(childComplexity int, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) int
+		UpdateFlowTemplateTargetTypes func(childComplexity int, templateID int64, targetTypes []model.TargetType) int
 		UpdatePrompt                  func(childComplexity int, promptID int64, template string) int
 		UpdateProvider                func(childComplexity int, providerID int64, name string, agents model.AgentsConfig) int
 		ValidatePrompt                func(childComplexity int, typeArg model.PromptType, template string) int
@@ -388,14 +388,16 @@ type ComplexityRoot struct {
 	}
 
 	Provider struct {
-		Name func(childComplexity int) int
-		Type func(childComplexity int) int
+		IsDefault func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Type      func(childComplexity int) int
 	}
 
 	ProviderConfig struct {
 		Agents    func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
+		IsDefault func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Type      func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
@@ -706,7 +708,7 @@ type FlowResolver interface {
 	Findings(ctx context.Context, obj *model.Flow) ([]*model.Finding, error)
 }
 type MutationResolver interface {
-	CreateFlow(ctx context.Context, modelProvider string, input string) (*model.Flow, error)
+	CreateFlow(ctx context.Context, modelProvider *string, input string) (*model.Flow, error)
 	PutUserInput(ctx context.Context, flowID int64, input string, modelProvider *string) (model.ResultType, error)
 	StopFlow(ctx context.Context, flowID int64) (model.ResultType, error)
 	FinishFlow(ctx context.Context, flowID int64) (model.ResultType, error)
@@ -721,6 +723,7 @@ type MutationResolver interface {
 	CreateProvider(ctx context.Context, name string, typeArg model.ProviderType, agents model.AgentsConfig) (*model.ProviderConfig, error)
 	UpdateProvider(ctx context.Context, providerID int64, name string, agents model.AgentsConfig) (*model.ProviderConfig, error)
 	DeleteProvider(ctx context.Context, providerID int64) (model.ResultType, error)
+	SetDefaultProvider(ctx context.Context, providerID int64) (*model.ProviderConfig, error)
 	ValidatePrompt(ctx context.Context, typeArg model.PromptType, template string) (*model.PromptValidationResult, error)
 	CreatePrompt(ctx context.Context, typeArg model.PromptType, template string) (*model.UserPrompt, error)
 	UpdatePrompt(ctx context.Context, promptID int64, template string) (*model.UserPrompt, error)
@@ -732,7 +735,7 @@ type MutationResolver interface {
 	DeleteFavoriteFlow(ctx context.Context, flowID int64) (model.ResultType, error)
 	CreateFlowTemplate(ctx context.Context, input model.CreateFlowTemplateInput) (*model.FlowTemplate, error)
 	UpdateFlowTemplate(ctx context.Context, templateID int64, input model.UpdateFlowTemplateInput) (*model.FlowTemplate, error)
-	UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType, defaultTemplate *bool) (*model.FlowTemplate, error)
+	UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType) (*model.FlowTemplate, error)
 	DeleteFlowTemplate(ctx context.Context, templateID int64) (model.ResultType, error)
 	CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error)
 	DeleteDomain(ctx context.Context, id int64) (model.ResultType, error)
@@ -1924,13 +1927,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FlowTemplate.CreatedAt(childComplexity), true
 
-	case "FlowTemplate.defaultTemplate":
-		if e.complexity.FlowTemplate.DefaultTemplate == nil {
-			break
-		}
-
-		return e.complexity.FlowTemplate.DefaultTemplate(childComplexity), true
-
 	case "FlowTemplate.id":
 		if e.complexity.FlowTemplate.ID == nil {
 			break
@@ -2267,7 +2263,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateFlow(childComplexity, args["modelProvider"].(string), args["input"].(string)), true
+		return e.complexity.Mutation.CreateFlow(childComplexity, args["modelProvider"].(*string), args["input"].(string)), true
 
 	case "Mutation.createFlowTemplate":
 		if e.complexity.Mutation.CreateFlowTemplate == nil {
@@ -2449,6 +2445,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.RenameFlow(childComplexity, args["flowId"].(int64), args["title"].(string)), true
 
+	case "Mutation.setDefaultProvider":
+		if e.complexity.Mutation.SetDefaultProvider == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setDefaultProvider_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetDefaultProvider(childComplexity, args["providerId"].(int64)), true
+
 	case "Mutation.stopAssistant":
 		if e.complexity.Mutation.StopAssistant == nil {
 			break
@@ -2531,7 +2539,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateFlowTemplateTargetTypes(childComplexity, args["templateId"].(int64), args["targetTypes"].([]model.TargetType), args["defaultTemplate"].(*bool)), true
+		return e.complexity.Mutation.UpdateFlowTemplateTargetTypes(childComplexity, args["templateId"].(int64), args["targetTypes"].([]model.TargetType)), true
 
 	case "Mutation.updatePrompt":
 		if e.complexity.Mutation.UpdatePrompt == nil {
@@ -2618,6 +2626,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PromptsConfig.UserDefined(childComplexity), true
 
+	case "Provider.isDefault":
+		if e.complexity.Provider.IsDefault == nil {
+			break
+		}
+
+		return e.complexity.Provider.IsDefault(childComplexity), true
+
 	case "Provider.name":
 		if e.complexity.Provider.Name == nil {
 			break
@@ -2652,6 +2667,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProviderConfig.ID(childComplexity), true
+
+	case "ProviderConfig.isDefault":
+		if e.complexity.ProviderConfig.IsDefault == nil {
+			break
+		}
+
+		return e.complexity.ProviderConfig.IsDefault(childComplexity), true
 
 	case "ProviderConfig.name":
 		if e.complexity.ProviderConfig.Name == nil {
@@ -4938,22 +4960,22 @@ func (ec *executionContext) field_Mutation_createFlow_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_createFlow_argsModelProvider(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (string, error) {
+) (*string, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["modelProvider"]
 	if !ok {
-		var zeroVal string
+		var zeroVal *string
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
 	if tmp, ok := rawArgs["modelProvider"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
 	}
 
-	var zeroVal string
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -5616,6 +5638,38 @@ func (ec *executionContext) field_Mutation_renameFlow_argsTitle(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_setDefaultProvider_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_setDefaultProvider_argsProviderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["providerId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_setDefaultProvider_argsProviderID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["providerId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("providerId"))
+	if tmp, ok := rawArgs["providerId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_stopAssistant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5924,11 +5978,6 @@ func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_args(ct
 		return nil, err
 	}
 	args["targetTypes"] = arg1
-	arg2, err := ec.field_Mutation_updateFlowTemplateTargetTypes_argsDefaultTemplate(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["defaultTemplate"] = arg2
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsTemplateID(
@@ -5972,28 +6021,6 @@ func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsTar
 	}
 
 	var zeroVal []model.TargetType
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_argsDefaultTemplate(
-	ctx context.Context,
-	rawArgs map[string]interface{},
-) (*bool, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["defaultTemplate"]
-	if !ok {
-		var zeroVal *bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("defaultTemplate"))
-	if tmp, ok := rawArgs["defaultTemplate"]; ok {
-		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-	}
-
-	var zeroVal *bool
 	return zeroVal, nil
 }
 
@@ -11453,6 +11480,8 @@ func (ec *executionContext) fieldContext_Assistant_provider(_ context.Context, f
 				return ec.fieldContext_Provider_name(ctx, field)
 			case "type":
 				return ec.fieldContext_Provider_type(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_Provider_isDefault(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Provider", field.Name)
 		},
@@ -12762,6 +12791,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_openai(_ context
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -12820,6 +12851,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_anthropic(_ cont
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -12875,6 +12908,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_gemini(_ context
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -12930,6 +12965,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_bedrock(_ contex
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -12985,6 +13022,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_ollama(_ context
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -13040,6 +13079,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_custom(_ context
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -13095,6 +13136,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_deepseek(_ conte
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -13150,6 +13193,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_glm(_ context.Co
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -13205,6 +13250,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_kimi(_ context.C
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -13260,6 +13307,8 @@ func (ec *executionContext) fieldContext_DefaultProvidersConfig_qwen(_ context.C
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -14454,6 +14503,8 @@ func (ec *executionContext) fieldContext_Flow_provider(_ context.Context, field 
 				return ec.fieldContext_Provider_name(ctx, field)
 			case "type":
 				return ec.fieldContext_Provider_type(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_Provider_isDefault(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Provider", field.Name)
 		},
@@ -15368,50 +15419,6 @@ func (ec *executionContext) fieldContext_FlowTemplate_targetTypes(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type TargetType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FlowTemplate_defaultTemplate(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DefaultTemplate, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_FlowTemplate_defaultTemplate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FlowTemplate",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -16930,7 +16937,7 @@ func (ec *executionContext) _Mutation_createFlow(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateFlow(rctx, fc.Args["modelProvider"].(string), fc.Args["input"].(string))
+		return ec.resolvers.Mutation().CreateFlow(rctx, fc.Args["modelProvider"].(*string), fc.Args["input"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17699,6 +17706,8 @@ func (ec *executionContext) fieldContext_Mutation_createProvider(ctx context.Con
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -17768,6 +17777,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProvider(ctx context.Con
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -17839,6 +17850,77 @@ func (ec *executionContext) fieldContext_Mutation_deleteProvider(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteProvider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setDefaultProvider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_setDefaultProvider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetDefaultProvider(rctx, fc.Args["providerId"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProviderConfig)
+	fc.Result = res
+	return ec.marshalNProviderConfig2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐProviderConfig(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_setDefaultProvider(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProviderConfig_id(ctx, field)
+			case "name":
+				return ec.fieldContext_ProviderConfig_name(ctx, field)
+			case "type":
+				return ec.fieldContext_ProviderConfig_type(ctx, field)
+			case "agents":
+				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ProviderConfig_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProviderConfig", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setDefaultProvider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -18467,8 +18549,6 @@ func (ec *executionContext) fieldContext_Mutation_createFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -18542,8 +18622,6 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -18582,7 +18660,7 @@ func (ec *executionContext) _Mutation_updateFlowTemplateTargetTypes(ctx context.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateFlowTemplateTargetTypes(rctx, fc.Args["templateId"].(int64), fc.Args["targetTypes"].([]model.TargetType), fc.Args["defaultTemplate"].(*bool))
+		return ec.resolvers.Mutation().UpdateFlowTemplateTargetTypes(rctx, fc.Args["templateId"].(int64), fc.Args["targetTypes"].([]model.TargetType))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18617,8 +18695,6 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplateTargetTypes(
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -19306,6 +19382,50 @@ func (ec *executionContext) fieldContext_Provider_type(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Provider_isDefault(ctx context.Context, field graphql.CollectedField, obj *model.Provider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Provider_isDefault(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDefault, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Provider_isDefault(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Provider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProviderConfig_id(ctx context.Context, field graphql.CollectedField, obj *model.ProviderConfig) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProviderConfig_id(ctx, field)
 	if err != nil {
@@ -19505,6 +19625,50 @@ func (ec *executionContext) fieldContext_ProviderConfig_agents(_ context.Context
 				return ec.fieldContext_AgentsConfig_pentester(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AgentsConfig", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProviderConfig_isDefault(ctx context.Context, field graphql.CollectedField, obj *model.ProviderConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProviderConfig_isDefault(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDefault, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProviderConfig_isDefault(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProviderConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -20500,6 +20664,8 @@ func (ec *executionContext) fieldContext_ProvidersConfig_userDefined(_ context.C
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -21599,6 +21765,8 @@ func (ec *executionContext) fieldContext_Query_providers(_ context.Context, fiel
 				return ec.fieldContext_Provider_name(ctx, field)
 			case "type":
 				return ec.fieldContext_Provider_type(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_Provider_isDefault(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Provider", field.Name)
 		},
@@ -23723,8 +23891,6 @@ func (ec *executionContext) fieldContext_Query_flowTemplate(ctx context.Context,
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -23798,8 +23964,6 @@ func (ec *executionContext) fieldContext_Query_flowTemplates(_ context.Context, 
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -23862,8 +24026,6 @@ func (ec *executionContext) fieldContext_Query_flowTemplatesByTargetType(ctx con
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -26970,6 +27132,8 @@ func (ec *executionContext) fieldContext_Subscription_providerCreated(_ context.
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -27042,6 +27206,8 @@ func (ec *executionContext) fieldContext_Subscription_providerUpdated(_ context.
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -27114,6 +27280,8 @@ func (ec *executionContext) fieldContext_Subscription_providerDeleted(_ context.
 				return ec.fieldContext_ProviderConfig_type(ctx, field)
 			case "agents":
 				return ec.fieldContext_ProviderConfig_agents(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_ProviderConfig_isDefault(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ProviderConfig_createdAt(ctx, field)
 			case "updatedAt":
@@ -27486,8 +27654,6 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateCreated(_ cont
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -27564,8 +27730,6 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateUpdated(_ cont
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -27642,8 +27806,6 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateDeleted(_ cont
 				return ec.fieldContext_FlowTemplate_text(ctx, field)
 			case "targetTypes":
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
-			case "defaultTemplate":
-				return ec.fieldContext_FlowTemplate_defaultTemplate(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
 			case "createdAt":
@@ -33806,7 +33968,7 @@ func (ec *executionContext) unmarshalInputCreateDomainInput(ctx context.Context,
 			it.AutoDetect = data
 		case "modelProvider":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -33824,7 +33986,7 @@ func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "text", "targetTypes", "defaultTemplate"}
+	fieldsInOrder := [...]string{"title", "text", "targetTypes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -33852,13 +34014,6 @@ func (ec *executionContext) unmarshalInputCreateFlowTemplateInput(ctx context.Co
 				return it, err
 			}
 			it.TargetTypes = data
-		case "defaultTemplate":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("defaultTemplate"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DefaultTemplate = data
 		}
 	}
 
@@ -33923,7 +34078,7 @@ func (ec *executionContext) unmarshalInputCreateScanInput(ctx context.Context, o
 			it.Credential = data
 		case "modelProvider":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -35741,11 +35896,6 @@ func (ec *executionContext) _FlowTemplate(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "defaultTemplate":
-			out.Values[i] = ec._FlowTemplate_defaultTemplate(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "systemOwned":
 			out.Values[i] = ec._FlowTemplate_systemOwned(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -36246,6 +36396,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "setDefaultProvider":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setDefaultProvider(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "validatePrompt":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_validatePrompt(ctx, field)
@@ -36490,6 +36647,11 @@ func (ec *executionContext) _Provider(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "isDefault":
+			out.Values[i] = ec._Provider_isDefault(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -36541,6 +36703,11 @@ func (ec *executionContext) _ProviderConfig(ctx context.Context, sel ast.Selecti
 			}
 		case "agents":
 			out.Values[i] = ec._ProviderConfig_agents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isDefault":
+			out.Values[i] = ec._ProviderConfig_isDefault(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

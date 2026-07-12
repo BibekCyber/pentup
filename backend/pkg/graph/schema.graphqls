@@ -177,6 +177,7 @@ enum TargetType {
   aws
   azure
   gcp
+  cloud
   network
   mobile_backend
   general
@@ -188,7 +189,6 @@ type FlowTemplate {
   title: String!
   text: String!
   targetTypes: [TargetType!]!
-  defaultTemplate: Boolean!
   systemOwned: Boolean!
   createdAt: Time!
   updatedAt: Time!
@@ -198,7 +198,6 @@ input CreateFlowTemplateInput {
   title: String!
   text: String!
   targetTypes: [TargetType!]
-  defaultTemplate: Boolean
 }
 
 input UpdateFlowTemplateInput {
@@ -213,6 +212,7 @@ enum DomainStatusType {
   created
   classifying
   running
+  waiting
   finished
   failed
 }
@@ -241,7 +241,8 @@ input CreateDomainInput {
   templateIds: [ID!]!
   # When true, run recon + classifier to detect targetType and pick default templates
   autoDetect: Boolean
-  modelProvider: String!
+  # Optional; when omitted the backend resolves the user's default provider.
+  modelProvider: String
 }
 
 # ==================== Scan Engagement Types (new wizard) ====================
@@ -295,7 +296,8 @@ input CreateScanInput {
   templates: [ScanTemplateInput!]!
   # Only used for internal (cloud) / grey-box (web); ignored otherwise.
   credential: ScanCredentialInput
-  modelProvider: String!
+  # Optional; when omitted the backend resolves the user's default provider.
+  modelProvider: String
 }
 
 # Live per-user quota usage powering the spawn confirmation screen
@@ -771,6 +773,7 @@ enum UsageStatsPeriod {
 type Provider {
   name: String!
   type: ProviderType!
+  isDefault: Boolean!
 }
 
 # Provider model manifest
@@ -838,6 +841,7 @@ type ProviderConfig {
   name: String!
   type: ProviderType!
   agents: AgentsConfig!
+  isDefault: Boolean!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -1006,7 +1010,7 @@ type Query {
 
 type Mutation {
   # Flow management
-  createFlow(modelProvider: String!, input: String!): Flow!
+  createFlow(modelProvider: String, input: String!): Flow!
   putUserInput(flowId: ID!, input: String!, modelProvider: String): ResultType!
   stopFlow(flowId: ID!): ResultType!
   finishFlow(flowId: ID!): ResultType!
@@ -1025,6 +1029,7 @@ type Mutation {
   createProvider(name: String!, type: ProviderType!, agents: AgentsConfigInput!): ProviderConfig!
   updateProvider(providerId: ID!, name: String!, agents: AgentsConfigInput!): ProviderConfig!
   deleteProvider(providerId: ID!): ResultType!
+  setDefaultProvider(providerId: ID!): ProviderConfig!
 
   # Prompt management
   validatePrompt(type: PromptType!, template: String!): PromptValidationResult!
@@ -1044,7 +1049,7 @@ type Mutation {
   # Flow Templates management
   createFlowTemplate(input: CreateFlowTemplateInput!): FlowTemplate!
   updateFlowTemplate(templateId: ID!, input: UpdateFlowTemplateInput!): FlowTemplate!
-  updateFlowTemplateTargetTypes(templateId: ID!, targetTypes: [TargetType!]!, defaultTemplate: Boolean): FlowTemplate!
+  updateFlowTemplateTargetTypes(templateId: ID!, targetTypes: [TargetType!]!): FlowTemplate!
   deleteFlowTemplate(templateId: ID!): ResultType!
 
   # Domain orchestration

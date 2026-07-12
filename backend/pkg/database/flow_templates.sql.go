@@ -16,24 +16,21 @@ INSERT INTO flow_templates (
   user_id,
   title,
   text,
-  target_types,
-  default_template
+  target_types
 ) VALUES (
   $1,
   $2,
   $3,
-  $4,
-  $5
+  $4
 )
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
 `
 
 type CreateFlowTemplateParams struct {
-	UserID          int64        `json:"user_id"`
-	Title           string       `json:"title"`
-	Text            string       `json:"text"`
-	TargetTypes     []TargetType `json:"target_types"`
-	DefaultTemplate bool         `json:"default_template"`
+	UserID      int64        `json:"user_id"`
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	TargetTypes []TargetType `json:"target_types"`
 }
 
 func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplateParams) (FlowTemplate, error) {
@@ -42,7 +39,6 @@ func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplate
 		arg.Title,
 		arg.Text,
 		pq.Array(arg.TargetTypes),
-		arg.DefaultTemplate,
 	)
 	var i FlowTemplate
 	err := row.Scan(
@@ -53,7 +49,6 @@ func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplate
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
-		&i.DefaultTemplate,
 		&i.SystemOwned,
 	)
 	return i, err
@@ -75,9 +70,8 @@ func (q *Queries) DeleteFlowTemplate(ctx context.Context, arg DeleteFlowTemplate
 }
 
 const getDefaultFlowTemplatesByTargetType = `-- name: GetDefaultFlowTemplatesByTargetType :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
 WHERE (user_id = $1 OR system_owned = true)
-  AND default_template = true
   AND $2::TARGET_TYPE = ANY(target_types)
 ORDER BY system_owned DESC, created_at DESC
 `
@@ -104,7 +98,6 @@ func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg G
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
-			&i.DefaultTemplate,
 			&i.SystemOwned,
 		); err != nil {
 			return nil, err
@@ -121,7 +114,7 @@ func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg G
 }
 
 const getFlowTemplate = `-- name: GetFlowTemplate :one
-SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
 WHERE id = $1 AND (user_id = $2 OR system_owned = true) LIMIT 1
 `
 
@@ -141,14 +134,13 @@ func (q *Queries) GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
-		&i.DefaultTemplate,
 		&i.SystemOwned,
 	)
 	return i, err
 }
 
 const getFlowTemplatesByTargetType = `-- name: GetFlowTemplatesByTargetType :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
 WHERE (user_id = $1 OR system_owned = true)
   AND $2::TARGET_TYPE = ANY(target_types)
 ORDER BY system_owned DESC, created_at DESC
@@ -176,7 +168,6 @@ func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowT
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
-			&i.DefaultTemplate,
 			&i.SystemOwned,
 		); err != nil {
 			return nil, err
@@ -193,7 +184,7 @@ func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowT
 }
 
 const getFlowTemplatesByUserID = `-- name: GetFlowTemplatesByUserID :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned FROM flow_templates
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
 WHERE user_id = $1 OR system_owned = true
 ORDER BY system_owned DESC, created_at DESC
 `
@@ -215,7 +206,6 @@ func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
-			&i.DefaultTemplate,
 			&i.SystemOwned,
 		); err != nil {
 			return nil, err
@@ -237,7 +227,7 @@ SET
   title = $3,
   text = $4
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
 `
 
 type UpdateFlowTemplateParams struct {
@@ -263,7 +253,6 @@ func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplate
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
-		&i.DefaultTemplate,
 		&i.SystemOwned,
 	)
 	return i, err
@@ -272,20 +261,18 @@ func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplate
 const updateFlowTemplateTargetTypes = `-- name: UpdateFlowTemplateTargetTypes :one
 UPDATE flow_templates
 SET
-  target_types = $2,
-  default_template = $3
+  target_types = $2
 WHERE id = $1
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, default_template, system_owned
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
 `
 
 type UpdateFlowTemplateTargetTypesParams struct {
-	ID              int64        `json:"id"`
-	TargetTypes     []TargetType `json:"target_types"`
-	DefaultTemplate bool         `json:"default_template"`
+	ID          int64        `json:"id"`
+	TargetTypes []TargetType `json:"target_types"`
 }
 
 func (q *Queries) UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateFlowTemplateTargetTypesParams) (FlowTemplate, error) {
-	row := q.db.QueryRowContext(ctx, updateFlowTemplateTargetTypes, arg.ID, pq.Array(arg.TargetTypes), arg.DefaultTemplate)
+	row := q.db.QueryRowContext(ctx, updateFlowTemplateTargetTypes, arg.ID, pq.Array(arg.TargetTypes))
 	var i FlowTemplate
 	err := row.Scan(
 		&i.ID,
@@ -295,7 +282,6 @@ func (q *Queries) UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateF
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
-		&i.DefaultTemplate,
 		&i.SystemOwned,
 	)
 	return i, err

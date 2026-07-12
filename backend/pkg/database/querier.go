@@ -11,6 +11,7 @@ import (
 
 type Querier interface {
 	AddFavoriteFlow(ctx context.Context, arg AddFavoriteFlowParams) (UserPreference, error)
+	ClearDefaultProviders(ctx context.Context, userID int64) error
 	CountActiveDomainsForUser(ctx context.Context, userID int64) (int64, error)
 	CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error)
 	CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error)
@@ -72,6 +73,7 @@ type Querier interface {
 	GetContainerTermLogs(ctx context.Context, containerID int64) ([]Termlog, error)
 	GetContainers(ctx context.Context) ([]Container, error)
 	GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
+	GetDefaultProvider(ctx context.Context, userID int64) (Provider, error)
 	GetDomain(ctx context.Context, id int64) (Domain, error)
 	GetDomains(ctx context.Context) ([]Domain, error)
 	GetFlow(ctx context.Context, id int64) (Flow, error)
@@ -228,6 +230,7 @@ type Querier interface {
 	GetUserTotalToolcallsStats(ctx context.Context, userID int64) (GetUserTotalToolcallsStatsRow, error)
 	GetUserTotalUsageStats(ctx context.Context, userID int64) (GetUserTotalUsageStatsRow, error)
 	GetUsers(ctx context.Context) ([]GetUsersRow, error)
+	SetDefaultProvider(ctx context.Context, arg SetDefaultProviderParams) (Provider, error)
 	SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
 	UpdateAPIToken(ctx context.Context, arg UpdateAPITokenParams) (ApiToken, error)

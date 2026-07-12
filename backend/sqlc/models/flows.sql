@@ -82,7 +82,7 @@ SELECT COUNT(*)::bigint
 FROM flows
 WHERE user_id = $1
   AND deleted_at IS NULL
-  AND status IN ('created', 'running', 'waiting');
+  AND status IN ('created', 'running');
 
 -- name: SetFlowDomain :exec
 UPDATE flows

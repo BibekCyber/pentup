@@ -12,6 +12,7 @@ const statusConfig: Record<DomainStatusType, { className: string; icon: LucideIc
     [DomainStatusType.Failed]: { className: 'text-red-500', icon: CircleX, label: 'Failed' },
     [DomainStatusType.Finished]: { className: 'text-green-500', icon: CircleCheck, label: 'Finished' },
     [DomainStatusType.Running]: { className: 'animate-spin text-purple-500', icon: Loader2, label: 'Running' },
+    [DomainStatusType.Waiting]: { className: 'text-amber-500', icon: CircleDashed, label: 'Waiting' },
 };
 
 interface DomainStatusBadgeProps {

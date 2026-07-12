@@ -151,6 +151,7 @@ const (
 	DomainStatusRunning     DomainStatus = "running"
 	DomainStatusFinished    DomainStatus = "finished"
 	DomainStatusFailed      DomainStatus = "failed"
+	DomainStatusWaiting     DomainStatus = "waiting"
 )
 
 func (e *DomainStatus) Scan(src interface{}) error {
@@ -615,6 +616,7 @@ const (
 	TargetTypeNetwork       TargetType = "network"
 	TargetTypeMobileBackend TargetType = "mobile_backend"
 	TargetTypeGeneral       TargetType = "general"
+	TargetTypeCloud         TargetType = "cloud"
 )
 
 func (e *TargetType) Scan(src interface{}) error {
@@ -1058,15 +1060,14 @@ type Flow struct {
 }
 
 type FlowTemplate struct {
-	ID              int64        `json:"id"`
-	UserID          int64        `json:"user_id"`
-	Title           string       `json:"title"`
-	Text            string       `json:"text"`
-	CreatedAt       sql.NullTime `json:"created_at"`
-	UpdatedAt       sql.NullTime `json:"updated_at"`
-	TargetTypes     []TargetType `json:"target_types"`
-	DefaultTemplate bool         `json:"default_template"`
-	SystemOwned     bool         `json:"system_owned"`
+	ID          int64        `json:"id"`
+	UserID      int64        `json:"user_id"`
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	TargetTypes []TargetType `json:"target_types"`
+	SystemOwned bool         `json:"system_owned"`
 }
 
 type Msgchain struct {
@@ -1126,6 +1127,7 @@ type Provider struct {
 	CreatedAt sql.NullTime    `json:"created_at"`
 	UpdatedAt sql.NullTime    `json:"updated_at"`
 	DeletedAt sql.NullTime    `json:"deleted_at"`
+	IsDefault bool            `json:"is_default"`
 }
 
 type Role struct {

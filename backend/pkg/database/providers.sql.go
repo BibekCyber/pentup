@@ -10,6 +10,16 @@ import (
 	"encoding/json"
 )
 
+const clearDefaultProviders = `-- name: ClearDefaultProviders :exec
+UPDATE providers SET is_default = false
+WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL
+`
+
+func (q *Queries) ClearDefaultProviders(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, clearDefaultProviders, userID)
+	return err
+}
+
 const createProvider = `-- name: CreateProvider :one
 INSERT INTO providers (
   user_id,
@@ -19,7 +29,7 @@ INSERT INTO providers (
 ) VALUES (
   $1, $2, $3, $4
 )
-RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
 `
 
 type CreateProviderParams struct {
@@ -46,6 +56,7 @@ func (q *Queries) CreateProvider(ctx context.Context, arg CreateProviderParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
@@ -54,7 +65,7 @@ const deleteProvider = `-- name: DeleteProvider :one
 UPDATE providers
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
 `
 
 func (q *Queries) DeleteProvider(ctx context.Context, id int64) (Provider, error) {
@@ -69,6 +80,7 @@ func (q *Queries) DeleteProvider(ctx context.Context, id int64) (Provider, error
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
@@ -77,7 +89,7 @@ const deleteUserProvider = `-- name: DeleteUserProvider :one
 UPDATE providers
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
 `
 
 type DeleteUserProviderParams struct {
@@ -97,13 +109,37 @@ func (q *Queries) DeleteUserProvider(ctx context.Context, arg DeleteUserProvider
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
+	)
+	return i, err
+}
+
+const getDefaultProvider = `-- name: GetDefaultProvider :one
+SELECT id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default FROM providers
+WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetDefaultProvider(ctx context.Context, userID int64) (Provider, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultProvider, userID)
+	var i Provider
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.Name,
+		&i.Config,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
 
 const getProvider = `-- name: GetProvider :one
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 WHERE p.id = $1 AND p.deleted_at IS NULL
 `
@@ -120,13 +156,14 @@ func (q *Queries) GetProvider(ctx context.Context, id int64) (Provider, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
 
 const getProviders = `-- name: GetProviders :many
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 WHERE p.deleted_at IS NULL
 ORDER BY p.created_at ASC
@@ -150,6 +187,7 @@ func (q *Queries) GetProviders(ctx context.Context) ([]Provider, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -166,7 +204,7 @@ func (q *Queries) GetProviders(ctx context.Context) ([]Provider, error) {
 
 const getProvidersByType = `-- name: GetProvidersByType :many
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 WHERE p.type = $1 AND p.deleted_at IS NULL
 ORDER BY p.created_at ASC
@@ -190,6 +228,7 @@ func (q *Queries) GetProvidersByType(ctx context.Context, type_ ProviderType) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -206,7 +245,7 @@ func (q *Queries) GetProvidersByType(ctx context.Context, type_ ProviderType) ([
 
 const getUserProvider = `-- name: GetUserProvider :one
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 INNER JOIN users u ON p.user_id = u.id
 WHERE p.id = $1 AND p.user_id = $2 AND p.deleted_at IS NULL
@@ -229,13 +268,14 @@ func (q *Queries) GetUserProvider(ctx context.Context, arg GetUserProviderParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
 
 const getUserProviderByName = `-- name: GetUserProviderByName :one
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 INNER JOIN users u ON p.user_id = u.id
 WHERE p.name = $1 AND p.user_id = $2 AND p.deleted_at IS NULL
@@ -258,13 +298,14 @@ func (q *Queries) GetUserProviderByName(ctx context.Context, arg GetUserProvider
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
 
 const getUserProviders = `-- name: GetUserProviders :many
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 INNER JOIN users u ON p.user_id = u.id
 WHERE p.user_id = $1 AND p.deleted_at IS NULL
@@ -289,6 +330,7 @@ func (q *Queries) GetUserProviders(ctx context.Context, userID int64) ([]Provide
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -305,7 +347,7 @@ func (q *Queries) GetUserProviders(ctx context.Context, userID int64) ([]Provide
 
 const getUserProvidersByType = `-- name: GetUserProvidersByType :many
 SELECT
-  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at
+  p.id, p.user_id, p.type, p.name, p.config, p.created_at, p.updated_at, p.deleted_at, p.is_default
 FROM providers p
 INNER JOIN users u ON p.user_id = u.id
 WHERE p.user_id = $1 AND p.type = $2 AND p.deleted_at IS NULL
@@ -335,6 +377,7 @@ func (q *Queries) GetUserProvidersByType(ctx context.Context, arg GetUserProvide
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -349,11 +392,39 @@ func (q *Queries) GetUserProvidersByType(ctx context.Context, arg GetUserProvide
 	return items, nil
 }
 
+const setDefaultProvider = `-- name: SetDefaultProvider :one
+UPDATE providers SET is_default = true
+WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
+`
+
+type SetDefaultProviderParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) SetDefaultProvider(ctx context.Context, arg SetDefaultProviderParams) (Provider, error) {
+	row := q.db.QueryRowContext(ctx, setDefaultProvider, arg.ID, arg.UserID)
+	var i Provider
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.Name,
+		&i.Config,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IsDefault,
+	)
+	return i, err
+}
+
 const updateProvider = `-- name: UpdateProvider :one
 UPDATE providers
 SET config = $2, name = $3
 WHERE id = $1
-RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
 `
 
 type UpdateProviderParams struct {
@@ -374,6 +445,7 @@ func (q *Queries) UpdateProvider(ctx context.Context, arg UpdateProviderParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }
@@ -382,7 +454,7 @@ const updateUserProvider = `-- name: UpdateUserProvider :one
 UPDATE providers
 SET config = $3, name = $4
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at
+RETURNING id, user_id, type, name, config, created_at, updated_at, deleted_at, is_default
 `
 
 type UpdateUserProviderParams struct {
@@ -409,6 +481,7 @@ func (q *Queries) UpdateUserProvider(ctx context.Context, arg UpdateUserProvider
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsDefault,
 	)
 	return i, err
 }

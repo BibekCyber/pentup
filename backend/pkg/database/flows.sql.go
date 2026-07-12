@@ -17,7 +17,7 @@ SELECT COUNT(*)::bigint
 FROM flows
 WHERE user_id = $1
   AND deleted_at IS NULL
-  AND status IN ('created', 'running', 'waiting')
+  AND status IN ('created', 'running')
 `
 
 func (q *Queries) CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error) {

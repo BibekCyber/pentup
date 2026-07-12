@@ -13,10 +13,12 @@ import {
     Pencil,
     Plus,
     Settings,
+    Star,
     Trash,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import type { ProviderConfigFragmentFragment } from '@/graphql/types';
 
@@ -45,7 +47,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ProviderType, useDeleteProviderMutation, useSettingsProvidersQuery } from '@/graphql/types';
+import {
+    ProviderType,
+    useDeleteProviderMutation,
+    useSetDefaultProviderMutation,
+    useSettingsProvidersQuery,
+} from '@/graphql/types';
+import { cn } from '@/lib/utils';
 type Provider = ProviderConfigFragmentFragment;
 
 const providerIcons: Record<ProviderType, React.ComponentType<any>> = {
@@ -137,6 +145,7 @@ const SettingsProviders = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const { data, error, loading: isLoading } = useSettingsProvidersQuery();
     const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useDeleteProviderMutation();
+    const [setDefaultProvider] = useSetDefaultProviderMutation({ refetchQueries: ['settingsProviders'] });
     const [deleteErrorMessage, setDeleteErrorMessage] = useState<null | string>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingProvider, setDeletingProvider] = useState<null | Provider>(null);
@@ -209,6 +218,25 @@ const SettingsProviders = () => {
         [deleteProvider],
     );
 
+    const handleSetDefault = useCallback(
+        async (provider: Provider) => {
+            if (provider.isDefault) {
+                return;
+            }
+
+            try {
+                await setDefaultProvider({ variables: { providerId: provider.id } });
+                toast.success(`${provider.name} is now the default provider`);
+            } catch (error) {
+                toast.error('Failed to set default provider', {
+                    description:
+                        error instanceof Error ? error.message : 'An error occurred while setting the default provider',
+                });
+            }
+        },
+        [setDefaultProvider],
+    );
+
     const handleProviderEdit = useCallback(
         (providerId: string) => {
             navigate(`/settings/providers/${providerId}`);
@@ -232,7 +260,49 @@ const SettingsProviders = () => {
         () => [
             {
                 accessorKey: 'name',
-                cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
+                cell: ({ row }) => {
+                    const provider = row.original;
+
+                    return (
+                        <div className="flex items-center gap-2">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        aria-label={
+                                            provider.isDefault ? 'Default provider' : 'Set as default provider'
+                                        }
+                                        className={cn(
+                                            'flex size-6 shrink-0 items-center justify-center rounded transition-colors',
+                                            provider.isDefault
+                                                ? 'text-amber-500'
+                                                : 'text-muted-foreground/40 hover:text-amber-500',
+                                        )}
+                                        disabled={provider.isDefault}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            void handleSetDefault(provider);
+                                        }}
+                                        type="button"
+                                    >
+                                        <Star className={cn('size-4', provider.isDefault && 'fill-current')} />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {provider.isDefault ? 'Default provider' : 'Set as default'}
+                                </TooltipContent>
+                            </Tooltip>
+                            <span className="font-medium">{row.getValue('name')}</span>
+                            {provider.isDefault ? (
+                                <Badge
+                                    className="text-xs"
+                                    variant="secondary"
+                                >
+                                    Default
+                                </Badge>
+                            ) : null}
+                        </div>
+                    );
+                },
                 enableHiding: false,
                 header: ({ column }) => {
                     const sorted = column.getIsSorted();
@@ -391,6 +461,14 @@ const SettingsProviders = () => {
                                     align="end"
                                     className="min-w-24"
                                 >
+                                    <DropdownMenuItem
+                                        disabled={provider.isDefault}
+                                        onClick={() => handleSetDefault(provider)}
+                                    >
+                                        <Star className="size-4" />
+                                        {provider.isDefault ? 'Default provider' : 'Set as default'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleProviderEdit(provider.id)}>
                                         <Pencil className="size-3" />
                                         Edit
@@ -433,6 +511,7 @@ const SettingsProviders = () => {
             handleProviderClone,
             handleProviderDeleteDialogOpen,
             handleProviderEdit,
+            handleSetDefault,
             isDeleteLoading,
             deletingProvider,
         ],
@@ -514,6 +593,14 @@ const SettingsProviders = () => {
     const renderRowContextMenu = useCallback(
         (provider: Provider) => (
             <>
+                <ContextMenuItem
+                    disabled={provider.isDefault}
+                    onClick={() => handleSetDefault(provider)}
+                >
+                    <Star />
+                    {provider.isDefault ? 'Default provider' : 'Set as default'}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
                 <ContextMenuItem onClick={() => handleProviderEdit(provider.id)}>
                     <Pencil />
                     Edit
@@ -532,7 +619,14 @@ const SettingsProviders = () => {
                 </ContextMenuItem>
             </>
         ),
-        [deletingProvider, handleProviderClone, handleProviderDeleteDialogOpen, handleProviderEdit, isDeleteLoading],
+        [
+            deletingProvider,
+            handleProviderClone,
+            handleProviderDeleteDialogOpen,
+            handleProviderEdit,
+            handleSetDefault,
+            isDeleteLoading,
+        ],
     );
 
     if (isLoading) {

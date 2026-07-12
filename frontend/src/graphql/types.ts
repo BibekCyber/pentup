@@ -219,14 +219,13 @@ export type CreateApiTokenInput = {
 
 export type CreateDomainInput = {
     autoDetect?: InputMaybe<Scalars['Boolean']['input']>;
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
     name: Scalars['String']['input'];
     targetType?: InputMaybe<TargetType>;
     templateIds: Array<Scalars['ID']['input']>;
 };
 
 export type CreateFlowTemplateInput = {
-    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
     targetTypes?: InputMaybe<Array<TargetType>>;
     text: Scalars['String']['input'];
     title: Scalars['String']['input'];
@@ -235,7 +234,7 @@ export type CreateFlowTemplateInput = {
 export type CreateScanInput = {
     box?: InputMaybe<ScanBox>;
     credential?: InputMaybe<ScanCredentialInput>;
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
     name: Scalars['String']['input'];
     scope?: InputMaybe<ScanScope>;
     targetType: TargetType;
@@ -300,6 +299,7 @@ export enum DomainStatusType {
     Failed = 'failed',
     Finished = 'finished',
     Running = 'running',
+    Waiting = 'waiting',
 }
 
 export type Finding = {
@@ -350,7 +350,6 @@ export type FlowStats = {
 
 export type FlowTemplate = {
     createdAt: Scalars['Time']['output'];
-    defaultTemplate: Scalars['Boolean']['output'];
     id: Scalars['ID']['output'];
     systemOwned: Scalars['Boolean']['output'];
     targetTypes: Array<TargetType>;
@@ -452,6 +451,7 @@ export type Mutation = {
     finishFlow: ResultType;
     putUserInput: ResultType;
     renameFlow: ResultType;
+    setDefaultProvider: ProviderConfig;
     stopAssistant: Assistant;
     stopFlow: ResultType;
     testAgent: AgentTestResult;
@@ -492,7 +492,7 @@ export type MutationCreateDomainArgs = {
 
 export type MutationCreateFlowArgs = {
     input: Scalars['String']['input'];
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type MutationCreateFlowTemplateArgs = {
@@ -562,6 +562,10 @@ export type MutationRenameFlowArgs = {
     title: Scalars['String']['input'];
 };
 
+export type MutationSetDefaultProviderArgs = {
+    providerId: Scalars['ID']['input'];
+};
+
 export type MutationStopAssistantArgs = {
     assistantId: Scalars['ID']['input'];
     flowId: Scalars['ID']['input'];
@@ -593,7 +597,6 @@ export type MutationUpdateFlowTemplateArgs = {
 };
 
 export type MutationUpdateFlowTemplateTargetTypesArgs = {
-    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
     targetTypes: Array<TargetType>;
     templateId: Scalars['ID']['input'];
 };
@@ -679,6 +682,7 @@ export type PromptsConfig = {
 };
 
 export type Provider = {
+    isDefault: Scalars['Boolean']['output'];
     name: Scalars['String']['output'];
     type: ProviderType;
 };
@@ -687,6 +691,7 @@ export type ProviderConfig = {
     agents: AgentsConfig;
     createdAt: Scalars['Time']['output'];
     id: Scalars['ID']['output'];
+    isDefault: Scalars['Boolean']['output'];
     name: Scalars['String']['output'];
     type: ProviderType;
     updatedAt: Scalars['Time']['output'];
@@ -1118,6 +1123,7 @@ export enum TargetType {
     Api = 'api',
     Aws = 'aws',
     Azure = 'azure',
+    Cloud = 'cloud',
     Gcp = 'gcp',
     General = 'general',
     MobileBackend = 'mobile_backend',
@@ -1449,12 +1455,13 @@ export type ModelConfigFragmentFragment = {
     price?: { input: number; output: number; cacheRead: number; cacheWrite: number } | null;
 };
 
-export type ProviderFragmentFragment = { name: string; type: ProviderType };
+export type ProviderFragmentFragment = { name: string; type: ProviderType; isDefault: boolean };
 
 export type ProviderConfigFragmentFragment = {
     id: string;
     name: string;
     type: ProviderType;
+    isDefault: boolean;
     createdAt: any;
     updatedAt: any;
     agents: AgentsConfigFragmentFragment;
@@ -1540,7 +1547,6 @@ export type FlowTemplateFragmentFragment = {
     title: string;
     text: string;
     targetTypes: Array<TargetType>;
-    defaultTemplate: boolean;
     systemOwned: boolean;
     createdAt: any;
     updatedAt: any;
@@ -1917,7 +1923,6 @@ export type UpdateFlowTemplateMutation = { updateFlowTemplate: FlowTemplateFragm
 export type UpdateFlowTemplateTargetTypesMutationVariables = Exact<{
     templateId: Scalars['ID']['input'];
     targetTypes: Array<TargetType> | TargetType;
-    defaultTemplate?: InputMaybe<Scalars['Boolean']['input']>;
 }>;
 
 export type UpdateFlowTemplateTargetTypesMutation = { updateFlowTemplateTargetTypes: FlowTemplateFragmentFragment };
@@ -2038,6 +2043,12 @@ export type DeleteProviderMutationVariables = Exact<{
 }>;
 
 export type DeleteProviderMutation = { deleteProvider: ResultType };
+
+export type SetDefaultProviderMutationVariables = Exact<{
+    providerId: Scalars['ID']['input'];
+}>;
+
+export type SetDefaultProviderMutation = { setDefaultProvider: ProviderConfigFragmentFragment };
 
 export type ValidatePromptMutationVariables = Exact<{
     type: PromptType;
@@ -2413,6 +2424,7 @@ export const ProviderFragmentFragmentDoc = gql`
     fragment providerFragment on Provider {
         name
         type
+        isDefault
     }
 `;
 export const FindingFragmentFragmentDoc = gql`
@@ -2614,6 +2626,7 @@ export const ProviderConfigFragmentFragmentDoc = gql`
         agents {
             ...agentsConfigFragment
         }
+        isDefault
         createdAt
         updatedAt
     }
@@ -2678,7 +2691,6 @@ export const FlowTemplateFragmentFragmentDoc = gql`
         title
         text
         targetTypes
-        defaultTemplate
         systemOwned
         createdAt
         updatedAt
@@ -5337,12 +5349,8 @@ export type UpdateFlowTemplateMutationOptions = Apollo.BaseMutationOptions<
     UpdateFlowTemplateMutationVariables
 >;
 export const UpdateFlowTemplateTargetTypesDocument = gql`
-    mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!, $defaultTemplate: Boolean) {
-        updateFlowTemplateTargetTypes(
-            templateId: $templateId
-            targetTypes: $targetTypes
-            defaultTemplate: $defaultTemplate
-        ) {
+    mutation updateFlowTemplateTargetTypes($templateId: ID!, $targetTypes: [TargetType!]!) {
+        updateFlowTemplateTargetTypes(templateId: $templateId, targetTypes: $targetTypes) {
             ...flowTemplateFragment
         }
     }
@@ -5368,7 +5376,6 @@ export type UpdateFlowTemplateTargetTypesMutationFn = Apollo.MutationFunction<
  *   variables: {
  *      templateId: // value for 'templateId'
  *      targetTypes: // value for 'targetTypes'
- *      defaultTemplate: // value for 'defaultTemplate'
  *   },
  * });
  */
@@ -6013,6 +6020,51 @@ export type DeleteProviderMutationResult = Apollo.MutationResult<DeleteProviderM
 export type DeleteProviderMutationOptions = Apollo.BaseMutationOptions<
     DeleteProviderMutation,
     DeleteProviderMutationVariables
+>;
+export const SetDefaultProviderDocument = gql`
+    mutation setDefaultProvider($providerId: ID!) {
+        setDefaultProvider(providerId: $providerId) {
+            ...providerConfigFragment
+        }
+    }
+    ${ProviderConfigFragmentFragmentDoc}
+`;
+export type SetDefaultProviderMutationFn = Apollo.MutationFunction<
+    SetDefaultProviderMutation,
+    SetDefaultProviderMutationVariables
+>;
+
+/**
+ * __useSetDefaultProviderMutation__
+ *
+ * To run a mutation, you first call `useSetDefaultProviderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetDefaultProviderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setDefaultProviderMutation, { data, loading, error }] = useSetDefaultProviderMutation({
+ *   variables: {
+ *      providerId: // value for 'providerId'
+ *   },
+ * });
+ */
+export function useSetDefaultProviderMutation(
+    baseOptions?: Apollo.MutationHookOptions<SetDefaultProviderMutation, SetDefaultProviderMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<SetDefaultProviderMutation, SetDefaultProviderMutationVariables>(
+        SetDefaultProviderDocument,
+        options,
+    );
+}
+export type SetDefaultProviderMutationHookResult = ReturnType<typeof useSetDefaultProviderMutation>;
+export type SetDefaultProviderMutationResult = Apollo.MutationResult<SetDefaultProviderMutation>;
+export type SetDefaultProviderMutationOptions = Apollo.BaseMutationOptions<
+    SetDefaultProviderMutation,
+    SetDefaultProviderMutationVariables
 >;
 export const ValidatePromptDocument = gql`
     mutation validatePrompt($type: PromptType!, $template: String!) {

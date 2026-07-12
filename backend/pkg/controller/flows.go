@@ -81,6 +81,13 @@ type FlowController interface {
 	GetFlow(ctx context.Context, flowID int64) (FlowWorker, error)
 	StopFlow(ctx context.Context, flowID int64) error
 	FinishFlow(ctx context.Context, flowID int64) error
+	// DeleteFlow performs the full teardown of a single flow: it releases the
+	// in-memory worker (which releases its Docker container) and drops it from
+	// the worker map, soft-deletes the flow row, then publishes FlowUpdated +
+	// FlowDeleted. Safe to call for flows that were never loaded (e.g. already
+	// finished/failed): the worker step is skipped when the flow is not in the
+	// map. Used both by the single-flow delete resolver and the domain cascade.
+	DeleteFlow(ctx context.Context, flowID int64) error
 	RenameFlow(ctx context.Context, flowID int64, title string) error
 }
 
@@ -132,7 +139,12 @@ func (fc *flowController) LoadFlows(ctx context.Context) error {
 		return fmt.Errorf("failed to load flows: %w", err)
 	}
 
+	domainIDs := make(map[int64]struct{})
 	for _, flow := range flows {
+		if flow.DomainID.Valid {
+			domainIDs[flow.DomainID.Int64] = struct{}{}
+		}
+
 		fw, err := LoadFlowWorker(ctx, flow, flowWorkerCtx{
 			db:     fc.db,
 			cfg:    fc.cfg,
@@ -159,6 +171,15 @@ func (fc *flowController) LoadFlows(ctx context.Context) error {
 		}
 
 		fc.flows[flow.ID] = fw
+	}
+
+	// Re-derive each parent scan's status from its child flows. Flow statuses can
+	// change while the server is down (or predate the scan-status feature), and
+	// reconcileDomainStatus otherwise only fires on a live status change — so
+	// without this pass a scan whose flows are all `waiting` would keep showing
+	// `running` after a restart until the next status change.
+	for domainID := range domainIDs {
+		reconcileDomainStatus(ctx, fc.db, fc.subs, domainID)
 	}
 
 	return nil
@@ -597,6 +618,45 @@ func (fc *flowController) FinishFlow(ctx context.Context, flowID int64) error {
 	}
 
 	delete(fc.flows, flowID)
+
+	return nil
+}
+
+func (fc *flowController) DeleteFlow(ctx context.Context, flowID int64) error {
+	// Grab the worker under the lock, but run the (potentially slow, Docker-
+	// bound) Finish outside of it so we never block other flow operations while
+	// releasing the container. Drop it from the map afterwards under the lock.
+	fc.mx.Lock()
+	fw, ok := fc.flows[flowID]
+	fc.mx.Unlock()
+
+	if ok {
+		if err := fw.Finish(ctx); err != nil {
+			return fmt.Errorf("failed to finish flow %d: %w", flowID, err)
+		}
+
+		fc.mx.Lock()
+		delete(fc.flows, flowID)
+		fc.mx.Unlock()
+	}
+
+	flow, err := fc.db.GetFlow(ctx, flowID)
+	if err != nil {
+		return fmt.Errorf("failed to get flow %d: %w", flowID, err)
+	}
+
+	containers, err := fc.db.GetFlowContainers(ctx, flowID)
+	if err != nil {
+		return fmt.Errorf("failed to get containers for flow %d: %w", flowID, err)
+	}
+
+	if _, err := fc.db.DeleteFlow(ctx, flowID); err != nil {
+		return fmt.Errorf("failed to delete flow %d: %w", flowID, err)
+	}
+
+	publisher := fc.subs.NewFlowPublisher(flow.UserID, flow.ID)
+	publisher.FlowUpdated(ctx, flow, containers)
+	publisher.FlowDeleted(ctx, flow, containers)
 
 	return nil
 }

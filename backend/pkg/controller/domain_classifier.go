@@ -33,6 +33,7 @@ var validTargetTypes = map[string]struct{}{
 	"aws":            {},
 	"azure":          {},
 	"gcp":            {},
+	"cloud":          {},
 	"network":        {},
 	"mobile_backend": {},
 	"general":        {},
