@@ -1,5 +1,5 @@
 import { ChevronDown, Copy, Download, ExternalLink, GripVertical, Loader2, NotepadText, Star } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -18,8 +18,11 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import FlowCentralTabs from '@/features/flows/flow-central-tabs';
 import FlowTabs from '@/features/flows/flow-tabs';
+import ScanInitializing from '@/features/flows/scan-initializing';
+import { StatusType } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
+import { useScanStage } from '@/hooks/use-scan-stage';
 import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
 import { mapFindings } from '@/lib/build-report-model';
@@ -145,7 +148,7 @@ const Flow = () => {
     const { isDesktop } = useBreakpoint();
     const navigate = useNavigate();
 
-    const { assistantLogs, flowData, flowError, flowId, isLoading: isFlowLoading } = useFlow();
+    const { assistantLogs, flowData, flowError, flowId, flowStatus, isLoading: isFlowLoading } = useFlow();
     const { isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
 
     // Redirect to flows list if there's an error loading flow data or flow not found
@@ -154,6 +157,35 @@ const Flow = () => {
             navigate('/flows', { replace: true });
         }
     }, [flowError, flowData, isFlowLoading, navigate]);
+
+    // "Has real work started streaming?" — the moment any log/message/task/screenshot
+    // arrives, the sandbox is alive and we reveal the real terminal/agents panels.
+    const hasStreamedContent = useMemo(
+        () =>
+            Boolean(
+                flowData?.terminalLogs?.length ||
+                    flowData?.messageLogs?.length ||
+                    flowData?.agentLogs?.length ||
+                    flowData?.tasks?.length ||
+                    flowData?.screenshots?.length ||
+                    flowData?.searchLogs?.length ||
+                    flowData?.vectorStoreLogs?.length ||
+                    assistantLogs.length,
+            ),
+        [flowData, assistantLogs.length],
+    );
+
+    // Show the animated "your scan is starting" state only during the initial boot:
+    // the flow exists, nothing has streamed yet, and it hasn't finished/failed.
+    const isInitializing =
+        !isFlowLoading &&
+        !!flowData?.flow &&
+        !hasStreamedContent &&
+        (flowStatus === StatusType.Created ||
+            flowStatus === StatusType.Waiting ||
+            flowStatus === StatusType.Running);
+
+    const scanStage = useScanStage(flowStatus, isInitializing);
 
     // Desktop: side panel defaults to 'terminal'
     const [desktopTabsTab, setDesktopTabsTab] = useState<string>('terminal');
@@ -225,6 +257,11 @@ const Flow = () => {
                 {isFlowLoading && (
                     <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center">
                         <Loader2 className="text-primary size-16 animate-spin" />
+                    </div>
+                )}
+                {isInitializing && (
+                    <div className="bg-background animate-scan-fade absolute inset-0 z-40 flex items-center justify-center overflow-auto p-6">
+                        <ScanInitializing stageIndex={scanStage} />
                     </div>
                 )}
                 {isDesktop ? (

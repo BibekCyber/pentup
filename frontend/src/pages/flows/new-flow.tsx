@@ -7,6 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlowForm, type FlowFormValues } from '@/features/flows/flow-form';
+import ScanInitializing from '@/features/flows/scan-initializing';
+import { useScanStage } from '@/hooks/use-scan-stage';
 import { useFlows } from '@/providers/flows-provider';
 import { useProviders } from '@/providers/providers-provider';
 import { useSystemSettings } from '@/providers/system-settings-provider';
@@ -20,6 +22,10 @@ const NewFlow = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [flowType, setFlowType] = useState<'assistant' | 'automation'>('automation');
+
+    // Phase A: the create mutation is in flight and the flow doesn't exist yet, so there
+    // is no backend signal — drive the boot stages off a timed loop while it runs.
+    const phaseAStage = useScanStage(undefined, isLoading);
 
     // Calculate default useAgents value (only for assistant type)
     const shouldUseAgents = useMemo(() => {
@@ -64,45 +70,45 @@ const NewFlow = () => {
             <div className="flex min-h-[calc(100dvh-3rem)] items-center justify-center p-4">
                 <Card className="w-full max-w-2xl">
                     <CardContent className="flex flex-col gap-4 pt-6">
-                        <div className="text-center">
-                            <h1 className="text-2xl font-semibold">Create a new flow</h1>
-                            <p className="text-muted-foreground mt-2">Describe what you would like PentAGI to test</p>
-                        </div>
-                        <Tabs
-                            onValueChange={(value) => setFlowType(value as 'assistant' | 'automation')}
-                            value={flowType}
-                        >
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger
-                                    disabled={isLoading}
-                                    value="automation"
+                        {isLoading ? (
+                            <ScanInitializing
+                                className="py-6"
+                                reducedDetail
+                                stageIndex={phaseAStage}
+                            />
+                        ) : (
+                            <>
+                                <div className="text-center">
+                                    <h1 className="text-2xl font-semibold">Create a new flow</h1>
+                                    <p className="text-muted-foreground mt-2">
+                                        Describe what you would like PentAGI to test
+                                    </p>
+                                </div>
+                                <Tabs
+                                    onValueChange={(value) => setFlowType(value as 'assistant' | 'automation')}
+                                    value={flowType}
                                 >
-                                    Automation
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    disabled={isLoading}
-                                    value="assistant"
-                                >
-                                    Assistant
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <FlowForm
-                            defaultValues={{
-                                providerName: selectedProvider?.name ?? '',
-                                useAgents: shouldUseAgents,
-                            }}
-                            isSubmitting={isLoading}
-                            onSubmit={handleSubmit}
-                            placeholder={
-                                !isLoading
-                                    ? flowType === 'automation'
-                                        ? 'Describe what you would like PentAGI to test...'
-                                        : 'What would you like me to help you with?'
-                                    : 'Creating a new flow...'
-                            }
-                            type={flowType}
-                        />
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="automation">Automation</TabsTrigger>
+                                        <TabsTrigger value="assistant">Assistant</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <FlowForm
+                                    defaultValues={{
+                                        providerName: selectedProvider?.name ?? '',
+                                        useAgents: shouldUseAgents,
+                                    }}
+                                    isSubmitting={isLoading}
+                                    onSubmit={handleSubmit}
+                                    placeholder={
+                                        flowType === 'automation'
+                                            ? 'Describe what you would like PentAGI to test...'
+                                            : 'What would you like me to help you with?'
+                                    }
+                                    type={flowType}
+                                />
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>

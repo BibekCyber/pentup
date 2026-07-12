@@ -22,14 +22,16 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Spinner } from '@/components/ui/spinner';
+import ScanInitializing from '@/features/flows/scan-initializing';
 import {
+    DomainStatusType,
     type FlowFragmentFragment,
     StatusType,
     useDeleteFlowMutation,
     useFinishFlowMutation,
     useRenameFlowMutation,
 } from '@/graphql/types';
+import { useScanStage } from '@/hooks/use-scan-stage';
 import { useDomain } from '@/providers/domain-provider';
 import { useDomains } from '@/providers/domains-provider';
 
@@ -212,10 +214,20 @@ const Domain = () => {
     const { deleteDomain } = useDomains();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+    // A freshly-created scan has no child flows yet while the backend classifies the
+    // target and spins them up — show the animated boot state instead of an empty page.
+    const isScanBooting =
+        !!domain &&
+        domain.flows.length === 0 &&
+        (domain.status === DomainStatusType.Created ||
+            domain.status === DomainStatusType.Classifying ||
+            domain.status === DomainStatusType.Running);
+    const scanStage = useScanStage(undefined, isScanBooting || (isLoading && !domain));
+
     if (isLoading && !domain) {
         return (
-            <div className="flex min-h-[calc(100dvh-3rem)] items-center justify-center">
-                <Spinner variant="circle" />
+            <div className="flex min-h-[calc(100dvh-3rem)] items-center justify-center p-4">
+                <ScanInitializing stageIndex={scanStage} />
             </div>
         );
     }
@@ -273,7 +285,11 @@ const Domain = () => {
                     </Button>
                 </div>
 
-                {domain.flows.length === 0 ? (
+                {isScanBooting ? (
+                    <div className="flex min-h-80 items-center justify-center">
+                        <ScanInitializing stageIndex={scanStage} />
+                    </div>
+                ) : domain.flows.length === 0 ? (
                     <Empty className="min-h-64">
                         <EmptyHeader>
                             <EmptyTitle>No flows</EmptyTitle>
