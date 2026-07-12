@@ -25,6 +25,12 @@ import { useFlow } from '@/providers/flow-provider';
 const NONE_KEY = '__none__';
 const RAW_KEY = '__raw__';
 
+interface CommandGroup {
+    command: string;
+    id: string;
+    output: TermLog[];
+}
+
 interface TermLog {
     subtaskId?: null | string;
     text: string;
@@ -37,19 +43,12 @@ const cleanCommand = (text: string) =>
         .replace(/^.*?\$\s/, '')
         .trim();
 
-interface CommandGroup {
-    command: string;
-    id: string;
-    output: TermLog[];
-}
-
 const TYPE_BADGE_LABEL: Record<string, string> = { html: 'HTML', json: 'JSON', text: 'TEXT' };
 
 // One command run = one distinct terminal pane: a slim header (content-type badge +
 // copy), then the `$ command` prompt (syntax-highlighted) followed by its output,
 // colour-coded by content (JSON / HTML / key: value / plain text) and streamed in
-// one line at a time. Splitting per command keeps each run visually separate rather
-// than merging into one wall.
+// one line at a time.
 const CommandPane = ({ group }: { group: CommandGroup }) => {
     const outputTexts = group.output.map((o) => o.text);
     const blockType = group.output.length > 0 ? detectBlockType(outputTexts) : null;
@@ -132,8 +131,8 @@ const FlowSplitTerminal = () => {
             const meta = subtaskMeta.get(key);
             const logs = buckets.get(key) ?? [];
 
-            const groups: { command: string; id: string; output: TermLog[] }[] = [];
-            let current: (typeof groups)[number] | null = null;
+            const groups: CommandGroup[] = [];
+            let current: CommandGroup | null = null;
 
             logs.forEach((log, index) => {
                 if (log.type === TerminalLogType.Stdin) {
@@ -177,22 +176,22 @@ const FlowSplitTerminal = () => {
         >
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 {steps.map((step) => (
-                        <TabsTrigger
-                            className="gap-1.5"
-                            key={step.id}
-                            value={step.id}
-                        >
-                            {step.status ? <FlowTaskStatusIcon status={step.status} /> : null}
-                            <span className="max-w-40 truncate">{step.title}</span>
-                        </TabsTrigger>
-                    ))}
                     <TabsTrigger
                         className="gap-1.5"
-                        value={RAW_KEY}
+                        key={step.id}
+                        value={step.id}
                     >
-                        <SquareTerminal className="size-4" />
-                        Raw
+                        {step.status ? <FlowTaskStatusIcon status={step.status} /> : null}
+                        <span className="max-w-40 truncate">{step.title}</span>
                     </TabsTrigger>
+                ))}
+                <TabsTrigger
+                    className="gap-1.5"
+                    value={RAW_KEY}
+                >
+                    <SquareTerminal className="size-4" />
+                    Raw
+                </TabsTrigger>
             </TabsList>
 
             {steps.map((step) => (

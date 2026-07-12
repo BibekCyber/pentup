@@ -6,13 +6,11 @@ import FlowAgents from '@/features/flows/agents/flow-agents';
 import FlowDashboard from '@/features/flows/dashboard/flow-dashboard';
 import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-messages';
 import FlowAutomationMessages from '@/features/flows/messages/flow-automation-messages';
-import FlowScreenshots from '@/features/flows/screenshots/flow-screenshots';
 import FlowTasks from '@/features/flows/tasks/flow-tasks';
 import FlowSplitTerminal from '@/features/flows/terminal/flow-split-terminal';
-import FlowTools from '@/features/flows/tools/flow-tools';
-import FlowVectorStores from '@/features/flows/vector-stores/flow-vector-stores';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { usePermission } from '@/hooks/use-permission';
+import { useFlow } from '@/providers/flow-provider';
 
 interface FlowTabsProps {
     activeTab: string;
@@ -22,6 +20,7 @@ interface FlowTabsProps {
 const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
     const { isDesktop } = useBreakpoint();
     const canSeeDashboard = usePermission('usage.view');
+    const { isAssistantMode } = useFlow();
 
     const previousActiveTabRef = useRef<string>(activeTab);
 
@@ -43,35 +42,33 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
             <div className="max-w-full pr-4">
                 <ScrollArea className="w-full pb-3">
                     <TabsList className="flex w-fit">
-                        {!isDesktop && <TabsTrigger value="automation">Automation</TabsTrigger>}
-                        {!isDesktop && <TabsTrigger value="assistant">Assistant</TabsTrigger>}
+                        {/* Mobile only: the flow's mode tab + dashboard live here too. */}
+                        {!isDesktop && isAssistantMode && <TabsTrigger value="assistant">Assistant</TabsTrigger>}
+                        {!isDesktop && !isAssistantMode && <TabsTrigger value="automation">Automation</TabsTrigger>}
                         {!isDesktop && canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
                         <TabsTrigger value="terminal">Terminal</TabsTrigger>
                         <TabsTrigger value="tasks">Tasks</TabsTrigger>
                         <TabsTrigger value="agents">Agents</TabsTrigger>
-                        <TabsTrigger value="tools">Searches</TabsTrigger>
-                        <TabsTrigger value="vectorStores">Vector Store</TabsTrigger>
-                        <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </div>
 
             {/* Mobile Tabs only */}
-            {!isDesktop && (
-                <TabsContent
-                    className="mt-1 flex-1 overflow-auto"
-                    value="automation"
-                >
-                    <FlowAutomationMessages className="pr-4" />
-                </TabsContent>
-            )}
-            {!isDesktop && (
+            {!isDesktop && isAssistantMode && (
                 <TabsContent
                     className="mt-1 flex-1 overflow-auto"
                     value="assistant"
                 >
                     <FlowAssistantMessages className="pr-4" />
+                </TabsContent>
+            )}
+            {!isDesktop && !isAssistantMode && (
+                <TabsContent
+                    className="mt-1 flex-1 overflow-auto"
+                    value="automation"
+                >
+                    <FlowAutomationMessages className="pr-4" />
                 </TabsContent>
             )}
             {!isDesktop && canSeeDashboard && (
@@ -85,7 +82,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
 
             {/* Desktop and Mobile Tabs */}
             <TabsContent
-                className="mt-1 flex-1 overflow-auto"
+                className="mt-1 flex-1 overflow-hidden"
                 value="terminal"
             >
                 <FlowSplitTerminal />
@@ -103,27 +100,6 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 value="agents"
             >
                 <FlowAgents />
-            </TabsContent>
-
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="tools"
-            >
-                <FlowTools />
-            </TabsContent>
-
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="vectorStores"
-            >
-                <FlowVectorStores />
-            </TabsContent>
-
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="screenshots"
-            >
-                <FlowScreenshots />
             </TabsContent>
         </Tabs>
     );

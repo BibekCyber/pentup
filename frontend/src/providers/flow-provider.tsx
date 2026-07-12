@@ -45,6 +45,10 @@ interface FlowContextValue {
     flowId: null | string;
     flowStatus: StatusType | undefined;
     initiateAssistantCreation: () => void;
+    // True when the flow was created in assistant mode: it owns ≥1 assistant and has
+    // no automation message logs (an assistant that runs agents can still create
+    // tasks, but never automation msglogs). Used to show only the relevant mode tab.
+    isAssistantMode: boolean;
     isAssistantsLoading: boolean;
     isLoading: boolean;
     selectAssistant: (assistantId: null | string) => void;
@@ -379,6 +383,7 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
             flowId: flowId ?? null,
             flowStatus,
             initiateAssistantCreation,
+            isAssistantMode: assistants.length > 0 && (flowData?.messageLogs?.length ?? 0) === 0,
             isAssistantsLoading,
             isLoading,
             selectAssistant,

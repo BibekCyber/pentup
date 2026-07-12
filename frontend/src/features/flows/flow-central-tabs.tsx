@@ -5,10 +5,12 @@ import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-mess
 import FlowAutomationMessages from '@/features/flows/messages/flow-automation-messages';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
 import { usePermission } from '@/hooks/use-permission';
+import { useFlow } from '@/providers/flow-provider';
 
 const FlowCentralTabs = () => {
     const { handleTabChange, resolvedTab } = useFlowTabDetection();
     const canSeeDashboard = usePermission('usage.view');
+    const { isAssistantMode } = useFlow();
 
     return (
         <Tabs
@@ -18,27 +20,34 @@ const FlowCentralTabs = () => {
         >
             <div className="max-w-full">
                 <ScrollArea className="w-full pb-3">
+                    {/* Only the tab matching how the flow was created is shown. */}
                     <TabsList className="flex w-fit">
-                        <TabsTrigger value="automation">Automation</TabsTrigger>
-                        <TabsTrigger value="assistant">Assistant</TabsTrigger>
+                        {isAssistantMode ? (
+                            <TabsTrigger value="assistant">Assistant</TabsTrigger>
+                        ) : (
+                            <TabsTrigger value="automation">Automation</TabsTrigger>
+                        )}
                         {canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </div>
 
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="automation"
-            >
-                <FlowAutomationMessages />
-            </TabsContent>
-            <TabsContent
-                className="mt-1 flex-1 overflow-auto pr-4"
-                value="assistant"
-            >
-                <FlowAssistantMessages />
-            </TabsContent>
+            {isAssistantMode ? (
+                <TabsContent
+                    className="mt-1 flex-1 overflow-auto pr-4"
+                    value="assistant"
+                >
+                    <FlowAssistantMessages />
+                </TabsContent>
+            ) : (
+                <TabsContent
+                    className="mt-1 flex-1 overflow-auto pr-4"
+                    value="automation"
+                >
+                    <FlowAutomationMessages />
+                </TabsContent>
+            )}
             {canSeeDashboard && (
                 <TabsContent
                     className="mt-1 flex-1 overflow-auto pr-4"
