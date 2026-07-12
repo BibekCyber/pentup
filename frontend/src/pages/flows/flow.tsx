@@ -224,7 +224,7 @@ const Flow = () => {
             <div className="relative flex h-[calc(100dvh-3rem)] w-full max-w-full flex-1">
                 {isFlowLoading && (
                     <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center">
-                        <Loader2 className="size-16 animate-spin" />
+                        <Loader2 className="text-primary size-16 animate-spin" />
                     </div>
                 )}
                 {isDesktop ? (

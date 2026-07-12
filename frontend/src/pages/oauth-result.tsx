@@ -109,9 +109,9 @@ const OAuthResult = () => {
     }, [successDelay, errorDelay]);
 
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-linear-to-r from-slate-800 to-slate-950">
-            <Logo className="animate-logo-spin m-auto size-32 text-white delay-10000" />
-            <div className="fixed bottom-4 text-sm text-white">{statusMessage}</div>
+        <div className="bg-background flex h-screen w-full items-center justify-center">
+            <Logo className="animate-logo-spin text-foreground m-auto size-32 delay-10000" />
+            <div className="text-muted-foreground fixed bottom-4 text-sm">{statusMessage}</div>
         </div>
     );
 };

@@ -8,7 +8,6 @@ import {
     KeyRound,
     LayoutDashboard,
     LogOut,
-    Monitor,
     Moon,
     Plus,
     Settings,
@@ -327,6 +326,11 @@ export const MainSidebar = () => {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                {/*
+                                  Light/Dark toggle for the two RankLocal variants. The legacy
+                                  system/light/dark (blue) themes stay in the provider but are
+                                  intentionally not surfaced here.
+                                */}
                                 <DropdownMenuItem
                                     className="cursor-default hover:bg-transparent focus:bg-transparent"
                                     onSelect={(event) => event.preventDefault()}
@@ -336,15 +340,9 @@ export const MainSidebar = () => {
                                     <Tabs
                                         className="-my-1.5 -mr-2 ml-auto"
                                         onValueChange={(value) => setTheme(value as Theme)}
-                                        value={theme || 'system'}
+                                        value={theme === 'dark' ? 'dark' : 'light'}
                                     >
                                         <TabsList className="h-7 p-0.5">
-                                            <TabsTrigger
-                                                className="h-6 px-2"
-                                                value="system"
-                                            >
-                                                <Monitor className="size-4" />
-                                            </TabsTrigger>
                                             <TabsTrigger
                                                 className="h-6 px-2"
                                                 value="light"

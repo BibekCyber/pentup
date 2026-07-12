@@ -233,6 +233,7 @@ const FlowTerminal = () => {
                 logs={filteredLogs}
                 ref={terminalRef}
                 searchValue={debouncedSearchValue}
+                title="Terminal"
             />
             {hasActiveFilters && !hasLogs && (
                 <Empty>

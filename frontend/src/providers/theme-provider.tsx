@@ -26,16 +26,16 @@ export const ThemeProviderContext = createContext<ThemeProviderState>(initialSta
 
 export const ThemeProvider = ({
     children,
-    defaultTheme = 'system',
+    defaultTheme = 'light',
     storageKey = 'theme',
     ...props
 }: ThemeProviderProps) => {
     const [theme, setTheme] = useState<Theme>(() => {
         const storedTheme = localStorage.getItem(storageKey);
 
-        // If no stored theme, use system (default)
+        // First-load (empty storage) boots into the default (RankLocal light = :root).
         if (!storedTheme) {
-            return 'system';
+            return defaultTheme;
         }
 
         return isThemeValid(storedTheme) ? storedTheme : defaultTheme;
@@ -46,6 +46,8 @@ export const ThemeProvider = ({
 
         root.classList.remove('light', 'dark');
 
+        // Light = the `:root` palette (RankLocal light), no `.dark` so `dark:`
+        // utilities stay off. Dark = `.dark` (RankLocal graphite) so they fire.
         if (theme === 'system') {
             const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
@@ -66,6 +68,7 @@ export const ThemeProvider = ({
                 // Store only light or dark themes
                 localStorage.setItem(storageKey, theme);
             }
+
             setTheme(theme);
         },
         theme,

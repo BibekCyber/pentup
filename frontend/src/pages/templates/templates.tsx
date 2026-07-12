@@ -271,7 +271,7 @@ const Templates = () => {
                 <Button
                     onClick={() => navigate('/templates/new')}
                     size="sm"
-                    variant="secondary"
+                    variant="default"
                 >
                     <Plus />
                     New Template
@@ -289,7 +289,7 @@ const Templates = () => {
                         action={
                             <Button
                                 onClick={() => navigate('/templates/new')}
-                                variant="secondary"
+                                variant="default"
                             >
                                 <Plus className="size-4" />
                                 New Template

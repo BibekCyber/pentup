@@ -169,7 +169,7 @@ const SettingsAPITokensHeader = ({ onCreateClick }: { onCreateClick: () => void 
 
             <Button
                 onClick={onCreateClick}
-                variant="secondary"
+                variant="default"
             >
                 <Plus className="size-4" />
                 Create Token

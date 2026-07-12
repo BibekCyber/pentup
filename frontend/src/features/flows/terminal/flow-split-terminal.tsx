@@ -14,6 +14,8 @@ import { SquareTerminal } from 'lucide-react';
 import { useMemo } from 'react';
 
 import Terminal from '@/components/shared/terminal';
+import { TerminalCopyButton } from '@/components/shared/terminal/terminal-frame';
+import { detectBlockType, stripAnsi, TermCommandLines, TermOutput } from '@/components/shared/terminal/terminal-highlight';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FlowTaskStatusIcon from '@/features/flows/tasks/flow-task-status-icon';
@@ -29,48 +31,65 @@ interface TermLog {
     type: TerminalLogType;
 }
 
-const stripAnsi = (text: string) =>
-    // strip ANSI color codes (the ESC control char is intentional here)
-    // eslint-disable-next-line no-control-regex
-    text.replace(/\x1b\[[0-9;]*m/g, '');
-
 const cleanCommand = (text: string) =>
     stripAnsi(text)
         // strip a leading "cwd $ " shell prompt
         .replace(/^.*?\$\s/, '')
         .trim();
 
-// Lightweight, non-xterm pane for a single command. The command is shown inside
-// the pane as a `$ ...` prompt line, followed by its output (ANSI stripped, since
-// there's no terminal emulator to interpret it). See the file header for why this
-// isn't an xterm instance.
-const CommandPane = ({ command, output }: { command: string; output: string[] }) => (
-    <div className="bg-background overflow-hidden rounded-md border">
-        <div className="max-h-80 overflow-auto p-3 font-mono text-xs leading-relaxed">
-            {command ? (
-                <div className="text-emerald-600 dark:text-emerald-400">
-                    <span className="text-muted-foreground select-none">$ </span>
-                    {command}
-                </div>
-            ) : null}
-            {output.length === 0 ? (
-                command ? (
-                    <div className="text-muted-foreground italic">(no output)</div>
-                ) : null
-            ) : (
-                output.map((line, i) => (
-                    <div
-                        className="text-foreground/80 break-all whitespace-pre-wrap"
-                        // output lines are positional and have no stable id
-                        key={i}
-                    >
-                        {stripAnsi(line)}
+interface CommandGroup {
+    command: string;
+    id: string;
+    output: TermLog[];
+}
+
+const TYPE_BADGE_LABEL: Record<string, string> = { html: 'HTML', json: 'JSON', text: 'TEXT' };
+
+// One command run = one distinct terminal pane: a slim header (content-type badge +
+// copy), then the `$ command` prompt (syntax-highlighted) followed by its output,
+// colour-coded by content (JSON / HTML / key: value / plain text) and streamed in
+// one line at a time. Splitting per command keeps each run visually separate rather
+// than merging into one wall.
+const CommandPane = ({ group }: { group: CommandGroup }) => {
+    const outputTexts = group.output.map((o) => o.text);
+    const blockType = group.output.length > 0 ? detectBlockType(outputTexts) : null;
+    const copyText = [group.command ? `$ ${group.command}` : '', ...outputTexts.map(stripAnsi)]
+        .filter(Boolean)
+        .join('\n');
+    const lines = group.output.map((o) => ({ isErr: o.type === TerminalLogType.Stderr, text: o.text }));
+
+    return (
+        <div className="terminal-scope overflow-hidden rounded-lg border">
+            <div className="term-chrome-bar flex items-center gap-2 px-3 py-1.5">
+                <SquareTerminal className="term-chrome-title size-3.5" />
+                {blockType && blockType !== 'text' ? (
+                    <span className="term-type-badge">{TYPE_BADGE_LABEL[blockType]}</span>
+                ) : null}
+                <TerminalCopyButton
+                    className="ml-auto"
+                    text={copyText}
+                />
+            </div>
+            <div className="max-h-[26rem] overflow-auto p-3 font-mono text-xs leading-relaxed">
+                {group.command ? (
+                    <div className="flex gap-2">
+                        <span className="term-prompt shrink-0 select-none">$</span>
+                        <div className="min-w-0 flex-1">
+                            <TermCommandLines text={group.command} />
+                        </div>
                     </div>
-                ))
-            )}
+                ) : null}
+                {group.output.length === 0 ? (
+                    group.command ? (
+                        <div className="term-muted mt-0.5 italic">(no output)</div>
+                    ) : null
+                ) : (
+                    <TermOutput lines={lines} />
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const FlowSplitTerminal = () => {
     const { flowData } = useFlow();
@@ -158,22 +177,22 @@ const FlowSplitTerminal = () => {
         >
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 {steps.map((step) => (
+                        <TabsTrigger
+                            className="gap-1.5"
+                            key={step.id}
+                            value={step.id}
+                        >
+                            {step.status ? <FlowTaskStatusIcon status={step.status} /> : null}
+                            <span className="max-w-40 truncate">{step.title}</span>
+                        </TabsTrigger>
+                    ))}
                     <TabsTrigger
                         className="gap-1.5"
-                        key={step.id}
-                        value={step.id}
+                        value={RAW_KEY}
                     >
-                        {step.status ? <FlowTaskStatusIcon status={step.status} /> : null}
-                        <span className="max-w-40 truncate">{step.title}</span>
+                        <SquareTerminal className="size-4" />
+                        Raw
                     </TabsTrigger>
-                ))}
-                <TabsTrigger
-                    className="gap-1.5"
-                    value={RAW_KEY}
-                >
-                    <SquareTerminal className="size-4" />
-                    Raw
-                </TabsTrigger>
             </TabsList>
 
             {steps.map((step) => (
@@ -182,12 +201,11 @@ const FlowSplitTerminal = () => {
                     key={step.id}
                     value={step.id}
                 >
-                    <div className="flex flex-col gap-3 pb-3">
+                    <div className="flex flex-col gap-3 pb-2">
                         {step.groups.map((group) => (
                             <CommandPane
-                                command={group.command}
+                                group={group}
                                 key={group.id}
-                                output={group.output.map((l) => l.text)}
                             />
                         ))}
                     </div>
@@ -198,12 +216,11 @@ const FlowSplitTerminal = () => {
                 className="grow"
                 value={RAW_KEY}
             >
-                <div className="flex h-full min-h-80 flex-col overflow-hidden rounded-md border">
-                    <Terminal
-                        className="grow"
-                        logs={terminalLogs.map((l) => l.text)}
-                    />
-                </div>
+                <Terminal
+                    className="h-full min-h-80"
+                    logs={terminalLogs.map((l) => l.text)}
+                    title="Raw terminal"
+                />
             </TabsContent>
         </Tabs>
     );

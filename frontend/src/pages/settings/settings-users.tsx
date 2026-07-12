@@ -47,7 +47,7 @@ const SettingsUsersHeader = ({ onCreate }: { onCreate: () => void }) => (
         </div>
         <Button
             onClick={onCreate}
-            variant="secondary"
+            variant="default"
         >
             <Plus className="size-4" />
             Add User
@@ -284,7 +284,7 @@ const SettingsUsers = () => {
                     action={
                         <Button
                             onClick={handleCreate}
-                            variant="secondary"
+                            variant="default"
                         >
                             <Plus className="size-4" />
                             Add User

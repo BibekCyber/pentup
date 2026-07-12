@@ -103,7 +103,7 @@ const SettingsProvidersHeader = () => {
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="secondary">
+                    <Button variant="default">
                         Create Provider
                         <ChevronDown className="size-4" />
                     </Button>
@@ -572,7 +572,7 @@ const SettingsProviders = () => {
                     action={
                         <Button
                             onClick={() => navigate('/settings/providers/new')}
-                            variant="secondary"
+                            variant="default"
                         >
                             <Plus className="size-4" />
                             Add Provider

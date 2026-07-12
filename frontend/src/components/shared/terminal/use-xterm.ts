@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Log } from '@/lib/log';
 import { isMac } from '@/lib/utils/platform';
 
-import { getTerminalTheme, isDarkMode, TERMINAL_OPTIONS } from './terminal-config';
+import { getTerminalTheme, TERMINAL_OPTIONS } from './terminal-config';
 import { SAFE_PROTOCOLS } from './terminal-sanitizer';
 
 const FLOW_CONTROL_CHUNK_SIZE = 64 * 1024;
@@ -38,16 +38,11 @@ export interface UseXtermResult {
  * Requires Ctrl+Click (Cmd+Click on Mac) to open links per
  * https://xtermjs.org/docs/guides/link-handling/
  */
-export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): UseXtermResult {
+export function useXterm(): UseXtermResult {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const terminalRef = useRef<null | Terminal>(null);
-    const themeRef = useRef(theme);
     const [isReady, setIsReady] = useState(false);
     const [searchAddon, setSearchAddon] = useState<null | SearchAddon>(null);
-
-    useEffect(() => {
-        themeRef.current = theme;
-    }, [theme]);
 
     const write = useCallback((data: string) => {
         const terminal = terminalRef.current;
@@ -90,7 +85,7 @@ export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): Use
 
         const terminal = new Terminal({
             ...TERMINAL_OPTIONS,
-            theme: getTerminalTheme(isDarkMode(themeRef.current)),
+            theme: getTerminalTheme(),
         });
 
         const fitAddon = new FitAddon();
@@ -228,34 +223,6 @@ export function useXterm({ theme }: { theme: 'dark' | 'light' | 'system' }): Use
             setIsReady(false);
         };
     }, []);
-
-    useEffect(() => {
-        const terminal = terminalRef.current;
-
-        if (!terminal) {
-            return;
-        }
-
-        const applyTheme = () => {
-            try {
-                terminal.options.theme = getTerminalTheme(isDarkMode(theme));
-            } catch (error: unknown) {
-                Log.error('Terminal theme update failed:', error);
-            }
-        };
-
-        applyTheme();
-
-        if (theme === 'system') {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            const handler = () => applyTheme();
-            mediaQuery.addEventListener('change', handler);
-
-            return () => {
-                mediaQuery.removeEventListener('change', handler);
-            };
-        }
-    }, [theme]);
 
     return { clear, containerRef, isReady, scrollToBottom, searchAddon, write };
 }

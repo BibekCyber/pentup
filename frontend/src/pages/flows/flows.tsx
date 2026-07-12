@@ -764,7 +764,7 @@ const Flows = () => {
                 <Button
                     onClick={() => navigate('/flows/new')}
                     size="sm"
-                    variant="secondary"
+                    variant="default"
                 >
                     <Plus />
                     New Flow
@@ -798,7 +798,7 @@ const Flows = () => {
                         action={
                             <Button
                                 onClick={() => navigate('/flows/new')}
-                                variant="secondary"
+                                variant="default"
                             >
                                 <Plus />
                                 New Flow

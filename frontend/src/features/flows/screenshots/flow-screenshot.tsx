@@ -84,7 +84,7 @@ const FlowScreenshot = ({ screenshot }: FlowScreenshotProps) => {
                                 />
                             </div>
                         ) : (
-                            <div className="h-[240px] w-[320px] rounded-lg bg-slate-200" />
+                            <div className="bg-muted h-[240px] w-[320px] rounded-lg" />
                         )}
                     </div>
                 </div>

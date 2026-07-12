@@ -279,7 +279,7 @@ function DataTable<TData, TValue = unknown>({
 
                                 const tableRow = (
                                     <TableRow
-                                        className={cn('group hover:bg-muted/50', isRowInteractive && 'cursor-pointer')}
+                                        className={cn('group hover:bg-primary/5', isRowInteractive && 'cursor-pointer')}
                                         data-state={row.getIsSelected() && 'selected'}
                                         onClick={() => handleRowClick(row)}
                                     >

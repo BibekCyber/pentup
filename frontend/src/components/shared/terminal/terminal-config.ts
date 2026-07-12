@@ -17,52 +17,39 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
     smoothScrollDuration: 0,
 } as const;
 
-const DARK_THEME: ITheme = {
-    background: '#050c13',
-    black: '#f4f4f5',
-    blue: '#60a5fa',
-    brightBlack: '#e4e4e7',
-    brightBlue: '#93c5fd',
-    brightCyan: '#67e8f9',
-    brightGreen: '#86efac',
-    brightMagenta: '#d8b4fe',
-    brightRed: '#fca5a5',
-    brightWhite: '#71717a',
-    brightYellow: '#fde047',
-    cursor: '#f4f4f5',
-    cursorAccent: '#f4f4f5',
-    cyan: '#22d3ee',
-    foreground: '#f4f4f5',
-    green: '#4ade80',
-    magenta: '#c084fc',
-    red: '#f87171',
-    selectionBackground: 'rgba(96, 165, 250, 0.2)',
-    white: '#050c13',
-    yellow: '#facc15',
-} as const;
+// Premium RankLocal terminal — a recessed cool-graphite "well" (harmonizes with the
+// dark app theme) with a RESTRAINED, professional palette from the oklch design panel.
+// The crucial move: the backend wraps ALL stdout in ANSI bright-green (SGR 92) and
+// commands/prompt in bright-cyan (SGR 96). So bright-green is remapped to a calm
+// near-neutral (#c9ced6) — this dissolves the "neon green wall" and turns stdout into
+// quiet body text — while bright-cyan becomes one refined teal command accent. Real
+// green/red/yellow stay reserved for success/error/warning. Kept dark in both app
+// themes, the way premium editors keep their integrated terminal dark. Surface is
+// exported so the frame chrome (.terminal-scope) matches it seamlessly.
+export const TERMINAL_SURFACE = '#0f1216';
 
-const LIGHT_THEME: ITheme = {
-    background: '#ffffff',
-    black: '#020817',
-    blue: '#3b82f6',
-    brightBlack: '#64748b',
-    brightBlue: '#60a5fa',
-    brightCyan: '#22d3ee',
-    brightGreen: '#4ade80',
-    brightMagenta: '#c084fc',
-    brightRed: '#f87171',
-    brightWhite: '#f1f5f9',
-    brightYellow: '#facc15',
-    cursor: '#020817',
-    cursorAccent: '#020817',
-    cyan: '#06b6d4',
-    foreground: '#020817',
-    green: '#22c55e',
-    magenta: '#a855f7',
-    red: '#ef4444',
-    selectionBackground: 'rgba(59, 130, 246, 0.1)',
-    white: '#e2e8f0',
-    yellow: '#eab308',
+const RANKLOCAL_TERMINAL: ITheme = {
+    background: TERMINAL_SURFACE,
+    black: '#3f454e',
+    blue: '#8fb3cf',
+    brightBlack: '#5b616b',
+    brightBlue: '#a9c4da',
+    brightCyan: '#59b6a6', // commands/prompt (SGR 96) — one calm teal accent
+    brightGreen: '#c9ced6', // stdout wrapper (SGR 92) → calm neutral, NOT neon
+    brightMagenta: '#c9a3ff',
+    brightRed: '#ef7a70',
+    brightWhite: '#eef1f5',
+    brightYellow: '#e9bd6e',
+    cursor: '#f5843a',
+    cursorAccent: '#0f1216',
+    cyan: '#59b6a6',
+    foreground: '#cdd2d9',
+    green: '#63c28d', // real success green
+    magenta: '#b48ce0',
+    red: '#ef7a70',
+    selectionBackground: 'rgba(242, 136, 62, 0.22)',
+    white: '#cdd2d9',
+    yellow: '#e9bd6e',
 } as const;
 
 const DARK_SEARCH_DECORATIONS = {
@@ -72,29 +59,12 @@ const DARK_SEARCH_DECORATIONS = {
     matchOverviewRuler: '#000000',
 } as const;
 
-const LIGHT_SEARCH_DECORATIONS = {
-    activeMatchBackground: '#555555',
-    activeMatchColorOverviewRuler: '#000000',
-    matchBackground: '#000000',
-    matchOverviewRuler: '#000000',
-} as const;
-
-export function getSearchDecorations(isDark: boolean) {
-    return isDark ? DARK_SEARCH_DECORATIONS : LIGHT_SEARCH_DECORATIONS;
+// The terminal is always the premium dark surface (in both light and dark app
+// themes), so the search-match decorations are always the dark set.
+export function getSearchDecorations() {
+    return DARK_SEARCH_DECORATIONS;
 }
 
-export function getTerminalTheme(isDark: boolean): ITheme {
-    return isDark ? DARK_THEME : LIGHT_THEME;
-}
-
-export function isDarkMode(theme: 'dark' | 'light' | 'system'): boolean {
-    if (theme === 'dark') {
-        return true;
-    }
-
-    if (theme === 'light') {
-        return false;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+export function getTerminalTheme(): ITheme {
+    return RANKLOCAL_TERMINAL;
 }

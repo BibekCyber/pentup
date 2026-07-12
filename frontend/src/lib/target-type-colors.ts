@@ -31,7 +31,7 @@ export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
         label: 'GCP',
     },
     [TargetType.General]: {
-        badgeClassName: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'General',
     },
     [TargetType.MobileBackend]: {

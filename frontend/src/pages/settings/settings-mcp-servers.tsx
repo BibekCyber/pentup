@@ -77,7 +77,7 @@ const SettingsMcpServersHeader = () => {
             <p className="text-muted-foreground">Manage MCP servers available to the assistant</p>
             <Button
                 onClick={handleCreate}
-                variant="secondary"
+                variant="default"
             >
                 Create MCP Server
                 <Plus className="size-4" />

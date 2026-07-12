@@ -33,7 +33,7 @@ const formatDateLabel = (dateString: string): string => {
 
 const ChartLoading = () => (
     <div className="flex h-[300px] items-center justify-center">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
+        <Loader2 className="text-primary size-6 animate-spin" />
     </div>
 );
 
@@ -328,7 +328,7 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                 <CardContent>
                     {executionStatsLoading ? (
                         <div className="flex items-center justify-center py-8">
-                            <Loader2 className="text-muted-foreground size-6 animate-spin" />
+                            <Loader2 className="text-primary size-6 animate-spin" />
                         </div>
                     ) : !executionStats.length ? (
                         <p className="text-muted-foreground py-8 text-center text-sm">

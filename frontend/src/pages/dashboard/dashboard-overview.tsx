@@ -84,7 +84,7 @@ const UsageStatsTable = ({ rows }: { rows: Array<{ label: string; stats: UsageSt
 
 const LoadingTable = () => (
     <div className="flex items-center justify-center py-8">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
+        <Loader2 className="text-primary size-6 animate-spin" />
     </div>
 );
 
@@ -126,28 +126,28 @@ export const DashboardOverview = () => {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                     description="Total LLM spending across all providers"
-                    icon={<CircleDollarSign className="text-muted-foreground size-4" />}
+                    icon={<CircleDollarSign className="text-primary size-4" />}
                     loading={usageTotalLoading}
                     title="Total Cost"
                     value={formatCost(totalCost)}
                 />
                 <StatCard
                     description="Input + Output tokens processed"
-                    icon={<Cpu className="text-muted-foreground size-4" />}
+                    icon={<Cpu className="text-primary size-4" />}
                     loading={usageTotalLoading}
                     title="Total Tokens"
                     value={formatTokenCount(totalTokens)}
                 />
                 <StatCard
                     description={`Total duration: ${toolcallsTotal ? formatDuration(toolcallsTotal.totalDurationSeconds) : '—'}`}
-                    icon={<Activity className="text-muted-foreground size-4" />}
+                    icon={<Activity className="text-primary size-4" />}
                     loading={toolcallsTotalLoading}
                     title="Tool Calls"
                     value={toolcallsTotal ? formatNumber(toolcallsTotal.totalCount) : '0'}
                 />
                 <StatCard
                     description={`Tasks: ${flowsTotal?.totalTasksCount ?? 0} · Subtasks: ${flowsTotal?.totalSubtasksCount ?? 0} · Assistants: ${flowsTotal?.totalAssistantsCount ?? 0}`}
-                    icon={<GitFork className="text-muted-foreground size-4" />}
+                    icon={<GitFork className="text-primary size-4" />}
                     loading={flowsTotalLoading}
                     title="Total Flows"
                     value={flowsTotal ? formatNumber(flowsTotal.totalFlowsCount) : '0'}
@@ -211,8 +211,8 @@ export const DashboardOverview = () => {
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                                     item.isAgent
-                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'bg-muted text-muted-foreground'
                                                 }`}
                                             >
                                                 {item.isAgent ? 'Agent' : 'Tool'}

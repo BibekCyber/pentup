@@ -202,7 +202,7 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
 
                         <div className="relative -mb-4">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300" />
+                                <div className="border-border w-full border-t" />
                             </div>
                             <div className="relative flex justify-center text-sm">
                                 <span className="bg-background px-2">or</span>

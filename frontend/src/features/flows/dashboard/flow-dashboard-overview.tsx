@@ -57,7 +57,7 @@ const UsageStatsRow = ({ label, stats }: { label: string; stats: UsageStatsFragm
 
 const LoadingTable = () => (
     <div className="flex items-center justify-center py-8">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
+        <Loader2 className="text-primary size-6 animate-spin" />
     </div>
 );
 
@@ -128,28 +128,28 @@ export const FlowDashboardOverview = ({ flowId }: { flowId: string }) => {
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <StatCard
                     description="LLM spending for this flow"
-                    icon={<CircleDollarSign className="text-muted-foreground size-4" />}
+                    icon={<CircleDollarSign className="text-primary size-4" />}
                     loading={anyLoading}
                     title="Cost"
                     value={formatCost(totalCost)}
                 />
                 <StatCard
                     description="Input + Output tokens"
-                    icon={<Cpu className="text-muted-foreground size-4" />}
+                    icon={<Cpu className="text-primary size-4" />}
                     loading={anyLoading}
                     title="Tokens"
                     value={formatTokenCount(totalTokens)}
                 />
                 <StatCard
                     description={`Duration: ${toolcalls ? formatDuration(toolcalls.totalDurationSeconds) : '—'}`}
-                    icon={<Activity className="text-muted-foreground size-4" />}
+                    icon={<Activity className="text-primary size-4" />}
                     loading={anyLoading}
                     title="Tool Calls"
                     value={toolcalls ? formatNumber(toolcalls.totalCount) : '0'}
                 />
                 <StatCard
                     description={`Subtasks: ${flowStats?.totalSubtasksCount ?? 0} · Assistants: ${flowStats?.totalAssistantsCount ?? 0}`}
-                    icon={<GitFork className="text-muted-foreground size-4" />}
+                    icon={<GitFork className="text-primary size-4" />}
                     loading={anyLoading}
                     title="Tasks"
                     value={flowStats ? formatNumber(flowStats.totalTasksCount) : '0'}
@@ -222,8 +222,8 @@ export const FlowDashboardOverview = ({ flowId }: { flowId: string }) => {
                                                 <span
                                                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                                         item.isAgent
-                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                                                            ? 'bg-primary/10 text-primary'
+                                                            : 'bg-muted text-muted-foreground'
                                                     }`}
                                                 >
                                                     {item.isAgent ? 'Agent' : 'Tool'}

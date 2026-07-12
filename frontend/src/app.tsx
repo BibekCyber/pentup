@@ -79,7 +79,7 @@ const App = () => {
 
     return (
         <ApolloProvider client={client}>
-            <ThemeProvider>
+            <ThemeProvider defaultTheme="light">
                 <Toaster />
                 <BrowserRouter>
                     <UserProvider>
