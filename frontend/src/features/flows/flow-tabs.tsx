@@ -83,8 +83,13 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 )}
 
                 {/* Desktop and Mobile Tabs */}
+                {/* forceMount + hide-when-inactive keeps the terminal (xterm + processed logs)
+                    alive across tab switches instead of destroying and rebuilding it every time.
+                    Rebuilding is cheap with little data (local) but freezes on large log histories
+                    (cloud). The xterm ResizeObserver re-fits automatically when the tab is shown. */}
                 <TabsContent
-                    className="mt-1 flex-1 overflow-hidden"
+                    className="mt-1 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                    forceMount
                     value="terminal"
                 >
                     <FlowSplitTerminal />

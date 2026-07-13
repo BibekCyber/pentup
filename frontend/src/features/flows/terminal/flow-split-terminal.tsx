@@ -4,7 +4,8 @@
 //     rendered INSIDE the pane (as a `$ command` prompt line) together with its
 //     output — not in a title/window bar. These panes are lightweight (no xterm),
 //     because a step can run many commands and one WebGL-backed <Terminal> per
-//     command would exhaust the browser's WebGL context limit.
+//     command would exhaust the browser's WebGL context limit. (The panes + render
+//     budget live in flow-command-panes, shared with the Tasks tab.)
 //   • The "Raw" tab is the original experience: a single <Terminal> (xterm) with
 //     every log merged, full ANSI fidelity. Only one xterm is ever mounted, and
 //     only while the Raw tab is active (Radix unmounts inactive tab content).
@@ -14,79 +15,17 @@ import { SquareTerminal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import Terminal from '@/components/shared/terminal';
-import {
-    detectBlockType,
-    stripAnsi,
-    TermCommandLines,
-    TermOutput,
-} from '@/components/shared/terminal/terminal-highlight';
-import { TermChromeBar } from '@/components/shared/terminal/terminal-output-card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
 import FlowTaskStatusIcon from '@/features/flows/tasks/flow-task-status-icon';
-import { type StatusType, TerminalLogType } from '@/graphql/types';
+import { type StatusType } from '@/graphql/types';
 import { useFlow } from '@/providers/flow-provider';
+
+import { groupCommands, StepPanes, type TermLog } from './flow-command-panes';
 
 const NONE_KEY = '__none__';
 const RAW_KEY = '__raw__';
-
-interface CommandGroup {
-    command: string;
-    id: string;
-    output: TermLog[];
-}
-
-interface TermLog {
-    subtaskId?: null | string;
-    text: string;
-    type: TerminalLogType;
-}
-
-const cleanCommand = (text: string) =>
-    stripAnsi(text)
-        // strip a leading "cwd $ " shell prompt
-        .replace(/^.*?\$\s/, '')
-        .trim();
-
-// One command run = one distinct terminal pane: a slim header (content-type badge +
-// copy), then the `$ command` prompt (syntax-highlighted) followed by its output,
-// colour-coded by content (JSON / HTML / key: value / plain text) and streamed in
-// one line at a time.
-const CommandPane = ({ group }: { group: CommandGroup }) => {
-    const outputTexts = group.output.map((o) => o.text);
-    const blockType = group.output.length > 0 ? detectBlockType(outputTexts) : null;
-    const copyText = [group.command ? `$ ${group.command}` : '', ...outputTexts.map(stripAnsi)]
-        .filter(Boolean)
-        .join('\n');
-    const lines = group.output.map((o) => ({ isErr: o.type === TerminalLogType.Stderr, text: o.text }));
-
-    return (
-        <div className="terminal-scope overflow-hidden rounded-lg border">
-            <TermChromeBar
-                blockType={blockType}
-                copyText={copyText}
-            />
-            <div className="max-h-[26rem] overflow-auto p-3 font-mono text-xs leading-relaxed">
-                {group.command ? (
-                    <div className="flex gap-2">
-                        <span className="term-prompt shrink-0 select-none">$</span>
-                        <div className="min-w-0 flex-1">
-                            <TermCommandLines text={group.command} />
-                        </div>
-                    </div>
-                ) : null}
-                {group.output.length === 0 ? (
-                    group.command ? (
-                        <div className="term-muted mt-0.5 italic">(no output)</div>
-                    ) : null
-                ) : (
-                    <TermOutput lines={lines} />
-                )}
-            </div>
-        </div>
-    );
-};
 
 const FlowSplitTerminal = () => {
     const { flowData } = useFlow();
@@ -107,10 +46,8 @@ const FlowSplitTerminal = () => {
         return map;
     }, [flowData?.tasks]);
 
-    // Group by subtask (first-seen order; logs arrive created_at ASC) and, within
-    // each step, split into per-command groups: a stdin line starts a group, the
-    // stdout/stderr that follows is its output. Output before the first command
-    // (banners, general logs) becomes a command-less group.
+    // Group by subtask (first-seen order; logs arrive created_at ASC), then split each
+    // step into per-command groups (see groupCommands).
     const steps = useMemo(() => {
         const order: string[] = [];
         const buckets = new Map<string, TermLog[]>();
@@ -128,25 +65,9 @@ const FlowSplitTerminal = () => {
 
         return order.map((key) => {
             const meta = subtaskMeta.get(key);
-            const logs = buckets.get(key) ?? [];
-
-            const groups: CommandGroup[] = [];
-            let current: CommandGroup | null = null;
-
-            logs.forEach((log, index) => {
-                if (log.type === TerminalLogType.Stdin) {
-                    current = { command: cleanCommand(log.text) || 'command', id: `${key}-${index}`, output: [] };
-                    groups.push(current);
-                } else if (current) {
-                    current.output.push(log);
-                } else {
-                    current = { command: '', id: `${key}-pre-${index}`, output: [log] };
-                    groups.push(current);
-                }
-            });
 
             return {
-                groups,
+                groups: groupCommands(buckets.get(key) ?? [], key),
                 id: key,
                 status: meta?.status,
                 title: meta?.title ?? (key === NONE_KEY ? 'General' : `Subtask ${key}`),
@@ -227,14 +148,7 @@ const FlowSplitTerminal = () => {
                     key={step.id}
                     value={step.id}
                 >
-                    <div className="flex flex-col gap-3 pb-2">
-                        {step.groups.map((group) => (
-                            <CommandPane
-                                group={group}
-                                key={group.id}
-                            />
-                        ))}
-                    </div>
+                    <StepPanes groups={step.groups} />
                 </TabsContent>
             ))}
 

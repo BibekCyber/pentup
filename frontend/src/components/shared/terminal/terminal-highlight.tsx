@@ -33,6 +33,17 @@ const ANSI_RE = /\x1b\[[0-9;]*m/g;
 
 export const stripAnsi = (text: string): string => text.replace(ANSI_RE, '');
 
+// --- Display bounds -------------------------------------------------------
+// A single command's output can be tens of MB (e.g. a dumped minified JS bundle,
+// frequently on a single line). Tokenising that on the main thread freezes the tab,
+// so the highlighted HTML *preview* is computed on a bounded slice only. The COMPLETE
+// output is never modified — it stays in the DB and is shown verbatim in the Raw
+// (xterm) tab and via the copy button.
+const MAX_PREVIEW_CHARS = 100_000; // per source entry, before highlighting
+const MAX_LINE_CHARS = 4_000; // longest single line we tokenise/render
+const MAX_FLAT_LINES = 5_000; // most display lines we build for one block
+const MAX_SCAN_LINES = 2_000; // lines sampled for content-type detection
+
 // ---------------------------------------------------------------------------
 // Token matchers
 // ---------------------------------------------------------------------------
@@ -109,15 +120,25 @@ const detectLine = (text: string): LineType => {
 export const detectBlockType = (texts: string[]): LineType => {
     let json = 0;
     let html = 0;
+    let scanned = 0;
 
     for (const t of texts) {
-        for (const line of stripAnsi(t).split('\n')) {
+        // Sample only the head of very large outputs — enough to classify without
+        // regex-scanning tens of MB (a dumped JS bundle would otherwise freeze the tab).
+        const sample = t.length > MAX_PREVIEW_CHARS ? t.slice(0, MAX_PREVIEW_CHARS) : t;
+
+        for (const rawLine of stripAnsi(sample).split('\n')) {
+            const line = rawLine.length > MAX_LINE_CHARS ? rawLine.slice(0, MAX_LINE_CHARS) : rawLine;
             const kind = detectLine(line);
 
             if (kind === 'json') {
                 json++;
             } else if (kind === 'html') {
                 html++;
+            }
+
+            if (++scanned >= MAX_SCAN_LINES) {
+                return json === 0 && html === 0 ? 'text' : json >= html ? 'json' : 'html';
             }
         }
     }
@@ -205,8 +226,21 @@ const flattenLines = (lines: { isErr: boolean; text: string }[]): { isErr: boole
     const flat: { isErr: boolean; text: string }[] = [];
 
     for (const line of lines) {
-        for (const sub of stripAnsi(line.text).split('\n')) {
-            flat.push({ isErr: line.isErr, text: sub });
+        // Bound the raw text and each line before tokenising: a single command's output
+        // can be tens of MB (often on one line, e.g. a minified JS bundle), and
+        // highlighting that on the main thread freezes the tab. The full text is
+        // preserved in the DB, the Raw (xterm) tab, and the copy button.
+        const raw = line.text.length > MAX_PREVIEW_CHARS ? line.text.slice(0, MAX_PREVIEW_CHARS) : line.text;
+
+        for (const sub of stripAnsi(raw).split('\n')) {
+            flat.push({
+                isErr: line.isErr,
+                text: sub.length > MAX_LINE_CHARS ? `${sub.slice(0, MAX_LINE_CHARS)} … [line truncated — full text in Raw tab]` : sub,
+            });
+
+            if (flat.length >= MAX_FLAT_LINES) {
+                return flat;
+            }
         }
     }
 
@@ -217,25 +251,37 @@ const flattenLines = (lines: { isErr: boolean; text: string }[]): { isErr: boole
  * A command's output block: each line detected + coloured by content type, with a
  * subtle staggered fade-in so output reads as if it is streaming in one line at a
  * time. `isErr` lines (stderr) read red.
+ *
+ * `maxLines` caps how many lines are rendered (one <div> each — there is no
+ * virtualization here) so a huge output can't flood the DOM; the overflow count is
+ * shown as a trailing note. The full text is still available via the copy button and
+ * the Raw terminal tab.
  */
-export const TermOutput = ({ lines }: { lines: { isErr: boolean; text: string }[] }) => (
-    <>
-        {flattenLines(lines).map((line, i) => {
-            const base = line.isErr ? 'term-error' : textLineBase(line.text);
+export const TermOutput = ({ lines, maxLines }: { lines: { isErr: boolean; text: string }[]; maxLines?: number }) => {
+    const flat = flattenLines(lines);
+    const hidden = maxLines != null && flat.length > maxLines ? flat.length - maxLines : 0;
+    const shown = hidden > 0 ? flat.slice(0, maxLines) : flat;
 
-            return (
-                <div
-                    className={cn('term-line break-all whitespace-pre-wrap', base)}
-                    // output lines are positional and have no stable id
-                    key={i}
-                    style={{ animationDelay: lineDelay(i) }}
-                >
-                    {renderOutputLine(line.text, line.isErr)}
-                </div>
-            );
-        })}
-    </>
-);
+    return (
+        <>
+            {shown.map((line, i) => {
+                const base = line.isErr ? 'term-error' : textLineBase(line.text);
+
+                return (
+                    <div
+                        className={cn('term-line break-all whitespace-pre-wrap', base)}
+                        // output lines are positional and have no stable id
+                        key={i}
+                        style={{ animationDelay: lineDelay(i) }}
+                    >
+                        {renderOutputLine(line.text, line.isErr)}
+                    </div>
+                );
+            })}
+            {hidden > 0 ? <div className="term-muted mt-1 select-none">+{hidden} more lines</div> : null}
+        </>
+    );
+};
 
 /**
  * A highlighted command block. Multi-line commands are split; a `#` line is a

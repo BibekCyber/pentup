@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import debounce from 'lodash/debounce';
-import { ChevronDown, ListTodo, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, ListTodo, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -9,11 +9,68 @@ import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
+import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
+import { type CommandSection, CommandTerminals, groupCommands } from '@/features/flows/terminal/flow-command-panes';
+import { type StatusType } from '@/graphql/types';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useFlow } from '@/providers/flow-provider';
 
 import { buildSubtaskCommandMap } from './flow-command-list';
 import FlowTask from './flow-task';
+import FlowTaskStatusIcon from './flow-task-status-icon';
+
+// The single open "Show commands" selection. A subtask key is its id; a task key is
+// `task:<id>` (which shows every subtask of the task). While something is open the
+// task list is replaced by a focused view of just this item's terminal.
+export interface OpenCommands {
+    isTask: boolean;
+    key: string;
+    sections: CommandSection[];
+    status?: StatusType;
+    title: string;
+}
+
+// Focused command view: the open item's terminal fills the panel with a single
+// scrollbar, so the rest of the task list is out of reach until you go back.
+const FocusedCommands = ({
+    onClose,
+    onOpenTerminal,
+    open,
+}: {
+    onClose: () => void;
+    onOpenTerminal: (subtaskId: string) => void;
+    open: OpenCommands;
+}) => (
+    <div className="animate-in fade-in-0 slide-in-from-bottom-1 flex h-full flex-col duration-200">
+        <div className="flex items-center gap-2 pb-3">
+            <Button
+                aria-label="Back to tasks"
+                onClick={onClose}
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+            >
+                <ChevronLeft />
+            </Button>
+            {open.status ? <FlowTaskStatusIcon status={open.status} /> : null}
+            <span className="text-foreground min-w-0 flex-1 truncate text-sm font-semibold">{open.title}</span>
+            <button
+                className="text-primary shrink-0 cursor-pointer text-xs font-medium hover:underline"
+                onClick={onClose}
+                type="button"
+            >
+                Hide commands
+            </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <CommandTerminals
+                onOpen={onOpenTerminal}
+                sections={open.sections}
+                showHeaders={open.isTask}
+            />
+        </div>
+    </div>
+);
 
 const searchFormSchema = z.object({
     search: z.string(),
@@ -30,6 +87,7 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
 
 const FlowTasks = () => {
     const { flowData, flowId } = useFlow();
+    const nav = useFlowExecNav();
 
     const tasks = useMemo(() => flowData?.tasks ?? [], [flowData?.tasks]);
 
@@ -40,6 +98,56 @@ const FlowTasks = () => {
         () => buildSubtaskCommandMap(flowData?.terminalLogs ?? []),
         [flowData?.terminalLogs],
     );
+
+    // The one open "Show commands" row (only one at a time). Opening replaces the list
+    // with a focused view of just this item.
+    const [openKey, setOpenKey] = useState<null | string>(null);
+    const toggleCommands = useCallback((key: string) => setOpenKey((prev) => (prev === key ? null : key)), []);
+    const closeCommands = useCallback(() => setOpenKey(null), []);
+
+    // Command panes (with output) for the open row — a single filter + group over the
+    // logs for that item, computed here so no subtask does log work until opened. A
+    // subtask opens one section; a task opens one per subtask (with a header).
+    const openCommands = useMemo<null | OpenCommands>(() => {
+        if (!openKey) {
+            return null;
+        }
+
+        const logs = flowData?.terminalLogs ?? [];
+        const sectionFor = (subtaskId: string, title?: string): CommandSection => ({
+            groups: groupCommands(
+                logs.filter((log) => log.subtaskId === subtaskId),
+                `${subtaskId}`,
+            ),
+            subtaskId,
+            title,
+        });
+
+        // Subtask ids can be numeric at runtime (GraphQL ids), so coerce before any
+        // string ops. Task rows use a `task:<id>` key; a bare id is a subtask.
+        const keyString = `${openKey}`;
+
+        if (keyString.startsWith('task:')) {
+            const taskId = keyString.slice(5);
+            const task = tasks.find((candidate) => `${candidate.id}` === taskId);
+            const sections = [...(task?.subtasks ?? [])]
+                .sort((a, b) => +a.id - +b.id)
+                .map((subtask) => sectionFor(subtask.id, subtask.title))
+                .filter((section) => section.groups.length > 0);
+
+            return { isTask: true, key: openKey, sections, status: task?.status, title: task?.title ?? 'Task commands' };
+        }
+
+        const subtask = tasks.flatMap((task) => task.subtasks ?? []).find((candidate) => `${candidate.id}` === keyString);
+
+        return {
+            isTask: false,
+            key: openKey,
+            sections: [sectionFor(openKey)],
+            status: subtask?.status,
+            title: subtask?.title ?? 'Commands',
+        };
+    }, [openKey, flowData?.terminalLogs, tasks]);
 
     const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
 
@@ -83,6 +191,7 @@ const FlowTasks = () => {
     useEffect(() => {
         form.reset({ search: '' });
         setDebouncedSearchValue('');
+        setOpenKey(null);
         debouncedUpdateSearch.cancel();
     }, [flowId, form, debouncedUpdateSearch]);
 
@@ -112,6 +221,20 @@ const FlowTasks = () => {
 
     const sortedTasks = [...(filteredTasks || [])].sort((a, b) => +a.id - +b.id);
     const hasTasks = filteredTasks && filteredTasks.length > 0;
+
+    // Focused view: opening a "Show commands" row takes over the whole panel so only
+    // that item's terminal is scrollable (no reaching the rest of the list).
+    if (openCommands) {
+        return (
+            <div className="flex h-full flex-col">
+                <FocusedCommands
+                    onClose={closeCommands}
+                    onOpenTerminal={(subtaskId) => nav?.openStep(subtaskId)}
+                    open={openCommands}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-full flex-col">
@@ -166,6 +289,7 @@ const FlowTasks = () => {
                             <FlowTask
                                 commandsBySubtask={commandsBySubtask}
                                 key={task.id}
+                                onToggleCommands={toggleCommands}
                                 searchValue={debouncedSearchValue}
                                 task={task}
                             />

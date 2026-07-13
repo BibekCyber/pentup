@@ -5,10 +5,8 @@ import type { TaskFragmentFragment } from '@/graphql/types';
 import Markdown from '@/components/shared/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
 import { StatusType } from '@/graphql/types';
 
-import { type CommandGroup, CommandsPanel } from './flow-command-list';
 import FlowSubtask from './flow-subtask';
 import FlowTaskStatusIcon from './flow-task-status-icon';
 
@@ -16,6 +14,8 @@ interface FlowTaskProps {
     // subtaskId → commands[], built once at the list level and shared, so this task
     // does O(its subtasks) map lookups instead of re-scanning the whole log array.
     commandsBySubtask: Map<string, string[]>;
+    // Opens the focused "Show commands" view for a key (`task:<id>` here, or a subtask id).
+    onToggleCommands: (key: string) => void;
     searchValue?: string;
     task: TaskFragmentFragment;
 }
@@ -33,11 +33,9 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
     return text.toLowerCase().includes(searchValue.toLowerCase().trim());
 };
 
-const FlowTask = ({ commandsBySubtask, searchValue = '', task }: FlowTaskProps) => {
+const FlowTask = ({ commandsBySubtask, onToggleCommands, searchValue = '', task }: FlowTaskProps) => {
     const { id, result, status, subtasks, title } = task;
-    const nav = useFlowExecNav();
     const [isDetailsVisible, setIsDetailsVisible] = useState(false);
-    const [isCommandsVisible, setIsCommandsVisible] = useState(false);
 
     // Memoize search checks to avoid recalculating on every render
     const searchChecks = useMemo(() => {
@@ -88,26 +86,10 @@ const FlowTask = ({ commandsBySubtask, searchValue = '', task }: FlowTaskProps) 
         return Math.round((completedSubtasksCount / subtasks.length) * 100);
     }, [subtasks, completedSubtasksCount]);
 
-    // Every `$` command run across this task's subtasks, grouped by subtask (in id
-    // order) so the whole task's command history is viewable in one place. Commands
-    // come from the shared map (O(subtasks) lookups); empty subtasks are dropped and
-    // each group's header jumps to that step in the Terminal.
-    const commandGroups = useMemo<CommandGroup[]>(
-        () =>
-            [...(subtasks ?? [])]
-                .sort((a, b) => +a.id - +b.id)
-                .map((subtask) => ({
-                    commands: commandsBySubtask.get(subtask.id) ?? [],
-                    subtaskId: subtask.id,
-                    title: subtask.title,
-                }))
-                .filter((group) => group.commands.length > 0),
-        [subtasks, commandsBySubtask],
-    );
-
+    // Total `$` commands across this task's subtasks — O(subtasks) map lookups.
     const totalCommands = useMemo(
-        () => commandGroups.reduce((sum, group) => sum + group.commands.length, 0),
-        [commandGroups],
+        () => (subtasks ?? []).reduce((sum, subtask) => sum + (commandsBySubtask.get(subtask.id)?.length ?? 0), 0),
+        [subtasks, commandsBySubtask],
     );
 
     const hasCommands = totalCommands > 0;
@@ -158,22 +140,14 @@ const FlowTask = ({ commandsBySubtask, searchValue = '', task }: FlowTaskProps) 
                                 {hasCommands && (
                                     <button
                                         className="text-primary flex cursor-pointer items-center gap-1 font-medium hover:underline"
-                                        onClick={() => setIsCommandsVisible((v) => !v)}
+                                        onClick={() => onToggleCommands(`task:${id}`)}
                                         type="button"
                                     >
-                                        {isCommandsVisible ? 'Hide commands' : 'Show commands'}
+                                        Show commands
                                         <span className="text-muted-foreground font-normal">· {totalCommands}</span>
                                     </button>
                                 )}
                             </div>
-
-                            {isCommandsVisible && (
-                                <CommandsPanel
-                                    grouped
-                                    groups={commandGroups}
-                                    onOpen={(subtaskId) => nav?.openStep(subtaskId)}
-                                />
-                            )}
 
                             {isDetailsVisible && result && (
                                 <Card className="mt-4">
@@ -199,6 +173,7 @@ const FlowTask = ({ commandsBySubtask, searchValue = '', task }: FlowTaskProps) 
                         <FlowSubtask
                             commands={commandsBySubtask.get(subtask.id) ?? EMPTY_COMMANDS}
                             key={subtask.id}
+                            onToggleCommands={onToggleCommands}
                             searchValue={searchValue}
                             subtask={subtask}
                         />

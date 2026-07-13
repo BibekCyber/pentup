@@ -44,10 +44,6 @@ export const TermOutputCard = ({ className, text }: { className?: string; text: 
     const clean = stripAnsi(text ?? '');
     const blockType = detectBlockType([clean]);
 
-    const rawLines = (text ?? '').split('\n');
-    const truncated = rawLines.length > MAX_LINES;
-    const shownText = truncated ? rawLines.slice(0, MAX_LINES).join('\n') : (text ?? '');
-
     return (
         <div className={cn('terminal-scope overflow-hidden rounded-lg border', className)}>
             <TermChromeBar
@@ -55,10 +51,10 @@ export const TermOutputCard = ({ className, text }: { className?: string; text: 
                 copyText={clean}
             />
             <div className="max-h-[320px] overflow-auto p-3 font-mono text-xs leading-relaxed">
-                <TermOutput lines={[{ isErr: false, text: shownText }]} />
-                {truncated ? (
-                    <div className="term-muted mt-1">+{rawLines.length - MAX_LINES} more lines (truncated)</div>
-                ) : null}
+                <TermOutput
+                    lines={[{ isErr: false, text: text ?? '' }]}
+                    maxLines={MAX_LINES}
+                />
             </div>
         </div>
     );

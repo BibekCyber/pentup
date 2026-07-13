@@ -169,6 +169,24 @@ func (fp *flowProvider) performAgentChain(
 
 		fp.storeAgentResponseToGraphiti(ctx, groupID, optAgentType, result, taskID, subtaskID, chainID)
 
+		// Surface the primary agent's free-form reasoning as a dedicated "thoughts" message so
+		// Automation mode reveals the full thinking behind each step (matching Assistant mode)
+		// instead of only the tool-call one-liners. Scoped to the primary agent: sub-agents keep
+		// their existing presentation and Assistant mode persists its reasoning via its own worker.
+		if optAgentType == pconfig.OptionsTypePrimaryAgent &&
+			(result.content != "" || !result.thinking.IsEmpty()) {
+			var thinking string
+			if !result.thinking.IsEmpty() {
+				thinking = result.thinking.Content
+			}
+			if _, perr := fp.putMsgLog(
+				ctx, database.MsglogTypeThoughts, taskID, subtaskID, 0, thinking, result.content,
+			); perr != nil {
+				// A display-log write must never abort the pentest chain.
+				logger.WithError(perr).Warn("failed to persist agent reasoning to msg log")
+			}
+		}
+
 		msg := llms.MessageContent{Role: llms.ChatMessageTypeAI}
 		// Universal pattern: preserve content with or without reasoning (works for all providers thanks to deduplication)
 		if result.content != "" || !result.thinking.IsEmpty() {
@@ -278,7 +296,9 @@ func (fp *flowProvider) execToolCall(
 	// use streamID and thinking only for first tool call to minimize content
 	if toolCallIDx == 0 {
 		streamID = result.streamID
-		if !result.thinking.IsEmpty() {
+		// The primary agent surfaces its reasoning on a dedicated thoughts message
+		// (see performAgentChain), so don't duplicate it on the first tool-call row.
+		if optAgentType != pconfig.OptionsTypePrimaryAgent && !result.thinking.IsEmpty() {
 			thinking = result.thinking.Content
 		}
 	}
