@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import type { AssistantLogFragmentFragment, MessageLogFragmentFragment } from '@/graphql/types';
 
 import Markdown from '@/components/shared/markdown';
-import Terminal from '@/components/shared/terminal';
+import { TermOutputCard } from '@/components/shared/terminal/terminal-output-card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageLogType, ResultFormat } from '@/graphql/types';
 import { cn } from '@/lib/utils';
@@ -104,27 +104,18 @@ const FlowMessage = ({ log, searchValue = '' }: FlowMessageProps) => {
         return (
             <>
                 <div className="my-3 border-t" />
-                {resultFormat === ResultFormat.Plain && (
-                    <Markdown
-                        className="prose-xs prose-fixed text-accent-foreground text-sm wrap-break-word"
-                        searchValue={searchValue}
-                    >
-                        {result}
-                    </Markdown>
-                )}
-                {resultFormat === ResultFormat.Markdown && (
+                {resultFormat === ResultFormat.Markdown ? (
                     <Markdown
                         className="prose-xs prose-fixed wrap-break-word"
                         searchValue={searchValue}
                     >
                         {result}
                     </Markdown>
-                )}
-                {resultFormat === ResultFormat.Terminal && (
-                    <Terminal
-                        className="bg-card h-[240px] w-full py-1 pl-1"
-                        logs={[result as string]}
-                    />
+                ) : (
+                    // Plain and Terminal results are raw command / tool output — render them
+                    // with the terminal's content-aware colour-coding (commands, URLs, JSON,
+                    // HTML, errors…) on the dark surface so they read like the live terminal.
+                    <TermOutputCard text={(result as string) ?? ''} />
                 )}
             </>
         );

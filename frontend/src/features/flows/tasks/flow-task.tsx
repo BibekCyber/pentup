@@ -5,15 +5,24 @@ import type { TaskFragmentFragment } from '@/graphql/types';
 import Markdown from '@/components/shared/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
 import { StatusType } from '@/graphql/types';
 
+import { type CommandGroup, CommandsPanel } from './flow-command-list';
 import FlowSubtask from './flow-subtask';
 import FlowTaskStatusIcon from './flow-task-status-icon';
 
 interface FlowTaskProps {
+    // subtaskId → commands[], built once at the list level and shared, so this task
+    // does O(its subtasks) map lookups instead of re-scanning the whole log array.
+    commandsBySubtask: Map<string, string[]>;
     searchValue?: string;
     task: TaskFragmentFragment;
 }
+
+// Stable empty-array reference so subtasks with no commands keep the same `commands`
+// prop across renders and stay insulated by FlowSubtask's memo().
+const EMPTY_COMMANDS: string[] = [];
 
 // Helper function to check if text contains search value (case-insensitive)
 const containsSearchValue = (text: null | string | undefined, searchValue: string): boolean => {
@@ -24,9 +33,11 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
     return text.toLowerCase().includes(searchValue.toLowerCase().trim());
 };
 
-const FlowTask = ({ searchValue = '', task }: FlowTaskProps) => {
+const FlowTask = ({ commandsBySubtask, searchValue = '', task }: FlowTaskProps) => {
     const { id, result, status, subtasks, title } = task;
+    const nav = useFlowExecNav();
     const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+    const [isCommandsVisible, setIsCommandsVisible] = useState(false);
 
     // Memoize search checks to avoid recalculating on every render
     const searchChecks = useMemo(() => {
@@ -77,6 +88,30 @@ const FlowTask = ({ searchValue = '', task }: FlowTaskProps) => {
         return Math.round((completedSubtasksCount / subtasks.length) * 100);
     }, [subtasks, completedSubtasksCount]);
 
+    // Every `$` command run across this task's subtasks, grouped by subtask (in id
+    // order) so the whole task's command history is viewable in one place. Commands
+    // come from the shared map (O(subtasks) lookups); empty subtasks are dropped and
+    // each group's header jumps to that step in the Terminal.
+    const commandGroups = useMemo<CommandGroup[]>(
+        () =>
+            [...(subtasks ?? [])]
+                .sort((a, b) => +a.id - +b.id)
+                .map((subtask) => ({
+                    commands: commandsBySubtask.get(subtask.id) ?? [],
+                    subtaskId: subtask.id,
+                    title: subtask.title,
+                }))
+                .filter((group) => group.commands.length > 0),
+        [subtasks, commandsBySubtask],
+    );
+
+    const totalCommands = useMemo(
+        () => commandGroups.reduce((sum, group) => sum + group.commands.length, 0),
+        [commandGroups],
+    );
+
+    const hasCommands = totalCommands > 0;
+
     return (
         <div className="flex flex-col">
             <div className="relative flex gap-2 pb-4">
@@ -107,15 +142,40 @@ const FlowTask = ({ searchValue = '', task }: FlowTaskProps) => {
                         </div>
                     )}
 
-                    {result && (
+                    {(result || hasCommands) && (
                         <div className="text-muted-foreground text-xs">
-                            <div
-                                className="cursor-pointer"
-                                onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-                            >
-                                {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            <div className="flex items-center">
+                                {result && (
+                                    <button
+                                        className="cursor-pointer hover:underline"
+                                        onClick={() => setIsDetailsVisible((v) => !v)}
+                                        type="button"
+                                    >
+                                        {isDetailsVisible ? 'Hide details' : 'Show details'}
+                                    </button>
+                                )}
+                                {result && hasCommands && <span className="bg-border mx-2.5 h-3 w-px" />}
+                                {hasCommands && (
+                                    <button
+                                        className="text-primary flex cursor-pointer items-center gap-1 font-medium hover:underline"
+                                        onClick={() => setIsCommandsVisible((v) => !v)}
+                                        type="button"
+                                    >
+                                        {isCommandsVisible ? 'Hide commands' : 'Show commands'}
+                                        <span className="text-muted-foreground font-normal">· {totalCommands}</span>
+                                    </button>
+                                )}
                             </div>
-                            {isDetailsVisible && (
+
+                            {isCommandsVisible && (
+                                <CommandsPanel
+                                    grouped
+                                    groups={commandGroups}
+                                    onOpen={(subtaskId) => nav?.openStep(subtaskId)}
+                                />
+                            )}
+
+                            {isDetailsVisible && result && (
                                 <Card className="mt-4">
                                     <CardContent className="p-3">
                                         <Markdown
@@ -137,6 +197,7 @@ const FlowTask = ({ searchValue = '', task }: FlowTaskProps) => {
                 <div className="flex flex-col">
                     {sortedSubtasks.map((subtask) => (
                         <FlowSubtask
+                            commands={commandsBySubtask.get(subtask.id) ?? EMPTY_COMMANDS}
                             key={subtask.id}
                             searchValue={searchValue}
                             subtask={subtask}

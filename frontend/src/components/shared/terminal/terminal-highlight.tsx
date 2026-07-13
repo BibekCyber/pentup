@@ -195,7 +195,7 @@ const renderOutputLine = (clean: string, isErr: boolean) => {
 };
 
 // Stagger cap so live-appended / long output never waits absurdly long.
-const lineDelay = (index: number): string => `${Math.min(index, 24) * 22}ms`;
+const lineDelay = (index: number): string => `${Math.min(index, 22) * 34}ms`;
 
 // Flatten source log entries into individual display lines. A single stdout/stderr
 // log can contain many `\n`-separated lines (e.g. a whole curl verbose dump), and

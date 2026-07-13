@@ -12,6 +12,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useFlow } from '@/providers/flow-provider';
 
+import { buildSubtaskCommandMap } from './flow-command-list';
 import FlowTask from './flow-task';
 
 const searchFormSchema = z.object({
@@ -31,6 +32,15 @@ const FlowTasks = () => {
     const { flowData, flowId } = useFlow();
 
     const tasks = useMemo(() => flowData?.tasks ?? [], [flowData?.tasks]);
+
+    // One pass over the whole flow's terminal logs → subtaskId → commands[]. Shared
+    // with every FlowTask/FlowSubtask so live command extraction stays O(logs), not
+    // O(subtasks × logs), as terminalLogs grows on each streamed line.
+    const commandsBySubtask = useMemo(
+        () => buildSubtaskCommandMap(flowData?.terminalLogs ?? []),
+        [flowData?.terminalLogs],
+    );
+
     const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
 
     const { containerRef, endRef, hasNewMessages, isScrolledToBottom, scrollToEnd } = useAutoScroll(tasks, flowId);
@@ -154,6 +164,7 @@ const FlowTasks = () => {
                     >
                         {sortedTasks.map((task) => (
                             <FlowTask
+                                commandsBySubtask={commandsBySubtask}
                                 key={task.id}
                                 searchValue={debouncedSearchValue}
                                 task={task}

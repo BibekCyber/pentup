@@ -132,6 +132,36 @@
     src: url('/fonts/roboto-mono-700-italic.woff2') format('woff2');
 }
 
+/* JetBrains Mono — the terminal typeface (matches the reference mockups). */
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono-700.woff2') format('woff2');
+}
+
 @utility container {
     margin-inline: auto;
     padding-inline: 2rem;
@@ -504,8 +534,13 @@
     --term-success: #63c28d;
     --term-error: #ef7a70;
     --term-warn: #e9bd6e;
+    /* JetBrains Mono for the whole terminal surface. Overriding --font-mono here means
+       any `font-mono` descendant (command panes, chrome) picks it up automatically. */
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     background-color: #0f1216;
     color: var(--term-fg);
+    font-family: var(--font-mono);
+    font-feature-settings: 'liga' 0; /* keep raw shell glyphs; no ligatures for -> etc. */
 }
 .terminal-scope .term-chrome-bar {
     border-bottom: 1px solid rgb(255 255 255 / 0.08);
@@ -562,6 +597,10 @@
 .terminal-scope .term-muted {
     color: var(--term-comment);
 }
+.terminal-scope .term-open {
+    color: var(--term-url);
+    font-weight: 500;
+}
 .terminal-scope .term-type-badge {
     font-size: 10px;
     font-weight: 600;
@@ -589,7 +628,7 @@
 @keyframes term-line-in {
     from {
         opacity: 0;
-        transform: translateY(2px);
+        transform: translateY(5px);
     }
     to {
         opacity: 1;
@@ -597,7 +636,7 @@
     }
 }
 .terminal-scope .term-line {
-    animation: term-line-in 0.26s ease-out backwards;
+    animation: term-line-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 @media (prefers-reduced-motion: reduce) {
     .terminal-scope .term-line {

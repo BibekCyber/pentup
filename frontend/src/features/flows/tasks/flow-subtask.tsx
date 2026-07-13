@@ -5,10 +5,15 @@ import type { SubtaskFragmentFragment } from '@/graphql/types';
 
 import Markdown from '@/components/shared/markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
 
+import { CommandsPanel } from './flow-command-list';
 import FlowTaskStatusIcon from './flow-task-status-icon';
 
 interface FlowSubtaskProps {
+    // The `$` commands this subtask ran, extracted once at the list level (see
+    // buildSubtaskCommandMap) and passed down so each subtask does no log scanning.
+    commands: string[];
     searchValue?: string;
     subtask: SubtaskFragmentFragment;
 }
@@ -22,10 +27,14 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
     return text.toLowerCase().includes(searchValue.toLowerCase().trim());
 };
 
-const FlowSubtask = ({ searchValue = '', subtask }: FlowSubtaskProps) => {
+const FlowSubtask = ({ commands, searchValue = '', subtask }: FlowSubtaskProps) => {
     const { description, id, result, status, title } = subtask;
+    const nav = useFlowExecNav();
     const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+    const [isCommandsVisible, setIsCommandsVisible] = useState(false);
+
     const hasDetails = description || result;
+    const hasCommands = commands.length > 0;
 
     // Memoize search checks to avoid recalculating on every render
     const searchChecks = useMemo(() => {
@@ -73,14 +82,38 @@ const FlowSubtask = ({ searchValue = '', subtask }: FlowSubtaskProps) => {
                     </Markdown>
                 </div>
 
-                {hasDetails && (
+                {(hasDetails || hasCommands) && (
                     <div className="text-muted-foreground text-xs">
-                        <div
-                            className="cursor-pointer hover:underline"
-                            onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-                        >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                        <div className="flex items-center">
+                            {hasDetails && (
+                                <button
+                                    className="cursor-pointer hover:underline"
+                                    onClick={() => setIsDetailsVisible((v) => !v)}
+                                    type="button"
+                                >
+                                    {isDetailsVisible ? 'Hide details' : 'Show details'}
+                                </button>
+                            )}
+                            {hasDetails && hasCommands && <span className="bg-border mx-2.5 h-3 w-px" />}
+                            {hasCommands && (
+                                <button
+                                    className="text-primary flex cursor-pointer items-center gap-1 font-medium hover:underline"
+                                    onClick={() => setIsCommandsVisible((v) => !v)}
+                                    type="button"
+                                >
+                                    {isCommandsVisible ? 'Hide commands' : 'Show commands'}
+                                    <span className="text-muted-foreground font-normal">· {commands.length}</span>
+                                </button>
+                            )}
                         </div>
+
+                        {isCommandsVisible && (
+                            <CommandsPanel
+                                groups={[{ commands, subtaskId: id, title }]}
+                                onOpen={(subtaskId) => nav?.openStep(subtaskId)}
+                            />
+                        )}
+
                         {isDetailsVisible && (
                             <div className="mt-4 flex flex-col gap-4">
                                 {description && (

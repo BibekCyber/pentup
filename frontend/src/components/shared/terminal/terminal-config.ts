@@ -8,7 +8,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
     customGlyphs: true,
     disableStdin: true,
     fastScrollSensitivity: 10,
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
     fontSize: 12,
     fontWeight: 600,
     logLevel: 'off',

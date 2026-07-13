@@ -11,13 +11,19 @@
 // Live updates keep working as flowData.terminalLogs grows via the
 // terminalLogAdded subscription.
 import { SquareTerminal } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import Terminal from '@/components/shared/terminal';
-import { TerminalCopyButton } from '@/components/shared/terminal/terminal-frame';
-import { detectBlockType, stripAnsi, TermCommandLines, TermOutput } from '@/components/shared/terminal/terminal-highlight';
+import {
+    detectBlockType,
+    stripAnsi,
+    TermCommandLines,
+    TermOutput,
+} from '@/components/shared/terminal/terminal-highlight';
+import { TermChromeBar } from '@/components/shared/terminal/terminal-output-card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFlowExecNav } from '@/features/flows/flow-exec-nav';
 import FlowTaskStatusIcon from '@/features/flows/tasks/flow-task-status-icon';
 import { type StatusType, TerminalLogType } from '@/graphql/types';
 import { useFlow } from '@/providers/flow-provider';
@@ -43,8 +49,6 @@ const cleanCommand = (text: string) =>
         .replace(/^.*?\$\s/, '')
         .trim();
 
-const TYPE_BADGE_LABEL: Record<string, string> = { html: 'HTML', json: 'JSON', text: 'TEXT' };
-
 // One command run = one distinct terminal pane: a slim header (content-type badge +
 // copy), then the `$ command` prompt (syntax-highlighted) followed by its output,
 // colour-coded by content (JSON / HTML / key: value / plain text) and streamed in
@@ -59,16 +63,10 @@ const CommandPane = ({ group }: { group: CommandGroup }) => {
 
     return (
         <div className="terminal-scope overflow-hidden rounded-lg border">
-            <div className="term-chrome-bar flex items-center gap-2 px-3 py-1.5">
-                <SquareTerminal className="term-chrome-title size-3.5" />
-                {blockType && blockType !== 'text' ? (
-                    <span className="term-type-badge">{TYPE_BADGE_LABEL[blockType]}</span>
-                ) : null}
-                <TerminalCopyButton
-                    className="ml-auto"
-                    text={copyText}
-                />
-            </div>
+            <TermChromeBar
+                blockType={blockType}
+                copyText={copyText}
+            />
             <div className="max-h-[26rem] overflow-auto p-3 font-mono text-xs leading-relaxed">
                 {group.command ? (
                     <div className="flex gap-2">
@@ -92,6 +90,7 @@ const CommandPane = ({ group }: { group: CommandGroup }) => {
 
 const FlowSplitTerminal = () => {
     const { flowData } = useFlow();
+    const nav = useFlowExecNav();
 
     const terminalLogs = useMemo<TermLog[]>(() => flowData?.terminalLogs ?? [], [flowData?.terminalLogs]);
 
@@ -155,6 +154,33 @@ const FlowSplitTerminal = () => {
         });
     }, [terminalLogs, subtaskMeta]);
 
+    // Controlled tab selection. A subtask's "Open in Terminal" sets a pending step in
+    // the shared nav context; it wins until the user picks a tab (which clears it).
+    // The value is derived (no setState-in-effect): pending → manual pick → first step.
+    const [selectedStep, setSelectedStep] = useState<null | string>(null);
+
+    const activeStep = useMemo(() => {
+        const pending = nav?.pendingStep;
+
+        if (pending && steps.some((s) => s.id === pending)) {
+            return pending;
+        }
+
+        if (selectedStep && (selectedStep === RAW_KEY || steps.some((s) => s.id === selectedStep))) {
+            return selectedStep;
+        }
+
+        return steps[0]?.id ?? RAW_KEY;
+    }, [nav?.pendingStep, selectedStep, steps]);
+
+    const handleStepChange = (value: string) => {
+        setSelectedStep(value);
+
+        if (nav?.pendingStep) {
+            nav.clearPendingStep();
+        }
+    };
+
     if (terminalLogs.length === 0) {
         return (
             <Empty className="size-full">
@@ -172,7 +198,8 @@ const FlowSplitTerminal = () => {
     return (
         <Tabs
             className="flex size-full flex-col"
-            defaultValue={steps[0]?.id ?? RAW_KEY}
+            onValueChange={handleStepChange}
+            value={activeStep}
         >
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 {steps.map((step) => (
