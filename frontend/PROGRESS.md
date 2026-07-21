@@ -47,8 +47,14 @@ system-function check + a className/JSX-only `git diff`.
       renamed); R11 `passwordChangeSchema` + rule copy byte-identical; `user-provider`/`confirmation-dialog`/
       ui-primitives EMPTY diff. Built via workflow (5 modules → gate → 4 adversarial lenses, all clean). Only prop
       swaps: Save `secondary→default`, OAuth/Custom-badge `secondary→outline` (presentational, no cva key dropped)._
-- [ ] **P9 — Terminal lazy-highlight** — `shared/terminal/terminal-highlight.tsx` (`TermOutput` only).
-      _Sanity: no plain-text flash, find-in-page + copy see full text, flow load stall gone._
+- [x] **P9 — Terminal lazy-highlight** — `shared/terminal/terminal-highlight.tsx`: new `TermLine` defers per-token
+      tokenising (the stall) until a line nears view via IntersectionObserver; first 24 lines eager (covers both
+      containers' folds → no flash), IO-unavailable → eager fallback. Wrapper `<div>` byte-identical across the
+      plain→lit flip (fade never re-fires); `base` colour stays eager; full plain text always in DOM (copy/find
+      intact); global-index `lineDelay` kept; `TermOutput`/`TermCommandLines` signatures unchanged (4 consumers safe).
+      _Gate: build ✓, lint baseline, 159/159 tests. Adversarially verified (3 lenses): full-text/copy/find CLEAN,
+      zero blockers. Accepted trade-off: viewport root (best flow-load perf, the actual complaint) leaves a narrow
+      1-frame upgrade when scrolling *within* one tall pane — documented; scroll-parent root would regress load._
 - [ ] **P10 — Responsiveness + regression pass** — no new files; full sweep both themes + all system functions +
       `build`/`lint`/`prettier`/`test`. _Sanity: no horizontal body scroll; grids collapse; logic diff is style-only._
 
