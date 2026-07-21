@@ -1,6 +1,17 @@
 import type { LucideIcon } from 'lucide-react';
 
-import { AlertCircle, AlertOctagon, AlertTriangle, CheckCircle2, CircleDashed, CircleX, Clock, Info, Loader2, PlayCircle } from 'lucide-react';
+import {
+    AlertCircle,
+    AlertOctagon,
+    AlertTriangle,
+    CheckCircle2,
+    CircleDashed,
+    CircleX,
+    Clock,
+    Info,
+    Loader2,
+    PlayCircle,
+} from 'lucide-react';
 
 import { StatusType } from '@/graphql/types';
 
@@ -10,11 +21,11 @@ import type { Severity } from './report-model';
 // key-fact panels, remediation accent) so the report has ONE coordinated accent —
 // severity colours are the only other colour axis, reserved for finding severity.
 export const BRAND = {
-    border: '#99f6e4',
-    solid: '#0f766e',
-    subtle: '#ccfbf1',
-    text: '#0f766e',
-    tint: '#f0fdfa',
+    border: '#fed7aa',
+    solid: '#f57214',
+    subtle: '#ffedd5',
+    text: '#c2410c',
+    tint: '#fff7ed',
 };
 
 export interface SeverityStyle {
@@ -38,63 +49,63 @@ export interface SeverityStyle {
 
 const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
     critical: {
-        badgeClass: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900',
-        borderClass: 'border-l-red-600',
+        badgeClass: 'bg-[var(--sev-crit-bg)] text-[var(--sev-crit)] border-[var(--sev-crit)]/25',
+        borderClass: 'border-l-[var(--sev-crit)]',
         cvssRange: '9.0 – 10.0',
-        dotClass: 'bg-red-600',
+        dotClass: 'bg-[var(--sev-crit)]',
         icon: AlertOctagon,
         label: 'Critical',
-        pdf: { border: '#fecaca', onSolid: '#ffffff', solid: '#b91c1c', text: '#991b1b', tint: '#fef2f2' },
-        rowClass: 'bg-red-50 dark:bg-red-950/30',
-        textClass: 'text-red-700 dark:text-red-400',
+        pdf: { border: '#f5c2c9', onSolid: '#ffffff', solid: '#d0102e', text: '#9b0c22', tint: '#fdecee' },
+        rowClass: 'bg-[var(--sev-crit-bg)]',
+        textClass: 'text-[var(--sev-crit)]',
         weight: 5,
     },
     high: {
-        badgeClass: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-900',
-        borderClass: 'border-l-orange-500',
+        badgeClass: 'bg-[var(--sev-high-bg)] text-[var(--sev-high)] border-[var(--sev-high)]/25',
+        borderClass: 'border-l-[var(--sev-high)]',
         cvssRange: '7.0 – 8.9',
-        dotClass: 'bg-orange-500',
+        dotClass: 'bg-[var(--sev-high)]',
         icon: AlertTriangle,
         label: 'High',
-        pdf: { border: '#fed7aa', onSolid: '#ffffff', solid: '#ea580c', text: '#c2410c', tint: '#fff7ed' },
-        rowClass: 'bg-orange-50 dark:bg-orange-950/30',
-        textClass: 'text-orange-600 dark:text-orange-400',
+        pdf: { border: '#f2ceb3', onSolid: '#ffffff', solid: '#c2410c', text: '#973309', tint: '#fbeee5' },
+        rowClass: 'bg-[var(--sev-high-bg)]',
+        textClass: 'text-[var(--sev-high)]',
         weight: 4,
     },
     informational: {
-        badgeClass: 'bg-muted text-muted-foreground border-border',
-        borderClass: 'border-l-muted-foreground',
+        badgeClass: 'bg-[var(--sev-info-bg)] text-[var(--sev-info)] border-[var(--sev-info)]/25',
+        borderClass: 'border-l-[var(--sev-info)]',
         cvssRange: '0.0',
-        dotClass: 'bg-muted-foreground',
+        dotClass: 'bg-[var(--sev-info)]',
         icon: Info,
         label: 'Informational',
-        pdf: { border: '#e2e8f0', onSolid: '#ffffff', solid: '#475569', text: '#334155', tint: '#f8fafc' },
-        rowClass: 'bg-muted/50',
-        textClass: 'text-muted-foreground',
+        pdf: { border: '#d1d4da', onSolid: '#ffffff', solid: '#585f6b', text: '#454b55', tint: '#eef0f2' },
+        rowClass: 'bg-[var(--sev-info-bg)]',
+        textClass: 'text-[var(--sev-info)]',
         weight: 1,
     },
     low: {
-        badgeClass: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900',
-        borderClass: 'border-l-blue-500',
+        badgeClass: 'bg-[var(--sev-low-bg)] text-[var(--sev-low)] border-[var(--sev-low)]/25',
+        borderClass: 'border-l-[var(--sev-low)]',
         cvssRange: '0.1 – 3.9',
-        dotClass: 'bg-blue-500',
+        dotClass: 'bg-[var(--sev-low)]',
         icon: Info,
         label: 'Low',
-        pdf: { border: '#bfdbfe', onSolid: '#ffffff', solid: '#2563eb', text: '#1d4ed8', tint: '#eff6ff' },
-        rowClass: 'bg-blue-50 dark:bg-blue-950/30',
-        textClass: 'text-blue-600 dark:text-blue-400',
+        pdf: { border: '#b3d5e9', onSolid: '#ffffff', solid: '#0369a1', text: '#02537f', tint: '#e7f1f8' },
+        rowClass: 'bg-[var(--sev-low-bg)]',
+        textClass: 'text-[var(--sev-low)]',
         weight: 2,
     },
     medium: {
-        badgeClass: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900',
-        borderClass: 'border-l-amber-500',
+        badgeClass: 'bg-[var(--sev-med-bg)] text-[var(--sev-med)] border-[var(--sev-med)]/25',
+        borderClass: 'border-l-[var(--sev-med)]',
         cvssRange: '4.0 – 6.9',
-        dotClass: 'bg-amber-500',
+        dotClass: 'bg-[var(--sev-med)]',
         icon: AlertCircle,
         label: 'Medium',
-        pdf: { border: '#fde68a', onSolid: '#ffffff', solid: '#d97706', text: '#b45309', tint: '#fffbeb' },
-        rowClass: 'bg-amber-50 dark:bg-amber-950/30',
-        textClass: 'text-amber-600 dark:text-amber-400',
+        pdf: { border: '#e9d6a8', onSolid: '#ffffff', solid: '#a66300', text: '#824e00', tint: '#f8f1e0' },
+        rowClass: 'bg-[var(--sev-med-bg)]',
+        textClass: 'text-[var(--sev-med)]',
         weight: 3,
     },
 };
@@ -117,39 +128,39 @@ export interface StatusStyle {
 
 const STATUS_STYLES: Record<StatusType, StatusStyle> = {
     [StatusType.Created]: {
-        badgeClass: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900',
+        badgeClass: 'bg-[var(--st-created)]/15 text-[var(--st-created)] border-[var(--st-created)]/30',
         icon: PlayCircle,
-        iconClass: 'text-blue-500',
+        iconClass: 'text-[var(--st-created)]',
         label: 'Created',
-        pdf: { solid: '#3b82f6', text: '#1d4ed8', tint: '#eff6ff' },
+        pdf: { solid: '#6e747e', text: '#4c525b', tint: '#eef0f1' },
     },
     [StatusType.Failed]: {
-        badgeClass: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900',
+        badgeClass: 'bg-[var(--st-failed)]/15 text-[var(--st-failed)] border-[var(--st-failed)]/30',
         icon: CircleX,
-        iconClass: 'text-red-500',
+        iconClass: 'text-[var(--st-failed)]',
         label: 'Failed',
-        pdf: { solid: '#ef4444', text: '#b91c1c', tint: '#fef2f2' },
+        pdf: { solid: '#d0102e', text: '#991b1b', tint: '#fdecee' },
     },
     [StatusType.Finished]: {
-        badgeClass: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
+        badgeClass: 'bg-[var(--st-finished)]/15 text-[var(--st-finished)] border-[var(--st-finished)]/30',
         icon: CheckCircle2,
-        iconClass: 'text-green-600',
+        iconClass: 'text-[var(--st-finished)]',
         label: 'Finished',
-        pdf: { solid: '#16a34a', text: '#15803d', tint: '#f0fdf4' },
+        pdf: { solid: '#2fbf71', text: '#1f7a46', tint: '#e8f6ee' },
     },
     [StatusType.Running]: {
-        badgeClass: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-900',
+        badgeClass: 'bg-[var(--st-running)]/15 text-[var(--st-running)] border-[var(--st-running)]/30',
         icon: Loader2,
-        iconClass: 'animate-spin text-purple-500',
+        iconClass: 'animate-spin text-[var(--st-running)]',
         label: 'Running',
-        pdf: { solid: '#a855f7', text: '#7e22ce', tint: '#faf5ff' },
+        pdf: { solid: '#f57214', text: '#b45309', tint: '#fff3e6' },
     },
     [StatusType.Waiting]: {
-        badgeClass: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900',
+        badgeClass: 'bg-[var(--st-waiting)]/15 text-[var(--st-waiting)] border-[var(--st-waiting)]/30',
         icon: Clock,
-        iconClass: 'text-amber-500',
+        iconClass: 'text-[var(--st-waiting)]',
         label: 'Waiting',
-        pdf: { solid: '#f59e0b', text: '#b45309', tint: '#fffbeb' },
+        pdf: { solid: '#35b9e9', text: '#0b6f90', tint: '#e7f6fc' },
     },
 };
 
@@ -158,7 +169,8 @@ const DEFAULT_STATUS: StatusStyle = {
     icon: CircleDashed,
     iconClass: 'text-muted-foreground',
     label: 'Unknown',
-    pdf: { solid: '#94a3b8', text: '#475569', tint: '#f8fafc' },
+    pdf: { solid: '#6e747e', text: '#4c525b', tint: '#eef0f1' },
 };
 
-export const getStatusStyle = (status?: StatusType): StatusStyle => (status ? STATUS_STYLES[status] ?? DEFAULT_STATUS : DEFAULT_STATUS);
+export const getStatusStyle = (status?: StatusType): StatusStyle =>
+    status ? (STATUS_STYLES[status] ?? DEFAULT_STATUS) : DEFAULT_STATUS;

@@ -10,10 +10,11 @@ system-function check + a className/JSX-only `git diff`.
 - [x] **P2 — App shell** — `main-sidebar.tsx` (EMBER rail + profile-pop), `ui/sidebar.tsx` (SidebarRail→collapse
       circle, icon-rail 4.25rem), NEW `layouts/command-bar.tsx`, `settings-layout.tsx` (Option A). Rail theme-aware.
       _Gate: build ✓, lint = baseline (0 new), diff style-only (sole logic line: additive `state` destructure)._
-- [ ] **P3 — Shared signal components** — `lib/severity-palette.ts` (values only, keep `pdf.*`), `severity-badge.tsx`,
-      `flow-status-icon.tsx`, `domain-status-badge.tsx`, `target-type-chip.tsx`+`target-type-colors.ts`,
-      `flow-task-status-icon.tsx`, NEW `shared/agent-monogram.tsx`, NEW `shared/status-pill.tsx`.
-      _Sanity: running spins, waiting pulses, severity sort unchanged, PDF still exports._
+- [x] **P3 — Shared signal components** — `severity-palette.ts` (web→--sev-* tokens + pdf hex→EMBER; weight/keys/
+      pdf-structure preserved), `severity-badge.tsx`, `flow-status-icon.tsx`, `domain-status-badge.tsx` (+pulse),
+      `target-type-chip.tsx`+`target-type-colors.ts` (→muted chip), `flow-task-status-icon.tsx`, `index.css`
+      (+@keyframes pulse), NEW `agent-monogram.tsx` + `status-pill.tsx`. _Gate: build ✓, lint baseline (0 new),
+      diff value-only (weight/pdf-keys unchanged). Deferred: per-type target glyph (needs a meta field)._
 - [ ] **P4 — Scans (Domains)** — `domains.tsx`, `domain.tsx`, `new-engagement.tsx`. VERBATIM: `scan-initializing.tsx`,
       `use-scan-stage.ts`, `domains-provider.tsx`, `domain-provider.tsx`, `domains-layout.tsx`.
       _Sanity: create scan → navigate → boot animation plays; no new query for the KPI strip._

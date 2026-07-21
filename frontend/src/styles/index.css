@@ -559,6 +559,17 @@
     [role='button']:not(:disabled) {
         cursor: pointer;
     }
+
+    /* EMBER running/waiting/classifying status pulse (used by P3 signal components) */
+    @keyframes pulse {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.45;
+        }
+    }
 }
 
 /*

@@ -15,23 +15,23 @@ export interface TargetTypeMeta {
 
 export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
     [TargetType.Api]: {
-        badgeClassName: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'API',
     },
     [TargetType.Aws]: {
-        badgeClassName: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'AWS',
     },
     [TargetType.Azure]: {
-        badgeClassName: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'Azure',
     },
     [TargetType.Cloud]: {
-        badgeClassName: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'Cloud',
     },
     [TargetType.Gcp]: {
-        badgeClassName: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'GCP',
     },
     [TargetType.General]: {
@@ -39,15 +39,15 @@ export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
         label: 'General',
     },
     [TargetType.MobileBackend]: {
-        badgeClassName: 'bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'Mobile Backend',
     },
     [TargetType.Network]: {
-        badgeClassName: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'Network',
     },
     [TargetType.WebApp]: {
-        badgeClassName: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
+        badgeClassName: 'bg-muted text-muted-foreground',
         label: 'Web',
     },
 };

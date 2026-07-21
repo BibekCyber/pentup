@@ -1,18 +1,14 @@
-import type { LucideIcon } from 'lucide-react';
-
-import { CircleCheck, CircleDashed, CircleX, Loader2 } from 'lucide-react';
-
 import { Badge } from '@/components/ui/badge';
 import { DomainStatusType } from '@/graphql/types';
 import { cn } from '@/lib/utils';
 
-const statusConfig: Record<DomainStatusType, { className: string; icon: LucideIcon; label: string }> = {
-    [DomainStatusType.Classifying]: { className: 'animate-spin text-cyan-500', icon: Loader2, label: 'Classifying' },
-    [DomainStatusType.Created]: { className: 'text-blue-500', icon: CircleDashed, label: 'Created' },
-    [DomainStatusType.Failed]: { className: 'text-red-500', icon: CircleX, label: 'Failed' },
-    [DomainStatusType.Finished]: { className: 'text-green-500', icon: CircleCheck, label: 'Finished' },
-    [DomainStatusType.Running]: { className: 'animate-spin text-purple-500', icon: Loader2, label: 'Running' },
-    [DomainStatusType.Waiting]: { className: 'text-amber-500', icon: CircleDashed, label: 'Waiting' },
+const statusConfig: Record<DomainStatusType, { className: string; label: string; pulse?: boolean }> = {
+    [DomainStatusType.Classifying]: { className: 'text-[var(--st-classifying)]', label: 'Classifying', pulse: true },
+    [DomainStatusType.Created]: { className: 'text-[var(--st-created)]', label: 'Created' },
+    [DomainStatusType.Failed]: { className: 'text-[var(--st-failed)]', label: 'Failed' },
+    [DomainStatusType.Finished]: { className: 'text-[var(--st-finished)]', label: 'Finished' },
+    [DomainStatusType.Running]: { className: 'text-[var(--st-running)]', label: 'Running', pulse: true },
+    [DomainStatusType.Waiting]: { className: 'text-[var(--st-waiting)]', label: 'Waiting', pulse: true },
 };
 
 interface DomainStatusBadgeProps {
@@ -23,14 +19,18 @@ interface DomainStatusBadgeProps {
 /** A small status badge for a {@link DomainStatusType}, styled like the rest of the app. */
 export const DomainStatusBadge = ({ className, status }: DomainStatusBadgeProps) => {
     const config = statusConfig[status];
-    const Icon = config.icon;
 
     return (
         <Badge
-            className={cn('gap-1', className)}
+            className={cn('gap-1.5 font-medium', config.className, className)}
             variant="outline"
         >
-            <Icon className={cn('size-3 shrink-0', config.className)} />
+            <span
+                className={cn(
+                    'size-2 shrink-0 rounded-full bg-current',
+                    config.pulse && 'animate-[pulse_1.6s_ease-in-out_infinite]',
+                )}
+            />
             {config.label}
         </Badge>
     );

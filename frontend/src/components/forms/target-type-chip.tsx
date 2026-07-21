@@ -22,7 +22,7 @@ export const TargetTypeChip = ({ className, onRemove, type }: TargetTypeChipProp
 
     return (
         <Badge
-            className={cn('border-transparent', meta.badgeClassName, className)}
+            className={cn('border-border font-medium', meta.badgeClassName, className)}
             variant="outline"
         >
             {meta.label}
