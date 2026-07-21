@@ -78,7 +78,6 @@ const SettingsPrompts = () => {
         type: 'all' | 'human' | 'system' | 'tool';
     }>(null);
 
-
     // Three-way sorting handler: null -> asc -> desc -> null
     const handleColumnSort = (column: {
         clearSorting: () => void;
@@ -366,7 +365,10 @@ const SettingsPrompts = () => {
                 const status = row.getValue('systemStatus') as string;
 
                 return (
-                    <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
+                    <Badge
+                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
+                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
+                    >
                         {status}
                     </Badge>
                 );
@@ -380,7 +382,10 @@ const SettingsPrompts = () => {
                 const status = row.getValue('humanStatus') as string;
 
                 return (
-                    <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
+                    <Badge
+                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
+                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
+                    >
                         {status}
                     </Badge>
                 );
@@ -536,7 +541,10 @@ const SettingsPrompts = () => {
                 const status = row.getValue('status') as string;
 
                 return (
-                    <Badge variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}>
+                    <Badge
+                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
+                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
+                    >
                         {status}
                     </Badge>
                 );
@@ -621,26 +629,28 @@ const SettingsPrompts = () => {
         const humanTemplate = userHumanPrompt?.template || agent.humanTemplate;
 
         return (
-            <div className="bg-muted/20 flex flex-col gap-4 border-t p-4">
-                <h4 className="font-medium">Prompt Templates</h4>
-                <hr className="border-muted-foreground/20" />
+            <div className="bg-well flex flex-col gap-4 border-t p-4">
+                <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                    Prompt Templates
+                </h4>
+                <hr className="border-border-strong" />
 
                 <div className="flex flex-col gap-4">
                     {agent.hasSystem && (
                         <div>
-                            <h5 className="mb-2 flex items-center gap-2 text-sm font-medium">
+                            <h5 className="text-muted-foreground mb-2 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-wide uppercase">
                                 <Code className="size-3" />
                                 System Prompt
                                 {userSystemPrompt && (
                                     <Badge
-                                        className="text-xs"
-                                        variant="secondary"
+                                        className="border-primary/30 bg-primary/10 text-primary font-mono text-[10px] font-bold tracking-wide uppercase"
+                                        variant="outline"
                                     >
                                         Custom
                                     </Badge>
                                 )}
                             </h5>
-                            <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
+                            <pre className="bg-card border-border-strong max-h-64 overflow-auto rounded-md border p-3 font-mono text-xs whitespace-pre-wrap">
                                 {systemTemplate}
                             </pre>
                         </div>
@@ -648,19 +658,19 @@ const SettingsPrompts = () => {
 
                     {agent.hasHuman && humanTemplate && (
                         <div>
-                            <h5 className="mb-2 flex items-center gap-2 text-sm font-medium">
+                            <h5 className="text-muted-foreground mb-2 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-wide uppercase">
                                 <User className="size-3" />
                                 Human Prompt
                                 {userHumanPrompt && (
                                     <Badge
-                                        className="text-xs"
-                                        variant="secondary"
+                                        className="border-primary/30 bg-primary/10 text-primary font-mono text-[10px] font-bold tracking-wide uppercase"
+                                        variant="outline"
                                     >
                                         Custom
                                     </Badge>
                                 )}
                             </h5>
-                            <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
+                            <pre className="bg-card border-border-strong max-h-64 overflow-auto rounded-md border p-3 font-mono text-xs whitespace-pre-wrap">
                                 {humanTemplate}
                             </pre>
                         </div>
@@ -681,19 +691,21 @@ const SettingsPrompts = () => {
         const template = userToolPrompt?.template || tool.template;
 
         return (
-            <div className="bg-muted/20 border-t p-4">
+            <div className="bg-well border-t p-4">
                 <div className="mb-2 flex items-center gap-2">
-                    <h5 className="text-sm font-medium">Template</h5>
+                    <h5 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                        Template
+                    </h5>
                     {userToolPrompt && (
                         <Badge
-                            className="text-xs"
-                            variant="secondary"
+                            className="border-primary/30 bg-primary/10 text-primary font-mono text-[10px] font-bold tracking-wide uppercase"
+                            variant="outline"
                         >
                             Custom
                         </Badge>
                     )}
                 </div>
-                <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
+                <pre className="bg-card border-border-strong max-h-64 overflow-auto rounded-md border p-3 font-mono text-xs whitespace-pre-wrap">
                     {template}
                 </pre>
             </div>
@@ -845,8 +857,13 @@ const SettingsPrompts = () => {
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <Bot className="text-muted-foreground size-5" />
-                            <h2 className="text-lg font-semibold">Agent Prompts</h2>
-                            <Badge variant="secondary">{agentPrompts.length}</Badge>
+                            <h2 className="font-mono text-sm font-semibold tracking-wide uppercase">Agent Prompts</h2>
+                            <Badge
+                                className="font-mono text-[10px] font-bold tracking-wide"
+                                variant="secondary"
+                            >
+                                {agentPrompts.length}
+                            </Badge>
                         </div>
                         <p className="text-muted-foreground text-sm">System and human prompts for AI agents</p>
                         <DataTable<AgentPromptTableData>
@@ -866,8 +883,13 @@ const SettingsPrompts = () => {
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <Wrench className="text-muted-foreground size-5" />
-                            <h2 className="text-lg font-semibold">Tool Prompts</h2>
-                            <Badge variant="secondary">{toolPrompts.length}</Badge>
+                            <h2 className="font-mono text-sm font-semibold tracking-wide uppercase">Tool Prompts</h2>
+                            <Badge
+                                className="font-mono text-[10px] font-bold tracking-wide"
+                                variant="secondary"
+                            >
+                                {toolPrompts.length}
+                            </Badge>
                         </div>
                         <p className="text-muted-foreground text-sm">Prompt templates for system tools and utilities</p>
                         <DataTable<ToolPromptTableData>

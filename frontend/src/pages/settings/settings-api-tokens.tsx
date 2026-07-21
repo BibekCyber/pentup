@@ -466,7 +466,7 @@ const SettingsAPITokens = () => {
 
                     return (
                         <div className="flex items-center gap-2">
-                            <code className="text-sm">{tokenId}</code>
+                            <code className="text-muted-foreground font-mono text-xs">{tokenId}</code>
                             <Button
                                 className="size-6 p-0"
                                 onClick={() => handleCopyTokenId(tokenId)}
@@ -612,7 +612,9 @@ const SettingsAPITokens = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(expiresAtString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-xs">
+                                    {formatDateTime(expiresAtString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <div className="text-xs">{formatFullDateTime(expiresAtString)}</div>
@@ -661,7 +663,9 @@ const SettingsAPITokens = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-xs">
+                                    {formatDateTime(dateString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <div className="text-xs">{formatFullDateTime(dateString)}</div>
@@ -936,8 +940,13 @@ const SettingsAPITokens = () => {
                             Copy this token now. You won't be able to see it again for security reasons.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="bg-muted rounded p-4">
-                        <code className="text-sm break-all">{tokenSecret}</code>
+                    <div className="flex flex-col gap-2">
+                        <span className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">
+                            One-time secret
+                        </span>
+                        <div className="bg-well border-border-strong rounded border p-4">
+                            <code className="text-primary font-mono text-sm break-all">{tokenSecret}</code>
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         <Button
@@ -953,7 +962,7 @@ const SettingsAPITokens = () => {
                                     }
                                 }
                             }}
-                            variant="secondary"
+                            variant="default"
                         >
                             <Copy className="size-4" />
                             Copy Token

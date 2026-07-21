@@ -143,18 +143,20 @@ const Variables: React.FC<VariablesProps> = ({ currentTemplate, onVariableClick,
     const usedVariables = getUsedVariables(currentTemplate);
 
     return (
-        <div className="bg-muted/50 mb-4 rounded-md border p-3">
-            <h4 className="text-muted-foreground mb-2 text-sm font-medium">Available Variables:</h4>
+        <div className="bg-well border-border-strong mb-4 rounded-md border p-3">
+            <h4 className="text-muted-foreground mb-2 font-mono text-[11px] font-semibold tracking-wide uppercase">
+                Available Variables
+            </h4>
             <div className="flex flex-wrap gap-1">
                 {variables.map((variable) => {
                     const isUsed = usedVariables.has(variable);
 
                     return (
                         <code
-                            className={`cursor-pointer rounded border px-2 py-1 font-mono text-xs transition-colors ${
+                            className={`cursor-pointer rounded border px-2 py-1 font-mono text-xs tracking-wide transition-colors ${
                                 isUsed
-                                    ? 'border-green-300 bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-background text-foreground hover:bg-accent'
+                                    ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20'
+                                    : 'border-border-strong bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'
                             }`}
                             key={variable}
                             onClick={() => onVariableClick(variable)}
@@ -533,7 +535,6 @@ const SettingsPrompt = () => {
 
         // For creation, check if the template is identical to the default
         if (!isUpdate && formData.template === promptInfo.defaultSystemTemplate) {
-
             return;
         }
 
@@ -585,7 +586,6 @@ const SettingsPrompt = () => {
 
         // For creation, check if the template is identical to the default
         if (!isUpdate && formData.template === promptInfo.defaultHumanTemplate) {
-
             return;
         }
 
@@ -869,7 +869,7 @@ const SettingsPrompt = () => {
             </Tabs>
 
             {/* Sticky footer with variables and buttons */}
-            <div className="bg-background sticky -bottom-4 -mx-4 mt-4 -mb-4 border-t p-4 shadow-lg">
+            <div className="bg-background border-border-strong sticky -bottom-4 -mx-4 mt-4 -mb-4 border-t p-4">
                 {/* Variables */}
                 {variablesData && (
                     <Variables
@@ -936,7 +936,7 @@ const SettingsPrompt = () => {
                                 disabled={isLoading}
                                 form="system-prompt-form"
                                 type="submit"
-                                variant="secondary"
+                                variant="default"
                             >
                                 {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 {isLoading ? 'Saving...' : 'Save Changes'}
@@ -947,7 +947,7 @@ const SettingsPrompt = () => {
                                 disabled={isLoading}
                                 form="human-prompt-form"
                                 type="submit"
-                                variant="secondary"
+                                variant="default"
                             >
                                 {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 {isLoading ? 'Saving...' : 'Save Changes'}

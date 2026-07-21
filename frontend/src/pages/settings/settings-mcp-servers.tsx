@@ -105,7 +105,6 @@ const formatFullDateTime = (dateString: string) => {
 const SettingsMcpServers = () => {
     const navigate = useNavigate();
 
-
     // Mocked data stored locally. This can be replaced by a real query later.
     const initialData: McpServerItem[] = useMemo(
         () => [
@@ -279,7 +278,14 @@ const SettingsMcpServers = () => {
             cell: ({ row }) => {
                 const t = row.getValue('transport') as McpTransport;
 
-                return <Badge variant="outline">{t.toUpperCase()}</Badge>;
+                return (
+                    <Badge
+                        className="border-border-strong text-muted-foreground font-mono text-[10px] font-bold tracking-wide"
+                        variant="outline"
+                    >
+                        {t.toUpperCase()}
+                    </Badge>
+                );
             },
             header: 'Transport',
             size: 120,
@@ -302,7 +308,7 @@ const SettingsMcpServers = () => {
                     <div className="flex w-full flex-wrap items-center gap-1 overflow-hidden">
                         {first.map((t) => (
                             <Badge
-                                className="text-[10px]"
+                                className="font-mono text-[10px] tracking-wide"
                                 key={t.name}
                                 variant="secondary"
                             >
@@ -311,7 +317,7 @@ const SettingsMcpServers = () => {
                         ))}
                         {rest > 0 && (
                             <Badge
-                                className="text-[10px]"
+                                className="border-border-strong text-muted-foreground font-mono text-[10px] tracking-wide"
                                 variant="outline"
                             >
                                 +{rest}
@@ -319,7 +325,7 @@ const SettingsMcpServers = () => {
                         )}
                         {disabledCount > 0 && (
                             <Badge
-                                className="ml-1 text-[10px]"
+                                className="border-border-strong text-muted-foreground/70 ml-1 font-mono text-[10px] tracking-wide"
                                 variant="outline"
                             >
                                 {disabledCount} disabled
@@ -337,14 +343,16 @@ const SettingsMcpServers = () => {
                 const s = row.original as McpServerItem;
 
                 if (s.transport === 'sse' && s.config.sse) {
-                    return <span className="text-muted-foreground text-sm break-all">{s.config.sse.url}</span>;
+                    return (
+                        <span className="text-muted-foreground font-mono text-xs break-all">{s.config.sse.url}</span>
+                    );
                 }
 
                 if (s.transport === 'stdio' && s.config.stdio) {
                     const args = s.config.stdio.args?.join(' ') || '';
 
                     return (
-                        <span className="text-muted-foreground text-sm break-all">
+                        <span className="text-muted-foreground font-mono text-xs break-all">
                             {s.config.stdio.command} {args}
                         </span>
                     );
@@ -509,7 +517,7 @@ const SettingsMcpServers = () => {
             }
 
             return (
-                <div className="flex flex-col gap-1 text-sm">
+                <div className="flex flex-col gap-1 font-mono text-xs">
                     {Object.entries(obj)
                         .filter(([_, v]) => !!v)
                         .map(([k, v]) => (
@@ -522,13 +530,17 @@ const SettingsMcpServers = () => {
         };
 
         return (
-            <div className="bg-muted/20 flex flex-col gap-4 border-t p-4">
-                <h4 className="font-medium">Configuration</h4>
-                <hr className="border-muted-foreground/20" />
+            <div className="bg-well flex flex-col gap-4 border-t p-4">
+                <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                    Configuration
+                </h4>
+                <hr className="border-border-strong" />
                 {server.transport === 'stdio' && server.config.stdio && (
                     <div className="flex flex-col gap-2">
-                        <div className="text-sm font-medium">STDIO</div>
-                        <div className="flex flex-col gap-1 text-sm">
+                        <div className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                            STDIO
+                        </div>
+                        <div className="flex flex-col gap-1 font-mono text-xs">
                             <div>
                                 <span className="text-muted-foreground">Command:</span> {server.config.stdio.command}
                             </div>
@@ -540,40 +552,50 @@ const SettingsMcpServers = () => {
                             )}
                         </div>
                         <div>
-                            <div className="text-sm font-medium">Env</div>
+                            <div className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                Env
+                            </div>
                             {renderKeyValue(server.config.stdio.env)}
                         </div>
                     </div>
                 )}
                 {server.transport === 'sse' && server.config.sse && (
                     <div className="flex flex-col gap-2">
-                        <div className="text-sm font-medium">SSE</div>
-                        <div className="flex flex-col gap-1 text-sm">
+                        <div className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                            SSE
+                        </div>
+                        <div className="flex flex-col gap-1 font-mono text-xs">
                             <div>
                                 <span className="text-muted-foreground">URL:</span> {server.config.sse.url}
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm font-medium">Headers</div>
+                            <div className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                Headers
+                            </div>
                             {renderKeyValue(server.config.sse.headers)}
                         </div>
                     </div>
                 )}
                 <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium">Tools</div>
+                    <div className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                        Tools
+                    </div>
                     {server.tools?.length ? (
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                             {server.tools.map((t, idx) => (
                                 <div
-                                    className="flex items-start justify-between gap-4 rounded-md border p-2"
+                                    className="bg-card border-border-strong flex items-start justify-between gap-4 rounded-md border p-2"
                                     key={`${t.name}-${idx}`}
                                 >
                                     <div className="text-sm">
-                                        <div className="font-medium">{t.name}</div>
+                                        <div className="font-mono text-xs font-medium">{t.name}</div>
                                         {t.description && <div className="text-muted-foreground">{t.description}</div>}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground text-xs">Enabled</span>
+                                        <span className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">
+                                            Enabled
+                                        </span>
                                         <Switch
                                             aria-label={`Toggle ${t.name}`}
                                             checked={t.enabled !== false}

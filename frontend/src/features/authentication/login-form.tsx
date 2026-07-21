@@ -158,11 +158,14 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
 
     if (shouldShowPasswordChange) {
         return (
-            <div className="mx-auto flex w-[350px] flex-col gap-6">
-                <h1 className="text-center text-3xl font-bold">Update Password</h1>
-                <p className="text-muted-foreground text-center text-sm">
-                    You need to change your password before continuing.
-                </p>
+            <div className="bg-card mx-auto flex w-full max-w-[380px] flex-col gap-6 rounded-lg border p-8">
+                <div className="flex flex-col gap-1.5 text-center">
+                    <span className="text-muted-foreground mx-auto font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+                        Operator access
+                    </span>
+                    <h1 className="text-2xl font-bold tracking-tight">Update Password</h1>
+                    <p className="text-muted-foreground text-sm">You need to change your password before continuing.</p>
+                </div>
                 <PasswordChangeForm
                     isModal={false}
                     onSkip={handleSkipPasswordChange}
@@ -176,10 +179,16 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
     return (
         <Form {...form}>
             <form
-                className="mx-auto grid w-[350px] gap-8"
+                className="bg-card mx-auto grid w-full max-w-[380px] gap-8 rounded-lg border p-8"
                 onSubmit={form.handleSubmit(handleSubmit)}
             >
-                <h1 className="text-center text-3xl font-bold">PentAGI</h1>
+                <div className="flex flex-col gap-1.5 text-center">
+                    <span className="text-muted-foreground mx-auto font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+                        Operator access
+                    </span>
+                    <h1 className="text-2xl font-bold tracking-tight">PentAGI</h1>
+                    <p className="text-muted-foreground text-sm">Sign in to reach the console.</p>
+                </div>
 
                 {providers?.length > 0 && (
                     <>
@@ -192,7 +201,7 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
                                         key={provider.id}
                                         onClick={() => handleProviderLogin(provider.id)}
                                         type="button"
-                                        variant="secondary"
+                                        variant="outline"
                                     >
                                         {provider.icon}
                                         {provider.name}
@@ -204,8 +213,10 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
                             <div className="absolute inset-0 flex items-center">
                                 <div className="border-border w-full border-t" />
                             </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="bg-background px-2">or</span>
+                            <div className="relative flex justify-center">
+                                <span className="bg-card text-muted-foreground px-2 font-mono text-[11px] tracking-[0.14em] uppercase">
+                                    or
+                                </span>
                             </div>
                         </div>
                     </>

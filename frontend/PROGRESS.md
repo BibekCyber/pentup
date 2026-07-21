@@ -39,10 +39,14 @@ system-function check + a className/JSX-only `git diff`.
       _Built via workflow (3 parallel modules → gate → 4 adversarial verifiers); Report/Dashboard/Templates lenses
       clean. Deferred: gallery drops DataTable title-search+sort (plan-sanctioned, restore in P10); dashboard
       cost-share mini-bars omitted (optional)._
-- [ ] **P8 — Settings + Login + Auth** — settings {`settings-providers,settings-provider,settings-prompts,
-      settings-prompt,settings-api-tokens,settings-users`}.tsx; `login.tsx`, `login-form.tsx`,
-      `password-change-form.tsx`; shared `ui/data-table.tsx`. VERBATIM: `user-provider.tsx`, `passwordChangeSchema`.
-      _Sanity: API-token inline edit + one-time secret, provider Test, login redirect, users self-guard._
+- [x] **P8 — Settings + Login + Auth** — settings {`settings-providers,settings-provider(R3),settings-prompts,
+      settings-prompt,settings-mcp-servers,settings-mcp-server,settings-api-tokens,settings-users`}.tsx (mcp pair
+      folded in — they existed + use DataTable); `login.tsx`, `login-form.tsx`, `password-change-form.tsx`; shared
+      `ui/data-table.tsx` (R10). _Gate: build ✓, lint baseline (0 new), **full 159/159 tests green**; R3 form
+      (reduce builder + setValue cascades + 6 mutations) byte-identical; R10 table engine untouched (no cva key
+      renamed); R11 `passwordChangeSchema` + rule copy byte-identical; `user-provider`/`confirmation-dialog`/
+      ui-primitives EMPTY diff. Built via workflow (5 modules → gate → 4 adversarial lenses, all clean). Only prop
+      swaps: Save `secondary→default`, OAuth/Custom-badge `secondary→outline` (presentational, no cva key dropped)._
 - [ ] **P9 — Terminal lazy-highlight** — `shared/terminal/terminal-highlight.tsx` (`TermOutput` only).
       _Sanity: no plain-text flash, find-in-page + copy see full text, flow load stall gone._
 - [ ] **P10 — Responsiveness + regression pass** — no new files; full sweep both themes + all system functions +

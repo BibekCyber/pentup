@@ -295,7 +295,9 @@ const SettingsMcpServer = () => {
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Name</FormLabel>
+                                        <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                            Name
+                                        </FormLabel>
                                         <FormControl>
                                             <Input
                                                 {...field}
@@ -313,7 +315,9 @@ const SettingsMcpServer = () => {
                                 name="transport"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Transport</FormLabel>
+                                        <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                            Transport
+                                        </FormLabel>
                                         <Select
                                             defaultValue={field.value}
                                             onValueChange={(v: McpTransport) => {
@@ -355,14 +359,18 @@ const SettingsMcpServer = () => {
                         {/* STDIO configuration */}
                         {transport === 'stdio' && (
                             <div className="flex flex-col gap-4">
-                                <h3 className="text-lg font-medium">STDIO Configuration</h3>
+                                <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                    STDIO Configuration
+                                </h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <FormField
                                         control={form.control}
                                         name="stdio.command"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Command</FormLabel>
+                                                <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                                    Command
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         {...field}
@@ -378,7 +386,9 @@ const SettingsMcpServer = () => {
                                         name="stdio.args"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Args</FormLabel>
+                                                <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                                    Args
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         {...field}
@@ -395,7 +405,9 @@ const SettingsMcpServer = () => {
 
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h4 className="text-sm font-medium">Environment Variables</h4>
+                                        <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                            Environment Variables
+                                        </h4>
                                         <Button
                                             onClick={() => handleAddKeyValue('env')}
                                             size="sm"
@@ -454,13 +466,17 @@ const SettingsMcpServer = () => {
                         {/* SSE configuration */}
                         {transport === 'sse' && (
                             <div className="flex flex-col gap-4">
-                                <h3 className="text-lg font-medium">SSE Configuration</h3>
+                                <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                    SSE Configuration
+                                </h3>
                                 <FormField
                                     control={form.control}
                                     name="sse.url"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>URL</FormLabel>
+                                            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                                URL
+                                            </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     {...field}
@@ -474,7 +490,9 @@ const SettingsMcpServer = () => {
 
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h4 className="text-sm font-medium">Headers</h4>
+                                        <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                            Headers
+                                        </h4>
                                         <Button
                                             onClick={() => handleAddKeyValue('headers')}
                                             size="sm"
@@ -534,8 +552,12 @@ const SettingsMcpServer = () => {
                         {!isNew && (
                             <div className="flex flex-col gap-4">
                                 <div>
-                                    <h3 className="text-lg font-medium">Tools</h3>
-                                    <p className="text-muted-foreground text-sm">Enable or disable available tools</p>
+                                    <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                        Tools
+                                    </h3>
+                                    <p className="text-muted-foreground mt-1 text-sm">
+                                        Enable or disable available tools
+                                    </p>
                                 </div>
                                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                     {toolsArray.fields.length === 0 && (
@@ -543,12 +565,12 @@ const SettingsMcpServer = () => {
                                     )}
                                     {toolsArray.fields.map((tool, index) => (
                                         <div
-                                            className="flex flex-col gap-2 rounded-md border p-2"
+                                            className="bg-card border-border-strong flex flex-col gap-2 rounded-md border p-2"
                                             key={tool.id}
                                         >
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex-1 text-sm">
-                                                    <div className="truncate font-medium">
+                                                    <div className="truncate font-mono text-xs font-medium">
                                                         {form.watch(`tools.${index}.name`) || 'tool'}
                                                     </div>
                                                     {form.watch(`tools.${index}.description`) && (
@@ -558,7 +580,9 @@ const SettingsMcpServer = () => {
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-muted-foreground text-xs">Enabled</span>
+                                                    <span className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">
+                                                        Enabled
+                                                    </span>
                                                     <Controller
                                                         control={form.control}
                                                         name={`tools.${index}.enabled` as const}
@@ -606,7 +630,7 @@ const SettingsMcpServer = () => {
             </div>
 
             {/* Sticky buttons */}
-            <div className="bg-background sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4 shadow-lg">
+            <div className="bg-background border-border-strong sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4">
                 <div className="flex gap-2">
                     {!isNew && (
                         <Button
@@ -640,7 +664,7 @@ const SettingsMcpServer = () => {
                         disabled={form.formState.isSubmitting}
                         form="mcp-server-form"
                         type="submit"
-                        variant="secondary"
+                        variant="default"
                     >
                         {form.formState.isSubmitting ? (
                             <Loader2 className="size-4 animate-spin" />

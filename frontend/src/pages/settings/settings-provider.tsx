@@ -99,7 +99,9 @@ const FormInputStringItem: React.FC<FormInputStringItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                {label}
+            </FormLabel>
             <FormControl>
                 <Input
                     {...field}
@@ -107,7 +109,9 @@ const FormInputStringItem: React.FC<FormInputStringItemProps> = ({
                     value={field.value ?? ''}
                 />
             </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description && (
+                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
+            )}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -150,11 +154,14 @@ const FormInputNumberItem: React.FC<FormInputNumberItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                {label}
+            </FormLabel>
             <FormControl>
                 <Input
                     {...field}
                     {...inputProps}
+                    className="font-mono tabular-nums"
                     onChange={(event) => {
                         const { value } = event.target;
                         field.onChange(parseValue(value));
@@ -162,7 +169,9 @@ const FormInputNumberItem: React.FC<FormInputNumberItemProps> = ({
                     value={field.value ?? ''}
                 />
             </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description && (
+                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
+            )}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -203,7 +212,9 @@ const FormComboboxItem: React.FC<FormComboboxItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                {label}
+            </FormLabel>
             <FormControl>
                 <Popover
                     onOpenChange={setIsOpen}
@@ -280,7 +291,9 @@ const FormComboboxItem: React.FC<FormComboboxItemProps> = ({
                     </PopoverContent>
                 </Popover>
             </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description && (
+                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
+            )}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -328,7 +341,9 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
     const displayValue = field.value ?? '';
 
     // Format price for display
-    const formatPrice = (price?: null | { cacheRead: number; cacheWrite: number; input: number; output: number }): string => {
+    const formatPrice = (
+        price?: null | { cacheRead: number; cacheWrite: number; input: number; output: number },
+    ): string => {
         if (!price || ((!price.input || price.input === 0) && (!price.output || price.output === 0))) {
             return 'free';
         }
@@ -338,7 +353,7 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
         };
 
         const basePrice = `$${formatValue(price.input)}/$${formatValue(price.output)}`;
-        
+
         // Add cache prices if available
         const hasCachePrices = (price.cacheRead && price.cacheRead > 0) || (price.cacheWrite && price.cacheWrite > 0);
 
@@ -361,7 +376,9 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                {label}
+            </FormLabel>
             <FormControl>
                 <Popover
                     onOpenChange={setIsOpen}
@@ -370,7 +387,7 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
                     <div className="flex w-full">
                         {/* Input field - main control */}
                         <Input
-                            className="rounded-r-none border-r-0 focus-visible:z-10"
+                            className="rounded-r-none border-r-0 font-mono focus-visible:z-10"
                             disabled={disabled}
                             onChange={(event) => field.onChange(event.target.value)}
                             placeholder={placeholder}
@@ -434,12 +451,14 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
                                             >
                                                 <div className="flex w-full min-w-0 items-center justify-between gap-2">
                                                     <div className="flex min-w-0 items-center gap-2">
-                                                        <span className="truncate">{option.name}</span>
+                                                        <span className="truncate font-mono text-sm">
+                                                            {option.name}
+                                                        </span>
                                                         {option.thinking && (
                                                             <Lightbulb className="text-muted-foreground size-3" />
                                                         )}
                                                     </div>
-                                                    <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap">
+                                                    <span className="text-muted-foreground shrink-0 font-mono text-xs whitespace-nowrap tabular-nums">
                                                         {formatPrice(option.price)}
                                                     </span>
                                                 </div>
@@ -458,7 +477,9 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
                     </div>
                 </Popover>
             </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description && (
+                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
+            )}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -723,8 +744,10 @@ const TestResultsDialog = ({ handleOpenChange, isOpen, results }: TestResultsDia
                                 >
                                     <AccordionTrigger className="text-left">
                                         <div className="mr-4 flex w-full items-center justify-between">
-                                            <span className="text-lg font-semibold capitalize">{agentType}</span>
-                                            <span className="text-muted-foreground text-sm">
+                                            <span className="text-foreground font-mono text-sm font-semibold tracking-wide uppercase">
+                                                {agentType}
+                                            </span>
+                                            <span className="text-muted-foreground font-mono text-xs tabular-nums">
                                                 {successTestsCount}/{testsCount} tests passed
                                             </span>
                                         </div>
@@ -733,7 +756,7 @@ const TestResultsDialog = ({ handleOpenChange, isOpen, results }: TestResultsDia
                                         <div className="flex flex-col gap-3 pt-2">
                                             {tests.map((test: any, index: number) => (
                                                 <div
-                                                    className="rounded-lg border p-3"
+                                                    className="bg-well border-border-strong rounded-lg border p-3"
                                                     key={index}
                                                 >
                                                     <div className="mb-2 flex items-start justify-between">
@@ -746,7 +769,7 @@ const TestResultsDialog = ({ handleOpenChange, isOpen, results }: TestResultsDia
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                                                        <div className="text-muted-foreground flex items-center gap-3 font-mono text-xs">
                                                             {test.reasoning !== undefined && (
                                                                 <span>Reasoning: {test.reasoning ? 'Yes' : 'No'}</span>
                                                             )}
@@ -767,7 +790,7 @@ const TestResultsDialog = ({ handleOpenChange, isOpen, results }: TestResultsDia
                                                               : 'Unknown'}
                                                     </div>
                                                     {test.error && (
-                                                        <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+                                                        <div className="border-destructive/30 bg-destructive/10 text-destructive mt-2 rounded border p-2 font-mono text-sm">
                                                             <strong>Error:</strong> {test.error}
                                                         </div>
                                                     )}
@@ -1394,12 +1417,15 @@ const SettingsProvider = () => {
         <>
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        <Cpu className="text-muted-foreground size-5" />
+                    <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
+                        LLM Provider
+                    </span>
+                    <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                        <Cpu className="text-primary size-5" />
                         {isNew ? 'New Provider' : 'Provider Settings'}
                     </h2>
 
-                    <div className="text-muted-foreground">
+                    <div className="text-muted-foreground font-mono text-[12px]">
                         {isNew
                             ? 'Configure a new language model provider'
                             : 'Update provider settings and configuration'}
@@ -1428,48 +1454,62 @@ const SettingsProvider = () => {
                         )}
 
                         {/* Form fields */}
-                        <FormComboboxItem
-                            allowCustom={false}
-                            control={control}
-                            description="The type of language model provider"
-                            disabled={isLoading || !!selectedType}
-                            label="Type"
-                            name="type"
-                            options={providers}
-                            placeholder="Select provider"
-                        />
+                        <div className="bg-card ring-card rounded-lg border p-4">
+                            <div className="text-muted-foreground mb-4 font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
+                                Identity
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <FormComboboxItem
+                                    allowCustom={false}
+                                    control={control}
+                                    description="The type of language model provider"
+                                    disabled={isLoading || !!selectedType}
+                                    label="Type"
+                                    name="type"
+                                    options={providers}
+                                    placeholder="Select provider"
+                                />
 
-                        <FormInputStringItem
-                            control={control}
-                            description="A unique name for your provider configuration"
-                            disabled={isLoading}
-                            label="Name"
-                            name="name"
-                            placeholder="Enter provider name"
-                        />
+                                <FormInputStringItem
+                                    control={control}
+                                    description="A unique name for your provider configuration"
+                                    disabled={isLoading}
+                                    label="Name"
+                                    name="name"
+                                    placeholder="Enter provider name"
+                                />
+                            </div>
+                        </div>
 
                         {/* Agents Configuration Section */}
                         <div className="flex flex-col gap-4">
-                            <div>
-                                <h3 className="text-lg font-medium">Agent Configurations</h3>
-                                <p className="text-muted-foreground text-sm">Configure settings for each agent type</p>
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-foreground font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
+                                    Agent Configurations
+                                </h3>
+                                <p className="text-muted-foreground font-mono text-[12px]">
+                                    Configure settings for each agent type
+                                </p>
                             </div>
 
                             <Accordion
-                                className="w-full"
+                                className="flex w-full flex-col gap-2"
                                 type="multiple"
                             >
                                 {agentTypes.map((agentKey) => (
                                     <AccordionItem
+                                        className="bg-card border-border-strong rounded-lg border px-4"
                                         key={agentKey}
                                         value={agentKey}
                                     >
                                         <AccordionTrigger className="group text-left hover:no-underline">
                                             <div className="flex w-full items-center justify-between gap-2">
-                                                <span className="group-hover:underline">{getName(agentKey)}</span>
+                                                <span className="text-foreground group-hover:text-primary text-sm font-semibold tracking-tight">
+                                                    {getName(agentKey)}
+                                                </span>
                                                 <span
                                                     className={cn(
-                                                        'hover:bg-accent hover:text-accent-foreground mr-2 flex items-center gap-1 rounded border px-2 py-1 text-xs',
+                                                        'border-border-strong bg-well text-muted-foreground hover:border-primary/50 hover:text-primary mr-2 flex items-center gap-1 rounded-md border px-2.5 py-1 font-mono text-[11px] font-medium tracking-wide uppercase',
                                                         (isTestLoading || isAgentTestLoading) &&
                                                             'pointer-events-none cursor-not-allowed opacity-50',
                                                     )}
@@ -1639,7 +1679,9 @@ const SettingsProvider = () => {
                                             {/* Reasoning Configuration */}
                                             <div className="col-span-full p-px">
                                                 <div className="mt-6 flex flex-col gap-4">
-                                                    <h4 className="text-sm font-medium">Reasoning Configuration</h4>
+                                                    <h4 className="text-muted-foreground border-border/60 border-b pb-2 font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+                                                        Reasoning Configuration
+                                                    </h4>
                                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                         {/* Reasoning Effort field */}
                                                         <FormField
@@ -1647,7 +1689,9 @@ const SettingsProvider = () => {
                                                             name={`agents.${agentKey}.reasoning.effort`}
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Reasoning Effort</FormLabel>
+                                                                    <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                                                                        Reasoning Effort
+                                                                    </FormLabel>
                                                                     <Select
                                                                         defaultValue={field.value ?? 'none'}
                                                                         disabled={isLoading}
@@ -1699,7 +1743,9 @@ const SettingsProvider = () => {
                                             {/* Price Configuration */}
                                             <div className="col-span-full p-px">
                                                 <div className="mt-6 flex flex-col gap-4">
-                                                    <h4 className="text-sm font-medium">Price Configuration</h4>
+                                                    <h4 className="text-muted-foreground border-border/60 border-b pb-2 font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+                                                        Price Configuration
+                                                    </h4>
                                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                         {/* Price Input field */}
                                                         <FormInputNumberItem
@@ -1761,7 +1807,7 @@ const SettingsProvider = () => {
             </div>
 
             {/* Sticky buttons at bottom */}
-            <div className="bg-background sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4 shadow-lg">
+            <div className="bg-background/95 border-border-strong supports-[backdrop-filter]:bg-background/80 sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4 backdrop-blur">
                 <div className="flex gap-2">
                     {/* Delete button - only show when editing existing provider */}
                     {!isNew && (
@@ -1803,7 +1849,7 @@ const SettingsProvider = () => {
                         disabled={isLoading}
                         form="provider-form"
                         type="submit"
-                        variant="secondary"
+                        variant="default"
                     >
                         {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                         {isLoading ? 'Saving...' : isNew ? 'Create Provider' : 'Update Provider'}

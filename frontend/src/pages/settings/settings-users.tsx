@@ -1,6 +1,17 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { AlertCircle, KeyRound, Loader2, Lock, LockOpen, MoreHorizontal, Pencil, Plus, Trash, Users as UsersIcon } from 'lucide-react';
+import {
+    AlertCircle,
+    KeyRound,
+    Loader2,
+    Lock,
+    LockOpen,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash,
+    Users as UsersIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import UserDeleteDialog from '@/components/forms/user-delete-dialog';
@@ -138,7 +149,7 @@ const SettingsUsers = () => {
         () => [
             {
                 accessorKey: 'mail',
-                cell: ({ row }) => <div className="font-medium">{row.original.mail}</div>,
+                cell: ({ row }) => <div className="font-mono text-sm font-medium">{row.original.mail}</div>,
                 header: 'Email',
             },
             {
@@ -147,7 +158,11 @@ const SettingsUsers = () => {
                 header: 'Name',
             },
             {
-                cell: ({ row }) => row.original.role?.name ?? roleNameById.get(row.original.role_id) ?? '—',
+                cell: ({ row }) => (
+                    <span className="border-border-strong bg-well text-muted-foreground inline-flex items-center rounded border px-2 py-0.5 font-mono text-xs">
+                        {row.original.role?.name ?? roleNameById.get(row.original.role_id) ?? '—'}
+                    </span>
+                ),
                 header: 'Role',
                 id: 'role',
             },
@@ -157,7 +172,9 @@ const SettingsUsers = () => {
                 header: 'Status',
             },
             {
-                cell: ({ row }) => formatDate(row.original.created_at),
+                cell: ({ row }) => (
+                    <div className="text-muted-foreground font-mono text-xs">{formatDate(row.original.created_at)}</div>
+                ),
                 header: 'Created',
                 id: 'created_at',
             },

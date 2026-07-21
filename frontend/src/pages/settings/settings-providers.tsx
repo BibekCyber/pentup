@@ -107,7 +107,12 @@ const SettingsProvidersHeader = () => {
 
     return (
         <div className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground">Manage language model providers</p>
+            <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
+                    LLM Providers
+                </span>
+                <p className="text-muted-foreground font-mono text-[12px]">Manage language model providers</p>
+            </div>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -150,7 +155,6 @@ const SettingsProviders = () => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingProvider, setDeletingProvider] = useState<null | Provider>(null);
     const navigate = useNavigate();
-
 
     // Get current page from URL
     const currentPage = useMemo(() => {
@@ -268,14 +272,12 @@ const SettingsProviders = () => {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <button
-                                        aria-label={
-                                            provider.isDefault ? 'Default provider' : 'Set as default provider'
-                                        }
+                                        aria-label={provider.isDefault ? 'Default provider' : 'Set as default provider'}
                                         className={cn(
                                             'flex size-6 shrink-0 items-center justify-center rounded transition-colors',
                                             provider.isDefault
-                                                ? 'text-amber-500'
-                                                : 'text-muted-foreground/40 hover:text-amber-500',
+                                                ? 'text-primary'
+                                                : 'text-muted-foreground/40 hover:text-primary',
                                         )}
                                         disabled={provider.isDefault}
                                         onClick={(event) => {
@@ -291,10 +293,10 @@ const SettingsProviders = () => {
                                     {provider.isDefault ? 'Default provider' : 'Set as default'}
                                 </TooltipContent>
                             </Tooltip>
-                            <span className="font-medium">{row.getValue('name')}</span>
+                            <span className="font-semibold tracking-tight">{row.getValue('name')}</span>
                             {provider.isDefault ? (
                                 <Badge
-                                    className="text-xs"
+                                    className="border-primary/30 bg-primary/10 text-primary font-mono text-[10px] font-bold tracking-wide uppercase"
                                     variant="secondary"
                                 >
                                     Default
@@ -309,7 +311,7 @@ const SettingsProviders = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[11px] font-semibold tracking-wide uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -331,8 +333,11 @@ const SettingsProviders = () => {
                     const Icon = providerIcons[providerType];
 
                     return (
-                        <Badge variant="outline">
-                            {Icon && <Icon className="mr-1 size-3" />}
+                        <Badge
+                            className="border-border-strong text-muted-foreground gap-1 font-mono text-[10px] font-bold tracking-wide uppercase"
+                            variant="outline"
+                        >
+                            {Icon && <Icon className="size-3" />}
                             {providerTypes.find((p) => p.type === providerType)?.label || providerType}
                         </Badge>
                     );
@@ -342,7 +347,7 @@ const SettingsProviders = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[11px] font-semibold tracking-wide uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -365,10 +370,12 @@ const SettingsProviders = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-[12px] tabular-nums">
+                                    {formatDateTime(dateString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <div className="text-xs">{formatFullDateTime(dateString)}</div>
+                                <div className="font-mono text-xs tabular-nums">{formatFullDateTime(dateString)}</div>
                             </TooltipContent>
                         </Tooltip>
                     );
@@ -378,7 +385,7 @@ const SettingsProviders = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[11px] font-semibold tracking-wide uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -407,10 +414,12 @@ const SettingsProviders = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-[12px] tabular-nums">
+                                    {formatDateTime(dateString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <div className="text-xs">{formatFullDateTime(dateString)}</div>
+                                <div className="font-mono text-xs tabular-nums">{formatFullDateTime(dateString)}</div>
                             </TooltipContent>
                         </Tooltip>
                     );
@@ -420,7 +429,7 @@ const SettingsProviders = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[11px] font-semibold tracking-wide uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -522,7 +531,11 @@ const SettingsProviders = () => {
         const { agents } = provider;
 
         if (!agents) {
-            return <div className="text-muted-foreground p-4 text-sm">No agent configuration available</div>;
+            return (
+                <div className="text-muted-foreground bg-well border-border-strong border-t p-4 font-mono text-[12px]">
+                    No agent configuration available
+                </div>
+            );
         }
 
         // Convert camelCase key to display name (e.g., 'simpleJson' -> 'Simple Json')
@@ -557,30 +570,40 @@ const SettingsProviders = () => {
             .sort((a, b) => a.name.localeCompare(b.name));
 
         return (
-            <div className="bg-muted/20 border-t p-4">
-                <h4 className="font-medium">Agent Configurations</h4>
-                <hr className="border-muted-foreground/20 my-4" />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+            <div className="bg-well border-border-strong border-t p-4">
+                <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+                    Agent Configurations
+                </h4>
+                <hr className="border-border/60 my-4" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                     {agentTypes.map(({ data, key, name }) => {
                         // Get all fields from data, including nested objects
                         const fields = data ? getFields(data) : [];
 
                         return (
                             <div
-                                className="flex flex-col gap-2"
+                                className="bg-card border-border-strong flex flex-col gap-2 rounded-lg border p-3"
                                 key={key}
                             >
-                                <div className="text-sm font-medium">{name}</div>
+                                <div className="text-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                    {name}
+                                </div>
                                 {fields.length > 0 ? (
-                                    <div className="flex flex-col gap-1 text-sm">
+                                    <div className="flex flex-col gap-1 font-mono text-[12px]">
                                         {fields.map(({ label, value }) => (
-                                            <div key={label}>
-                                                <span className="text-muted-foreground">{label}:</span> {value}
+                                            <div
+                                                className="flex items-baseline justify-between gap-2"
+                                                key={label}
+                                            >
+                                                <span className="text-muted-foreground">{label}</span>
+                                                <span className="text-foreground tabular-nums">{value}</span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-muted-foreground text-sm">No configuration available</div>
+                                    <div className="text-muted-foreground font-mono text-[12px]">
+                                        No configuration available
+                                    </div>
                                 )}
                             </div>
                         );
