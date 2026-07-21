@@ -22,14 +22,13 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+import CommandBar from '@/components/layouts/command-bar';
 import { Badge } from '@/components/ui/badge';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -70,29 +69,36 @@ const ChoiceCard = ({
 }) => (
     <button
         className={cn(
-            'flex flex-1 flex-col items-start gap-2 rounded-md border p-4 text-left transition-colors',
-            selected ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
+            'flex w-full flex-1 items-center gap-3 rounded-lg border p-4 text-left transition-colors',
+            selected
+                ? 'border-primary bg-brand-tint-2 shadow-[0_0_0_3px_var(--brand-tint-2)]'
+                : 'border-border-strong hover:border-muted-foreground/40',
         )}
         onClick={onClick}
         type="button"
     >
-        <span className="flex w-full items-center justify-between">
-            <span
-                className={cn(
-                    'flex size-9 items-center justify-center rounded-md border',
-                    selected ? 'border-primary bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-                )}
-            >
-                <Icon className="size-5" />
-            </span>
-            {tag ? (
-                <Badge variant="secondary">{tag}</Badge>
-            ) : selected ? (
-                <Check className="text-primary size-4" />
-            ) : null}
+        <span
+            className={cn(
+                'text-primary flex size-10 shrink-0 items-center justify-center rounded-[10px] border',
+                selected ? 'border-primary bg-primary/10' : 'bg-muted',
+            )}
+        >
+            <Icon className="size-5" />
         </span>
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="text-muted-foreground text-xs">{description}</span>
+        <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-bold">{title}</span>
+                {tag ? <Badge variant="secondary">{tag}</Badge> : null}
+            </span>
+            <span className="text-muted-foreground mt-0.5 block text-xs leading-relaxed">{description}</span>
+        </span>
+        {selected ? (
+            <span className="bg-primary text-primary-foreground flex size-[22px] shrink-0 items-center justify-center rounded-full">
+                <Check className="size-3.5" />
+            </span>
+        ) : (
+            <span className="border-border-strong size-[22px] shrink-0 rounded-full border" />
+        )}
     </button>
 );
 
@@ -337,20 +343,18 @@ const NewEngagement = () => {
 
     return (
         <>
-            <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                    className="mr-2 h-4"
-                    orientation="vertical"
-                />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>New engagement</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </header>
+            <CommandBar
+                ctx={
+                    <>
+                        Step{' '}
+                        <span className="text-foreground font-semibold">{Math.min(step, stepKeys.length - 1) + 1}</span>{' '}
+                        / {stepKeys.length}
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="capitalize">{currentKey}</span>
+                    </>
+                }
+                title="New engagement"
+            />
 
             <div className="flex min-h-[calc(100dvh-3rem)] items-start justify-center p-4">
                 {isLoading ? (
@@ -385,12 +389,12 @@ const NewEngagement = () => {
                                         >
                                             <span
                                                 className={cn(
-                                                    'flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold capitalize',
+                                                    'flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-semibold',
                                                     completed
-                                                        ? 'border-primary bg-primary text-primary-foreground'
+                                                        ? 'border-[var(--st-finished)] bg-[var(--st-finished)] text-[#04150C]'
                                                         : active
-                                                          ? 'border-primary text-primary'
-                                                          : 'border-input text-muted-foreground',
+                                                          ? 'border-primary bg-brand-tint text-primary shadow-[0_0_0_4px_var(--brand-tint-2)]'
+                                                          : 'border-border-strong text-muted-foreground bg-card',
                                                 )}
                                             >
                                                 {completed ? <Check className="size-3.5" /> : index + 1}
@@ -521,7 +525,7 @@ const NewEngagement = () => {
                                     <Label>
                                         Templates to run{targetType ? ` for ${getTargetTypeLabel(targetType)}` : ''}
                                     </Label>
-                                    <div className="flex max-h-[28rem] flex-col gap-1.5 overflow-y-auto rounded-md border p-2">
+                                    <div className="bg-well/40 flex max-h-[28rem] flex-col gap-2 overflow-y-auto rounded-lg border p-2">
                                         {availableTemplates.length === 0 ? (
                                             <p className="text-muted-foreground p-3 text-center text-sm">
                                                 No templates tagged for this target type.
@@ -533,10 +537,8 @@ const NewEngagement = () => {
                                                 return (
                                                     <div
                                                         className={cn(
-                                                            'flex items-start gap-2 rounded-md border p-2 transition-colors',
-                                                            isSel
-                                                                ? 'border-primary bg-primary/5'
-                                                                : 'border-transparent',
+                                                            'bg-card flex items-start gap-2 rounded-md border p-2.5 transition-colors',
+                                                            isSel ? 'border-primary bg-primary/5' : 'border-border',
                                                         )}
                                                         key={template.id}
                                                     >
@@ -760,34 +762,60 @@ const NewEngagement = () => {
 
                             {/* Step: review */}
                             {currentKey === 'review' ? (
-                                <div className="bg-muted/40 flex flex-col gap-2 rounded-md border p-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Target</span>
-                                        <span className="font-medium">{name.trim() || '—'}</span>
+                                <div className="overflow-hidden rounded-lg border">
+                                    <div className="border-border flex items-center gap-2.5 border-b px-4 py-3.5">
+                                        <span className="bg-muted text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border">
+                                            {targetClass === 'cloud' ? (
+                                                <Cloud className="size-4" />
+                                            ) : (
+                                                <Globe className="size-4" />
+                                            )}
+                                        </span>
+                                        <h3 className="text-sm font-semibold">Scan summary</h3>
+                                        <Badge
+                                            className="ml-auto"
+                                            variant="outline"
+                                        >
+                                            CreateScanInput
+                                        </Badge>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Engagement</span>
-                                        <span className="font-medium">
+                                    <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
+                                        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
+                                            Target
+                                        </span>
+                                        <span className="text-right font-mono text-xs font-semibold">
+                                            {name.trim() || '—'}
+                                        </span>
+                                    </div>
+                                    <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
+                                        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
+                                            Engagement
+                                        </span>
+                                        <span className="text-right font-mono text-xs font-semibold">
                                             {targetClass === 'cloud'
                                                 ? `Cloud · ${cloudProvider?.toUpperCase()} · ${scope}`
                                                 : `Web · ${box === ScanBox.Grey ? 'Grey box' : 'Black box'}`}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Templates</span>
-                                        <span className="font-medium">
+                                    <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
+                                        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
+                                            Templates
+                                        </span>
+                                        <span className="text-right font-mono text-xs font-semibold">
                                             {selectedIds.length} (
                                             {selectedIds.filter((id) => selected[id] === ScanRunMode.Assistant).length}{' '}
                                             assistant)
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Credentials</span>
-                                        <span className="font-medium">
+                                    <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
+                                        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
+                                            Credentials
+                                        </span>
+                                        <span className="text-right font-mono text-xs font-semibold">
                                             {needsCredentials ? 'Provided (encrypted)' : 'None'}
                                         </span>
                                     </div>
-                                    <p className="text-muted-foreground border-t pt-2">
+                                    <p className="text-muted-foreground px-4 py-3 font-mono text-xs">
                                         About to start {selectedIds.length} flow{selectedIds.length === 1 ? '' : 's'}.
                                     </p>
                                 </div>

@@ -15,9 +15,10 @@ system-function check + a className/JSX-only `git diff`.
       `target-type-chip.tsx`+`target-type-colors.ts` (→muted chip), `flow-task-status-icon.tsx`, `index.css`
       (+@keyframes pulse), NEW `agent-monogram.tsx` + `status-pill.tsx`. _Gate: build ✓, lint baseline (0 new),
       diff value-only (weight/pdf-keys unchanged). Deferred: per-type target glyph (needs a meta field)._
-- [ ] **P4 — Scans (Domains)** — `domains.tsx`, `domain.tsx`, `new-engagement.tsx`. VERBATIM: `scan-initializing.tsx`,
-      `use-scan-stage.ts`, `domains-provider.tsx`, `domain-provider.tsx`, `domains-layout.tsx`.
-      _Sanity: create scan → navigate → boot animation plays; no new query for the KPI strip._
+- [x] **P4 — Scans (Domains)** — `domains.tsx` (CommandBar + derived KPI strip + dossier cards), `domain.tsx`
+      (header dossier + child FlowCards), `new-engagement.tsx` (wrappers only: stepper/choice/seg/review/CommandBar).
+      _Gate: build ✓, lint baseline (0 new); R2 create-scan contract (buildCredential/onSubmit/createScan/navigate)
+      + ScanInitializing = ZERO diff (byte-identical). Deferred: optional wizard summary aside (kept single-col for R2)._
 - [ ] **P5 — Flows list + Cockpit** — `flow.tsx`, `flows.tsx` (table only), `flow-central-tabs.tsx`, `flow-tabs.tsx`,
       `messages/{flow-message,flow-message-type-icon,flow-automation-messages,flow-assistant-messages}.tsx`,
       `flow-form.tsx`, `flow-tasks-dropdown.tsx`. VERBATIM: `flow-provider.tsx`.

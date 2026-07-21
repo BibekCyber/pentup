@@ -1,25 +1,76 @@
-import { GitFork, Globe, Plus, Trash2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+import { Box, Braces, Cloud, Globe, Network, Plus, Smartphone, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { DomainStatusBadge } from '@/components/forms/domain-status-badge';
-import { TargetTypeChip } from '@/components/forms/target-type-chip';
+import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
-import { TargetType } from '@/graphql/types';
+import { DomainStatusType, TargetType } from '@/graphql/types';
 import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
+import { cn } from '@/lib/utils';
 import { type Domain, useDomains } from '@/providers/domains-provider';
 
 const ALL_FILTER = 'all';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
+
+// Status edge-bar color (left accent) keyed by the status enum's string value,
+// which lines up 1:1 with the shared --st-* token ramp landed in P1/P3.
+const STATUS_EDGE: Record<string, string> = {
+    classifying: 'bg-[var(--st-classifying)]',
+    created: 'bg-[var(--st-created)]',
+    failed: 'bg-[var(--st-failed)]',
+    finished: 'bg-[var(--st-finished)]',
+    running: 'bg-[var(--st-running)]',
+    waiting: 'bg-[var(--st-waiting)]',
+};
+
+// A leading glyph for the dossier tile, chosen per target type.
+const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
+    [TargetType.Api]: Braces,
+    [TargetType.Aws]: Cloud,
+    [TargetType.Azure]: Cloud,
+    [TargetType.Cloud]: Cloud,
+    [TargetType.Gcp]: Cloud,
+    [TargetType.General]: Box,
+    [TargetType.MobileBackend]: Smartphone,
+    [TargetType.Network]: Network,
+    [TargetType.WebApp]: Globe,
+};
+
+const Kpi = ({
+    hero,
+    label,
+    sub,
+    value,
+    valueClassName,
+}: {
+    hero?: boolean;
+    label: string;
+    sub?: string;
+    value: number;
+    valueClassName?: string;
+}) => (
+    <div
+        className={cn(
+            'bg-card relative overflow-hidden rounded-lg border p-4',
+            hero && 'bg-[linear-gradient(160deg,var(--brand-tint),var(--card)_55%)]',
+        )}
+    >
+        <div className="text-muted-foreground font-mono text-[11px] font-medium tracking-[0.14em] uppercase">
+            {label}
+        </div>
+        <div className={cn('mt-2 text-3xl font-bold tracking-tight tabular-nums', valueClassName)}>{value}</div>
+        {sub ? <div className="text-muted-foreground mt-1.5 font-mono text-[11px]">{sub}</div> : null}
+    </div>
+);
 
 const Domains = () => {
     const navigate = useNavigate();
@@ -35,49 +86,67 @@ const Domains = () => {
         return domains.filter((domain) => domain.targetType === (targetTypeFilter as TargetType));
     }, [domains, targetTypeFilter]);
 
+    // Cheap, derived-only status roll-up over the already-loaded domains list —
+    // no extra query. Feeds both the command-bar context line and the KPI strip.
+    const rollup = useMemo(() => {
+        let running = 0;
+        let waiting = 0;
+        let finished = 0;
+
+        for (const domain of domains) {
+            if (domain.status === DomainStatusType.Running) {
+                running += 1;
+            } else if (domain.status === DomainStatusType.Waiting) {
+                waiting += 1;
+            } else if (domain.status === DomainStatusType.Finished) {
+                finished += 1;
+            }
+        }
+
+        return { finished, running, targets: domains.length, waiting };
+    }, [domains]);
+
     return (
         <>
-            <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                    className="mr-2 h-4"
-                    orientation="vertical"
-                />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>Scans</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-                <div className="ml-auto flex items-center gap-2">
-                    <Select
-                        onValueChange={setTargetTypeFilter}
-                        value={targetTypeFilter}
-                    >
-                        <SelectTrigger className="w-44">
-                            <SelectValue placeholder="All target types" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL_FILTER}>All target types</SelectItem>
-                            {ALL_TARGET_TYPES.map((type) => (
-                                <SelectItem
-                                    key={type}
-                                    value={type}
-                                >
-                                    {getTargetTypeLabel(type)}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button asChild>
-                        <Link to="/scans/new">
-                            <Plus />
-                            New Scan
-                        </Link>
-                    </Button>
-                </div>
-            </header>
+            <CommandBar
+                actions={
+                    <>
+                        <Select
+                            onValueChange={setTargetTypeFilter}
+                            value={targetTypeFilter}
+                        >
+                            <SelectTrigger className="w-44">
+                                <SelectValue placeholder="All target types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_FILTER}>All target types</SelectItem>
+                                {ALL_TARGET_TYPES.map((type) => (
+                                    <SelectItem
+                                        key={type}
+                                        value={type}
+                                    >
+                                        {getTargetTypeLabel(type)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button asChild>
+                            <Link to="/scans/new">
+                                <Plus />
+                                New Scan
+                            </Link>
+                        </Button>
+                    </>
+                }
+                ctx={
+                    <>
+                        <span className="text-foreground font-semibold">{rollup.targets}</span> targets
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="text-[var(--st-running)]">{rollup.running} running</span>
+                    </>
+                }
+                title="Scans"
+            />
 
             <div className="p-4">
                 {isLoading && domains.length === 0 ? (
@@ -105,41 +174,89 @@ const Domains = () => {
                         </EmptyContent>
                     </Empty>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredDomains.map((domain) => (
-                            <Card
-                                className="hover:border-primary/50 cursor-pointer transition-colors"
-                                key={domain.id}
-                                onClick={() => navigate(`/scans/${domain.id}`)}
-                            >
-                                <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                                    <CardTitle className="truncate text-base">{domain.name}</CardTitle>
-                                    <Button
-                                        className="text-muted-foreground hover:text-destructive -mt-1 -mr-2 size-7 shrink-0"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            setDeletingDomain(domain);
-                                        }}
-                                        size="icon"
-                                        variant="ghost"
+                    <>
+                        <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                            <Kpi
+                                label="Targets"
+                                sub="engagements"
+                                value={rollup.targets}
+                            />
+                            <Kpi
+                                hero
+                                label="Running now"
+                                sub="real-time"
+                                value={rollup.running}
+                                valueClassName="text-[var(--st-running)]"
+                            />
+                            <Kpi
+                                label="Needs input"
+                                sub="awaiting you"
+                                value={rollup.waiting}
+                            />
+                            <Kpi
+                                label="Finished"
+                                sub="reportable"
+                                value={rollup.finished}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {filteredDomains.map((domain) => {
+                                const Glyph = TARGET_GLYPH[domain.targetType] ?? Box;
+
+                                return (
+                                    <Card
+                                        className="hover:border-primary/50 relative cursor-pointer overflow-hidden transition-colors"
+                                        key={domain.id}
+                                        onClick={() => navigate(`/scans/${domain.id}`)}
                                     >
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="flex flex-wrap items-center gap-2">
-                                    <TargetTypeChip type={domain.targetType} />
-                                    <DomainStatusBadge status={domain.status} />
-                                </CardContent>
-                                <CardFooter className="text-muted-foreground justify-between text-xs">
-                                    <span className="flex items-center gap-1">
-                                        <GitFork className="size-3" />
-                                        {domain.flows.length} flow{domain.flows.length === 1 ? '' : 's'}
-                                    </span>
-                                    <span>{formatDate(domain.createdAt)}</span>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
+                                        <span
+                                            aria-hidden
+                                            className={cn(
+                                                'absolute inset-y-0 left-0 w-[3px]',
+                                                STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
+                                            )}
+                                        />
+                                        <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+                                            <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border">
+                                                <Glyph className="size-4" />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="truncate font-mono text-sm font-semibold">
+                                                    {domain.name}
+                                                </div>
+                                                <div className="text-muted-foreground truncate font-mono text-[10.5px]">
+                                                    #{domain.id} · {getTargetTypeLabel(domain.targetType)}
+                                                    {domain.scope ? ` · ${domain.scope}` : ''}
+                                                </div>
+                                            </div>
+                                            <DomainStatusBadge
+                                                className="shrink-0"
+                                                status={domain.status}
+                                            />
+                                            <Button
+                                                className="text-muted-foreground hover:text-destructive -mt-1 -mr-2 size-7 shrink-0"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setDeletingDomain(domain);
+                                                }}
+                                                size="icon"
+                                                variant="ghost"
+                                            >
+                                                <Trash2 className="size-4" />
+                                            </Button>
+                                        </CardHeader>
+                                        <CardFooter className="text-muted-foreground justify-between font-mono text-[11px]">
+                                            <span>{formatDate(domain.createdAt)}</span>
+                                            <span>
+                                                {domain.flows.length} flow{domain.flows.length === 1 ? '' : 's'}
+                                            </span>
+                                        </CardFooter>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    </>
                 )}
             </div>
 

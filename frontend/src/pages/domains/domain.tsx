@@ -1,13 +1,30 @@
-import { ArrowLeft, CheckCircle2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+import {
+    ArrowLeft,
+    Box,
+    Braces,
+    CheckCircle2,
+    Clock,
+    Cloud,
+    Globe,
+    MoreVertical,
+    Network,
+    Pencil,
+    Shield,
+    Smartphone,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { DomainStatusBadge } from '@/components/forms/domain-status-badge';
 import { TargetTypeChip } from '@/components/forms/target-type-chip';
 import { FlowStatusIcon } from '@/components/icons/flow-status-icon';
+import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,22 +37,47 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import ScanInitializing from '@/features/flows/scan-initializing';
 import {
     DomainStatusType,
     type FlowFragmentFragment,
     StatusType,
+    TargetType,
     useDeleteFlowMutation,
     useFinishFlowMutation,
     useRenameFlowMutation,
 } from '@/graphql/types';
 import { useScanStage } from '@/hooks/use-scan-stage';
+import { getTargetTypeLabel } from '@/lib/target-type-colors';
+import { cn } from '@/lib/utils';
 import { useDomain } from '@/providers/domain-provider';
 import { useDomains } from '@/providers/domains-provider';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
+
+// Status edge-bar color (left accent) keyed by the status enum's string value,
+// which lines up 1:1 with the shared --st-* token ramp landed in P1/P3.
+const STATUS_EDGE: Record<string, string> = {
+    classifying: 'bg-[var(--st-classifying)]',
+    created: 'bg-[var(--st-created)]',
+    failed: 'bg-[var(--st-failed)]',
+    finished: 'bg-[var(--st-finished)]',
+    running: 'bg-[var(--st-running)]',
+    waiting: 'bg-[var(--st-waiting)]',
+};
+
+// A leading glyph for the header dossier tile, chosen per target type.
+const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
+    [TargetType.Api]: Braces,
+    [TargetType.Aws]: Cloud,
+    [TargetType.Azure]: Cloud,
+    [TargetType.Cloud]: Cloud,
+    [TargetType.Gcp]: Cloud,
+    [TargetType.General]: Box,
+    [TargetType.MobileBackend]: Smartphone,
+    [TargetType.Network]: Network,
+    [TargetType.WebApp]: Globe,
+};
 
 // A child-flow card on the scan detail page, with the same lifecycle actions a
 // flow has — Open / Finish / Rename / Delete — reusing the existing flow
@@ -97,7 +139,7 @@ const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: 
     return (
         <>
             <Card
-                className="hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                className="hover:border-primary/50 hover:bg-muted/30 relative cursor-pointer overflow-hidden transition-colors"
                 onClick={() => navigate(`/flows/${flow.id}`)}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -108,14 +150,23 @@ const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: 
                 role="button"
                 tabIndex={0}
             >
+                <span
+                    aria-hidden
+                    className={cn('absolute inset-y-0 left-0 w-[3px]', STATUS_EDGE[flow.status] ?? STATUS_EDGE.created)}
+                />
                 <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                    <CardTitle className="flex min-w-0 items-center gap-2 text-base">
-                        <FlowStatusIcon
-                            status={flow.status}
-                            tooltip={flow.status}
-                        />
-                        <span className="truncate">{flow.title}</span>
-                    </CardTitle>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="flex min-w-0 items-center gap-2 text-sm">
+                            <FlowStatusIcon
+                                status={flow.status}
+                                tooltip={flow.status}
+                            />
+                            <span className="truncate">{flow.title}</span>
+                        </CardTitle>
+                        <div className="text-muted-foreground mt-1.5 truncate font-mono text-[10.5px]">
+                            #{flow.id} · {flow.provider.name}
+                        </div>
+                    </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -165,7 +216,7 @@ const FlowCard = ({ flow, onChanged }: { flow: FlowFragmentFragment; onChanged: 
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent className="text-muted-foreground text-xs">
+                <CardContent className="text-muted-foreground font-mono text-[11px]">
                     Started {formatDate(flow.createdAt)}
                 </CardContent>
             </Card>
@@ -261,40 +312,85 @@ const Domain = () => {
         );
     }
 
+    const Glyph = TARGET_GLYPH[domain.targetType] ?? Box;
+
     return (
         <>
-            <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                    className="mr-2 h-4"
-                    orientation="vertical"
-                />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <Link to="/scans">Scans</Link>
-                        </BreadcrumbItem>
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>{domain.name}</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </header>
+            <CommandBar
+                ctx={
+                    <>
+                        {getTargetTypeLabel(domain.targetType)}
+                        {domain.scope ? (
+                            <>
+                                <span className="text-muted-foreground/50">·</span>
+                                {domain.scope}
+                            </>
+                        ) : null}
+                    </>
+                }
+                title={<span className="font-mono">{domain.name}</span>}
+            />
 
             <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-semibold">{domain.name}</h1>
-                    <TargetTypeChip type={domain.targetType} />
-                    <DomainStatusBadge status={domain.status} />
-                    <Button
-                        className="ml-auto"
-                        onClick={() => setIsDeleteOpen(true)}
-                        variant="destructive"
-                    >
-                        <Trash2 />
-                        Delete scan
-                    </Button>
-                </div>
+                <Card className="relative overflow-hidden">
+                    <span
+                        aria-hidden
+                        className={cn(
+                            'absolute inset-y-0 left-0 w-[3px]',
+                            STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
+                        )}
+                    />
+                    <CardHeader className="flex flex-row items-start gap-3.5 space-y-0">
+                        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-lg border">
+                            <Glyph className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <div className="truncate font-mono text-lg font-semibold tracking-tight">{domain.name}</div>
+                            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                <TargetTypeChip type={domain.targetType} />
+                                {domain.scope ? (
+                                    <Badge
+                                        className="border-border gap-1.5 font-medium"
+                                        variant="outline"
+                                    >
+                                        <Shield className="size-3" />
+                                        {domain.scope}
+                                    </Badge>
+                                ) : null}
+                                {domain.box ? (
+                                    <Badge
+                                        className="border-border gap-1.5 font-medium"
+                                        variant="outline"
+                                    >
+                                        <Box className="size-3" />
+                                        {domain.box} box
+                                    </Badge>
+                                ) : null}
+                                <Badge
+                                    className="border-border gap-1.5 font-medium"
+                                    variant="outline"
+                                >
+                                    <Clock className="size-3" />
+                                    {formatDate(domain.createdAt)}
+                                </Badge>
+                            </div>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-2.5">
+                            <DomainStatusBadge status={domain.status} />
+                            <span className="text-muted-foreground font-mono text-xs">
+                                {domain.flows.length} child flow{domain.flows.length === 1 ? '' : 's'}
+                            </span>
+                            <Button
+                                onClick={() => setIsDeleteOpen(true)}
+                                size="sm"
+                                variant="destructive"
+                            >
+                                <Trash2 />
+                                Delete scan
+                            </Button>
+                        </div>
+                    </CardHeader>
+                </Card>
 
                 {isScanBooting ? (
                     <div className="flex min-h-80 items-center justify-center">
