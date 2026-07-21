@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import { Loader2 } from 'lucide-react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 
@@ -166,9 +168,22 @@ const Login = () => {
             style={{ background: 'var(--bg)' }}
         >
             {/* ===== LEFT — security console hero ===== */}
+            {/* A security console is conventionally dark: pin the dark-theme design tokens
+                on this panel (and its children, which reference --foreground / --border /
+                .overline etc.) so it renders identically in BOTH light and dark app themes —
+                light-mode tokens would otherwise wash out the gradient and hide the text. */}
             <div
-                className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex"
-                style={{ background: 'radial-gradient(120% 100% at 20% 10%, #17140F, #0A0C0E 60%)' }}
+                className="relative hidden flex-col justify-between overflow-hidden px-10 py-12 lg:flex xl:px-20"
+                style={
+                    {
+                        '--border': 'rgba(255, 255, 255, 0.09)',
+                        '--foreground': '#e9ebed',
+                        '--ink-3': '#6e747e',
+                        '--muted-foreground': '#9ba1ab',
+                        background: 'radial-gradient(120% 100% at 20% 10%, #17140F, #0A0C0E 60%)',
+                        color: '#e9ebed',
+                    } as CSSProperties
+                }
             >
                 <div
                     className="pointer-events-none absolute inset-0"
@@ -254,7 +269,7 @@ const Login = () => {
 
             {/* ===== RIGHT — sign-in card ===== */}
             <div
-                className="flex items-center justify-center p-10"
+                className="flex items-center justify-center px-8 py-12 sm:px-12 lg:px-16 xl:px-24"
                 style={{ background: 'var(--bg)' }}
             >
                 {!isLoading ? (

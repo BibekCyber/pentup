@@ -503,7 +503,7 @@ const NewEngagement = () => {
                                 {currentKey === 'target' ? (
                                     <div className="flex flex-col gap-5">
                                         <StepHead
-                                            desc="Name the target and pick its class. This seeds the CreateScanInput and the templates you can choose."
+                                            desc="Name the target and pick its class. This determines the playbooks you can choose from."
                                             over={`Step ${currentNum} · Target`}
                                             title="What are we assessing?"
                                         />
@@ -921,7 +921,7 @@ const NewEngagement = () => {
                                             <div className="card-head">
                                                 <span className="tgt-glyph">{summaryGlyph}</span>
                                                 <h3 className="text-sm font-semibold">Scan summary</h3>
-                                                <span className="badge badge-outline ml-auto">CreateScanInput</span>
+                                                <span className="badge badge-outline ml-auto">DRAFT</span>
                                             </div>
                                             <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
                                                 <span className="text-[11px] overline">Target</span>
@@ -1017,7 +1017,7 @@ const NewEngagement = () => {
                                     <div className="min-w-0 flex-1">
                                         <div className="text-[13.5px] font-bold">Engagement</div>
                                         <div className="text-muted-foreground font-mono text-[10.5px]">
-                                            CreateScanInput
+                                            Scan summary
                                         </div>
                                     </div>
                                     <span className="badge badge-outline">DRAFT</span>

@@ -44,7 +44,6 @@ import {
     SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarRail,
     useSidebar,
 } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -189,7 +188,7 @@ export const MainSidebar = () => {
                                 >
                                     <Link to="/scans/new">
                                         <Plus />
-                                        New Scan
+                                        <span className="group-data-[collapsible=icon]:hidden">New Scan</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -239,12 +238,7 @@ export const MainSidebar = () => {
                                 >
                                     <Link to="/flows">
                                         <Workflow />
-                                        <span className="flex-1">Flows</span>
-                                        {flows.length > 0 && (
-                                            <span className="bg-well text-muted-foreground rounded-full px-1.5 py-0.5 font-mono text-[11px] leading-none group-has-data-[sidebar=menu-action]/menu-item:mr-4 group-data-[collapsible=icon]:hidden">
-                                                {flows.length}
-                                            </span>
-                                        )}
+                                        Flows
                                     </Link>
                                 </SidebarMenuButton>
                                 <SidebarMenuAction
@@ -444,7 +438,6 @@ export const MainSidebar = () => {
                     </button>
                 </div>
             </SidebarFooter>
-            <SidebarRail />
 
             <Dialog
                 onOpenChange={setIsPasswordModalOpen}

@@ -403,6 +403,22 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
         );
     }, [selectedAssistantLogs, debouncedSearchValue]);
 
+    // Memoize the rendered message list so keystroke-driven parent re-renders
+    // (form.watch('search')) reuse the same element array by reference. This lets
+    // React skip reconciling every memoized FlowMessage until the debounced value
+    // or the filtered logs actually change — no markdown re-parse per keystroke.
+    const messageList = useMemo(
+        () =>
+            filteredLogs.map((log) => (
+                <FlowMessage
+                    key={log.id}
+                    log={log}
+                    searchValue={debouncedSearchValue}
+                />
+            )),
+        [filteredLogs, debouncedSearchValue],
+    );
+
     // Handlers for interacting with assistant
     const handleAssistantDelete = (assistantId: string) => {
         if (deleteAssistant) {
@@ -598,13 +614,7 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
                             className="flex h-full flex-col gap-4 overflow-y-auto"
                             ref={containerRef}
                         >
-                            {filteredLogs.map((log) => (
-                                <FlowMessage
-                                    key={log.id}
-                                    log={log}
-                                    searchValue={debouncedSearchValue}
-                                />
-                            ))}
+                            {messageList}
                             <div ref={endRef} />
                         </div>
 

@@ -43,6 +43,7 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { StatusCard } from '@/components/ui/status-card';
 import { Toggle } from '@/components/ui/toggle';
+import { FlowFindingsReporter } from '@/features/flows/use-flow-findings';
 import { ResultType, StatusType, useRenameFlowMutation } from '@/graphql/types';
 import { emptySeverityCounts, type Severity, SEVERITY_ORDER, type SeverityCounts } from '@/lib/report-model';
 import { getSeverityStyle } from '@/lib/severity-palette';
@@ -181,6 +182,16 @@ const Flows = () => {
     const [view, setView] = useState<'grid' | 'list'>('grid');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [page, setPage] = useState(0);
+
+    // Assistant-mode findings resolved lazily per rendered card (see
+    // FlowFindingsReporter): flow.findings only carries automation findings, so
+    // assistant-mode flows fall back to a per-flow assistants() query.
+    const [assistantCountsByFlow, setAssistantCountsByFlow] = useState<Record<string, SeverityCounts>>({});
+    const handleFlowCountsResolved = useCallback((flowId: string, counts: SeverityCounts) => {
+        setAssistantCountsByFlow((previous) =>
+            previous[flowId] === counts ? previous : { ...previous, [flowId]: counts },
+        );
+    }, []);
 
     const handleFlowOpen = useCallback(
         (flowId: string) => {
@@ -372,87 +383,73 @@ const Flows = () => {
         [handleFlowRenameCancel, handleFlowRenameSave, isRenameLoading],
     );
 
-    // Per-row visible action affordances (favorite star + more menu).
-    const renderRowActions = useCallback(
+    // Shared "more" actions menu (View/Rename/Finish/Delete) — used by both the
+    // list rows and the grid dossier cards so they expose the same affordances.
+    const renderMoreMenu = useCallback(
         (flow: Flow) => {
             const isRunning = ![StatusType.Failed, StatusType.Finished].includes(flow.status);
 
             return (
-                <div className="flex items-center justify-end gap-1">
-                    <Toggle
-                        aria-label="Toggle favorite"
-                        className="border-none data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
-                        onClick={async (event) => {
-                            event.stopPropagation();
-                            await toggleFavoriteFlow(flow.id);
-                        }}
-                        pressed={isFavoriteFlow(flow.id)}
-                        size="sm"
-                        variant="outline"
-                    >
-                        <Star className="size-4" />
-                    </Toggle>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                className="size-8 p-0"
-                                onClick={(e) => e.stopPropagation()}
-                                variant="ghost"
-                            >
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            className="min-w-24"
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            className="size-8 p-0"
                             onClick={(e) => e.stopPropagation()}
+                            variant="ghost"
                         >
-                            <DropdownMenuItem onClick={() => handleFlowOpen(flow.id)}>
-                                <Eye />
-                                View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFlowRenameStart(flow)}>
-                                <Pencil className="size-3" />
-                                Rename
-                            </DropdownMenuItem>
-                            {isRunning && (
-                                <DropdownMenuItem
-                                    disabled={finishingFlowIds.has(flow.id)}
-                                    onClick={() => handleFlowFinish(flow)}
-                                >
-                                    {finishingFlowIds.has(flow.id) ? (
-                                        <>
-                                            <Loader2 className="animate-spin" />
-                                            Finishing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Pause />
-                                            Finish
-                                        </>
-                                    )}
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
+                            <MoreHorizontal />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        className="min-w-24"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <DropdownMenuItem onClick={() => handleFlowOpen(flow.id)}>
+                            <Eye />
+                            View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFlowRenameStart(flow)}>
+                            <Pencil className="size-3" />
+                            Rename
+                        </DropdownMenuItem>
+                        {isRunning && (
                             <DropdownMenuItem
-                                disabled={deletingFlowIds.has(flow.id)}
-                                onClick={() => handleFlowDeleteDialogOpen(flow)}
+                                disabled={finishingFlowIds.has(flow.id)}
+                                onClick={() => handleFlowFinish(flow)}
                             >
-                                {deletingFlowIds.has(flow.id) ? (
+                                {finishingFlowIds.has(flow.id) ? (
                                     <>
-                                        <Loader2 className="size-4 animate-spin" />
-                                        Deleting...
+                                        <Loader2 className="animate-spin" />
+                                        Finishing...
                                     </>
                                 ) : (
                                     <>
-                                        <Trash className="size-4" />
-                                        Delete
+                                        <Pause />
+                                        Finish
                                     </>
                                 )}
                             </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            disabled={deletingFlowIds.has(flow.id)}
+                            onClick={() => handleFlowDeleteDialogOpen(flow)}
+                        >
+                            {deletingFlowIds.has(flow.id) ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash className="size-4" />
+                                    Delete
+                                </>
+                            )}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             );
         },
         [
@@ -462,9 +459,30 @@ const Flows = () => {
             handleFlowFinish,
             handleFlowOpen,
             handleFlowRenameStart,
-            isFavoriteFlow,
-            toggleFavoriteFlow,
         ],
+    );
+
+    // Per-row visible action affordances (favorite star + more menu).
+    const renderRowActions = useCallback(
+        (flow: Flow) => (
+            <div className="flex items-center justify-end gap-1">
+                <Toggle
+                    aria-label="Toggle favorite"
+                    className="border-none data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
+                    onClick={async (event) => {
+                        event.stopPropagation();
+                        await toggleFavoriteFlow(flow.id);
+                    }}
+                    pressed={isFavoriteFlow(flow.id)}
+                    size="sm"
+                    variant="outline"
+                >
+                    <Star className="size-4" />
+                </Toggle>
+                {renderMoreMenu(flow)}
+            </div>
+        ),
+        [isFavoriteFlow, renderMoreMenu, toggleFavoriteFlow],
     );
 
     // Client-side filter → the full list is already loaded by the provider.
@@ -489,6 +507,14 @@ const Flows = () => {
         return map;
     }, [filteredFlows]);
 
+    // Prefer lazily-resolved counts (automation OR assistant); fall back to the
+    // automation-only aggregate until the reporter for that flow resolves.
+    const getFlowCounts = useCallback(
+        (flowId: string): SeverityCounts =>
+            assistantCountsByFlow[flowId] ?? findingsByFlow.get(flowId) ?? emptySeverityCounts(),
+        [assistantCountsByFlow, findingsByFlow],
+    );
+
     const total = filteredFlows.length;
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(page, pageCount - 1);
@@ -505,7 +531,7 @@ const Flows = () => {
     }, []);
 
     const pager = (
-        <div className="pager">
+        <div className="pager mt-5">
             <span className="text-muted-foreground font-mono text-[11.5px]">
                 Showing {rangeStart}–{rangeEnd} of {total.toLocaleString()}
             </span>
@@ -666,6 +692,16 @@ const Flows = () => {
                     </Button>
                 </div>
 
+                {/* Lazily resolve each rendered flow's findings (automation OR assistant). */}
+                {pageFlows.map((flow) => (
+                    <FlowFindingsReporter
+                        automationFindings={(flow as FlowWithFindings).findings}
+                        flowId={flow.id}
+                        key={flow.id}
+                        onResolved={handleFlowCountsResolved}
+                    />
+                ))}
+
                 {total === 0 ? (
                     <div className="text-muted-foreground border-border rounded-lg border border-dashed px-6 py-16 text-center font-mono text-sm">
                         No flows match this filter.
@@ -674,7 +710,7 @@ const Flows = () => {
                     <div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {pageFlows.map((flow) => {
-                                const counts = findingsByFlow.get(flow.id) ?? emptySeverityCounts();
+                                const counts = getFlowCounts(flow.id);
                                 const findingCount = findingsTotal(counts);
                                 const meta = STATUS_META[flow.status];
                                 const isRunning = flow.status === StatusType.Running;
@@ -701,15 +737,16 @@ const Flows = () => {
                                                             </>
                                                         )}
                                                     </div>
-                                                    {meta ? (
-                                                        <div className="ml-auto shrink-0">
+                                                    <div className="ml-auto flex shrink-0 items-center gap-1">
+                                                        {meta ? (
                                                             <StatusPill
                                                                 label={meta.label}
                                                                 pulse={meta.pulse}
                                                                 tone={meta.tone}
                                                             />
-                                                        </div>
-                                                    ) : null}
+                                                        ) : null}
+                                                        {renderMoreMenu(flow)}
+                                                    </div>
                                                 </div>
 
                                                 <div
@@ -767,7 +804,7 @@ const Flows = () => {
                                 </thead>
                                 <tbody>
                                     {pageFlows.map((flow) => {
-                                        const counts = findingsByFlow.get(flow.id) ?? emptySeverityCounts();
+                                        const counts = getFlowCounts(flow.id);
                                         const findingCount = findingsTotal(counts);
                                         const meta = STATUS_META[flow.status];
                                         const isEditing = editingFlowId === flow.id;

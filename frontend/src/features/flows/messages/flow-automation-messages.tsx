@@ -140,6 +140,22 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
         return filtered;
     }, [logs, debouncedSearchValue, filter]);
 
+    // Memoize the rendered message list so keystroke-driven parent re-renders
+    // (form.watch('search')) reuse the same element array by reference. This lets
+    // React skip reconciling every memoized FlowMessage until the debounced value
+    // or the filtered logs actually change — no markdown re-parse per keystroke.
+    const messageList = useMemo(
+        () =>
+            filteredLogs.map((log) => (
+                <FlowMessage
+                    key={log.id}
+                    log={log}
+                    searchValue={debouncedSearchValue}
+                />
+            )),
+        [filteredLogs, debouncedSearchValue],
+    );
+
     // Get placeholder text based on flow status
     const placeholder = useMemo(() => {
         if (!flowId) {
@@ -270,13 +286,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
                         className="flex h-full flex-col gap-4 overflow-y-auto"
                         ref={containerRef}
                     >
-                        {filteredLogs.map((log) => (
-                            <FlowMessage
-                                key={log.id}
-                                log={log}
-                                searchValue={debouncedSearchValue}
-                            />
-                        ))}
+                        {messageList}
                         <div ref={endRef} />
                     </div>
 

@@ -108,7 +108,7 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <div className="flex flex-col gap-6 p-4">
+            <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-6 pt-8">
                 {/* muted context subtitle near the header */}
                 <div className="-mb-2 flex items-center gap-2 overline">
                     <span className="text-foreground">{periodLabel}</span>

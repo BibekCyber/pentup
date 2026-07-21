@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -18,12 +18,16 @@ export interface CommandBarProps {
  *
  * Matches `ember.css` `.cmdbar` (56px tall, backdrop-blur, bottom border,
  * comfortable ~22px horizontal padding). Layout mirrors the prototype:
- * `SidebarTrigger` → page `title` → optional mono `ctx` slot → flexible
- * spacer → search pill (`.kbar`) → page `actions` → alerts bell.
+ * `SidebarTrigger` (mobile only) → page `title` → optional mono `ctx` slot →
+ * flexible spacer → search pill (`.kbar`) → page `actions`.
  *
- * The search pill and bell are purely presentational affordances — there is no
- * global command palette or alerts feed wired yet, so both are harmless when
- * clicked. Pages compose the bar via the `title`/`ctx`/`actions` slots.
+ * On desktop the sidebar is collapsed via the sidebar rail's own control, so
+ * the command-bar trigger (and its adjacent separator) is hidden at `md` and up
+ * while remaining available on mobile to open the sidebar Sheet.
+ *
+ * The search pill is a purely presentational affordance — there is no global
+ * command palette wired yet, so it is harmless when clicked. Pages compose the
+ * bar via the `title`/`ctx`/`actions` slots.
  */
 export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) => {
     return (
@@ -33,9 +37,9 @@ export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) 
                 className,
             )}
         >
-            <SidebarTrigger className="-ml-1" />
+            <SidebarTrigger className="-ml-1 md:hidden" />
             <Separator
-                className="mr-1 h-4"
+                className="mr-1 h-4 md:hidden"
                 orientation="vertical"
             />
             <h1 className="min-w-0 truncate text-base font-semibold tracking-tight">{title}</h1>
@@ -60,16 +64,6 @@ export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) 
                 </button>
 
                 {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-
-                {/* Alerts bell — visual affordance only (no feed wired yet). */}
-                <button
-                    aria-label="Alerts"
-                    className="text-muted-foreground hover:bg-well hover:border-border hover:text-foreground relative grid size-[34px] place-items-center rounded-md border border-transparent transition-colors"
-                    type="button"
-                >
-                    <Bell className="size-[17px]" />
-                    <span className="bg-primary absolute top-[7px] right-[9px] size-1.5 rounded-full" />
-                </button>
             </div>
         </header>
     );

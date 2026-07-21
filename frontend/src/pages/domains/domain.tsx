@@ -19,8 +19,8 @@ import {
     Smartphone,
     Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { DomainStatusBadge } from '@/components/forms/domain-status-badge';
@@ -41,6 +41,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import ScanInitializing from '@/features/flows/scan-initializing';
+import { FlowFindingsReporter } from '@/features/flows/use-flow-findings';
 import {
     DomainStatusType,
     type FlowFragmentFragment,
@@ -68,17 +69,6 @@ const formatDate = (value: string) => new Date(value).toLocaleString();
 // FlowFragmentFragment type, so we read it through this local widening — same
 // pattern the flows list page (src/pages/flows/flows.tsx) uses.
 type FlowWithFindings = FlowFragmentFragment & { findings?: Array<{ severity: string }> };
-
-// Status edge-bar color (left accent) keyed by the status enum's string value,
-// which lines up 1:1 with the shared --st-* token ramp landed in P1/P3.
-const STATUS_EDGE: Record<string, string> = {
-    classifying: 'bg-[var(--st-classifying)]',
-    created: 'bg-[var(--st-created)]',
-    failed: 'bg-[var(--st-failed)]',
-    finished: 'bg-[var(--st-finished)]',
-    running: 'bg-[var(--st-running)]',
-    waiting: 'bg-[var(--st-waiting)]',
-};
 
 // A leading glyph for the header dossier tile, chosen per target type.
 const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
@@ -422,8 +412,9 @@ const Domain = () => {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [page, setPage] = useState(0);
 
-    // Per-flow severity aggregates (id → counts), computed once from each child
-    // flow's findings; the scan-level roll-up is the sum across all child flows.
+    // Per-flow AUTOMATION severity aggregates (id → counts), computed once from
+    // each child flow's findings. This is the immediate/fallback value; assistant
+    // findings are folded in lazily via resolvedCounts below.
     const findingsByFlow = useMemo(() => {
         const map = new Map<string, SeverityCounts>();
 
@@ -434,19 +425,39 @@ const Domain = () => {
         return map;
     }, [domain?.flows]);
 
+    // Findings resolved lazily per child flow (FlowFindingsReporter). A flow's
+    // flow.findings only carries automation findings; assistant-mode flows have no
+    // automation findings, so their severities live on assistant.findings and are
+    // fetched per-flow. Note: one assistants() query per flow lacking automation
+    // findings (bounded to this scan's child flows).
+    const [resolvedCounts, setResolvedCounts] = useState<Record<string, SeverityCounts>>({});
+    const handleCountsResolved = useCallback((flowId: string, counts: SeverityCounts) => {
+        setResolvedCounts((previous) => (previous[flowId] === counts ? previous : { ...previous, [flowId]: counts }));
+    }, []);
+
+    // Effective per-flow counts: lazily-resolved (automation OR assistant) with the
+    // automation-only aggregate as the fallback until a flow's reporter resolves.
+    const getFlowCounts = useCallback(
+        (flowId: string): SeverityCounts =>
+            resolvedCounts[flowId] ?? findingsByFlow.get(flowId) ?? emptySeverityCounts(),
+        [resolvedCounts, findingsByFlow],
+    );
+
+    // Scan-level roll-up — sum of the effective per-flow counts across all child
+    // flows, so it spans BOTH automation and assistant findings.
     const scanCounts = useMemo(() => {
         const counts = emptySeverityCounts();
 
         for (const flow of domain?.flows ?? []) {
-            for (const finding of (flow as FlowWithFindings).findings ?? []) {
-                if (finding.severity in counts) {
-                    counts[finding.severity as Severity] += 1;
-                }
+            const flowCounts = resolvedCounts[flow.id] ?? findingsByFlow.get(flow.id) ?? emptySeverityCounts();
+
+            for (const key of SEVERITY_ORDER) {
+                counts[key] += flowCounts[key];
             }
         }
 
         return counts;
-    }, [domain?.flows]);
+    }, [domain?.flows, resolvedCounts, findingsByFlow]);
 
     // A freshly-created scan has no child flows yet while the backend classifies the
     // target and spins them up — show the animated boot state instead of an empty page.
@@ -549,10 +560,35 @@ const Domain = () => {
                         ) : null}
                     </>
                 }
-                title={<span className="font-mono">{domain.name}</span>}
+                title={
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Link
+                            className="text-muted-foreground hover:text-foreground shrink-0 font-normal transition-colors"
+                            to="/scans"
+                        >
+                            Scans
+                        </Link>
+                        <ChevronRight
+                            aria-hidden
+                            className="text-muted-foreground/60 size-3.5 shrink-0"
+                        />
+                        <span className="truncate font-mono">{domain.name}</span>
+                    </span>
+                }
             />
 
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 p-6">
+                {/* Lazily resolve each child flow's findings (automation OR assistant)
+                    so both the per-flow cards and the scan roll-up cover both modes. */}
+                {domain.flows.map((flow) => (
+                    <FlowFindingsReporter
+                        automationFindings={(flow as FlowWithFindings).findings}
+                        flowId={flow.id}
+                        key={flow.id}
+                        onResolved={handleCountsResolved}
+                    />
+                ))}
+
                 {/* (1) Scan header dossier — identity + scan-level findings roll-up. */}
                 <Card className="relative overflow-hidden">
                     {domain.status === DomainStatusType.Running ? (
@@ -560,15 +596,7 @@ const Domain = () => {
                             aria-hidden
                             className="scanline"
                         />
-                    ) : (
-                        <span
-                            aria-hidden
-                            className={cn(
-                                'absolute inset-y-0 left-0 w-[3px]',
-                                STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
-                            )}
-                        />
-                    )}
+                    ) : null}
                     <div className="flex flex-col p-5">
                         {/* identity row */}
                         <div className="flex flex-row items-start gap-3.5">
@@ -660,7 +688,7 @@ const Domain = () => {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {pageFlows.map((flow) => (
                                 <FlowCard
-                                    counts={findingsByFlow.get(flow.id) ?? emptySeverityCounts()}
+                                    counts={getFlowCounts(flow.id)}
                                     flow={flow}
                                     key={flow.id}
                                     onChanged={refetch}

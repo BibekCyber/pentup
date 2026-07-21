@@ -156,7 +156,7 @@ const Domains = () => {
     };
 
     const renderPager = () => (
-        <div className="pager">
+        <div className="pager mt-5">
             <span className="text-muted-foreground font-mono text-[11.5px]">
                 Showing {rangeStart}–{rangeEnd} of {filteredDomains.length.toLocaleString()}
             </span>

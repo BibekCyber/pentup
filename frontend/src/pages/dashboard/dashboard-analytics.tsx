@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { ChevronRight, Clock, Loader2, Wrench } from 'lucide-react';
 import { useState } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import type { UsageStatsPeriod } from '@/graphql/types';
 
@@ -209,22 +209,22 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                                 height={140}
                                 width="100%"
                             >
-                                <AreaChart data={usageChartData}>
+                                <BarChart data={usageChartData}>
                                     <XAxis
                                         dataKey="date"
                                         hide
                                     />
-                                    <Tooltip content={<CustomTooltip formatter={(value) => formatCost(value)} />} />
-                                    <Area
+                                    <Tooltip
+                                        content={<CustomTooltip formatter={(value) => formatCost(value)} />}
+                                        cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.1 }}
+                                    />
+                                    <Bar
                                         dataKey="totalCost"
                                         fill="var(--primary)"
-                                        fillOpacity={0.18}
                                         name="Cost"
-                                        stroke="var(--primary)"
-                                        strokeWidth={2}
-                                        type="monotone"
+                                        radius={[3, 3, 0, 0]}
                                     />
-                                </AreaChart>
+                                </BarChart>
                             </ResponsiveContainer>
                         )}
                     </div>
@@ -285,7 +285,7 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                                 height={300}
                                 width="100%"
                             >
-                                <AreaChart data={usageChartData}>
+                                <BarChart data={usageChartData}>
                                     <CartesianGrid
                                         className="stroke-border"
                                         strokeDasharray="3 3"
@@ -302,24 +302,21 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                                     />
                                     <Tooltip
                                         content={<CustomTooltip formatter={(value) => formatTokenCount(value)} />}
+                                        cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.1 }}
                                     />
-                                    <Area
+                                    <Bar
                                         dataKey="tokensIn"
                                         fill={CHART_COLORS.area1}
-                                        fillOpacity={0.3}
                                         name="Tokens In"
-                                        stroke={CHART_COLORS.area1}
-                                        type="monotone"
+                                        radius={[4, 4, 0, 0]}
                                     />
-                                    <Area
+                                    <Bar
                                         dataKey="tokensOut"
                                         fill={CHART_COLORS.area2}
-                                        fillOpacity={0.3}
                                         name="Tokens Out"
-                                        stroke={CHART_COLORS.area2}
-                                        type="monotone"
+                                        radius={[4, 4, 0, 0]}
                                     />
-                                </AreaChart>
+                                </BarChart>
                             </ResponsiveContainer>
                         )}
                     </CardContent>

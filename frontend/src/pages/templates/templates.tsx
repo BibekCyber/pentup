@@ -3,6 +3,8 @@ import type { LucideIcon } from 'lucide-react';
 import {
     Box,
     Braces,
+    ChevronLeft,
+    ChevronRight,
     Cloud,
     FileText,
     Globe,
@@ -46,6 +48,7 @@ import { cn } from '@/lib/utils';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 const ALL_FILTER = 'all';
+const PAGE_SIZE = 24;
 
 // A leading glyph for the template's dossier tile, chosen per target type.
 const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
@@ -84,6 +87,8 @@ const Templates = () => {
     const [deletingTemplate, setDeletingTemplate] = useState<null | Template>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [targetTypeFilter, setTargetTypeFilter] = useState<string>(ALL_FILTER);
+    const [view, setView] = useState<'grid' | 'list'>('grid');
+    const [page, setPage] = useState(1);
 
     // Header context line — total playbooks split into system / custom.
     const systemCount = templates.filter((t) => t.systemOwned).length;
@@ -96,6 +101,20 @@ const Templates = () => {
 
         return templates.filter((template) => template.targetTypes.includes(targetTypeFilter as TargetType));
     }, [templates, targetTypeFilter]);
+
+    // Client-side pagination — the provider loads the whole list, we render only
+    // the current page so the DOM stays light as the library scales.
+    const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const pageTemplates = filteredTemplates.slice(startIndex, startIndex + PAGE_SIZE);
+    const rangeStart = filteredTemplates.length === 0 ? 0 : startIndex + 1;
+    const rangeEnd = Math.min(startIndex + PAGE_SIZE, filteredTemplates.length);
+
+    const selectFilter = (value: string) => {
+        setTargetTypeFilter(value);
+        setPage(1);
+    };
 
     const handleTemplateOpen = (templateId: string) => {
         navigate(`/templates/${templateId}`);
@@ -271,10 +290,26 @@ const Templates = () => {
         </header>
     );
 
-    // Filter toolbar — target-type chips (client wants chips, not a dropdown) + Sort.
+    // Filter toolbar — view toggle + target-type chips (client wants chips, not a dropdown) + Sort.
     const filterToolbar = (
         <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="seg">
+                <button
+                    className={cn(view === 'grid' && 'active')}
+                    onClick={() => setView('grid')}
+                    type="button"
+                >
+                    Grid
+                </button>
+                <button
+                    className={cn(view === 'list' && 'active')}
+                    onClick={() => setView('list')}
+                    type="button"
+                >
+                    List
+                </button>
+            </div>
+            <div className="ml-1.5 flex flex-wrap gap-1.5">
                 {TYPE_FILTERS.map((filter) => {
                     const Icon = filter.icon;
 
@@ -282,7 +317,7 @@ const Templates = () => {
                         <button
                             className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
                             key={filter.value}
-                            onClick={() => setTargetTypeFilter(filter.value)}
+                            onClick={() => selectFilter(filter.value)}
                             type="button"
                         >
                             {Icon ? <Icon /> : null}
@@ -303,11 +338,125 @@ const Templates = () => {
         </div>
     );
 
+    const renderPager = () => (
+        <div className="pager">
+            <span className="text-muted-foreground font-mono text-[11.5px]">
+                Showing {rangeStart}–{rangeEnd} of {filteredTemplates.length.toLocaleString()}
+            </span>
+            <span className="ml-auto" />
+            <span className="text-muted-foreground mr-3 font-mono text-[11px]">Rows {PAGE_SIZE}</span>
+            <div className="pg-group">
+                <button
+                    className="pg-btn"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    title="Previous"
+                    type="button"
+                >
+                    <ChevronLeft />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                    <button
+                        className={cn('pg-btn', n === currentPage && 'active')}
+                        key={n}
+                        onClick={() => setPage(n)}
+                        type="button"
+                    >
+                        {n}
+                    </button>
+                ))}
+                <button
+                    className="pg-btn"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    title="Next"
+                    type="button"
+                >
+                    <ChevronRight />
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderTemplateRow = (template: Template) => {
+        const Glyph = TARGET_GLYPH[template.targetTypes[0]] ?? Box;
+        const primaryLabel = getTargetTypeLabel(template.targetTypes[0] ?? TargetType.General);
+
+        return (
+            <tr
+                key={template.id}
+                onClick={() => handleTemplateOpen(template.id)}
+            >
+                <td className="m">
+                    <div className="min-w-0">
+                        <div className="truncate font-semibold">{template.title}</div>
+                        <div className="text-muted-foreground truncate font-mono text-[10.5px]">#{template.id}</div>
+                    </div>
+                </td>
+                <td>
+                    <span className="chip">
+                        <Glyph className="size-[13px]" />
+                        {primaryLabel}
+                    </span>
+                </td>
+                <td>
+                    {template.systemOwned ? (
+                        <span className="badge badge-sys uppercase">
+                            <Shield className="size-3" />
+                            System
+                        </span>
+                    ) : (
+                        <span className="badge badge-outline uppercase">Custom</span>
+                    )}
+                </td>
+                <td className="w-11 text-right">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                className="text-muted-foreground hover:text-foreground ml-auto size-7"
+                                onClick={(event) => event.stopPropagation()}
+                                size="icon"
+                                variant="ghost"
+                            >
+                                <MoreHorizontal className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <DropdownMenuItem onClick={() => handleTemplateOpen(template.id)}>
+                                <Pencil />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                disabled={deletingIds.has(template.id)}
+                                onClick={() => handleDeleteDialogOpen(template)}
+                            >
+                                {deletingIds.has(template.id) ? (
+                                    <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash className="size-4" />
+                                        Delete
+                                    </>
+                                )}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </td>
+            </tr>
+        );
+    };
+
     if (!templates.length) {
         return (
             <>
                 {pageHeader}
-                <div className="flex flex-col gap-4 p-4">
+                <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                     <StatusCard
                         action={
                             <Button
@@ -330,7 +479,7 @@ const Templates = () => {
     return (
         <>
             {pageHeader}
-            <div className="flex flex-col gap-4 p-4">
+            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                 {filterToolbar}
                 {filteredTemplates.length === 0 ? (
                     <StatusCard
@@ -346,14 +495,34 @@ const Templates = () => {
                         icon={<FileText className="text-muted-foreground size-8" />}
                         title="No matching templates"
                     />
+                ) : view === 'grid' ? (
+                    <>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {pageTemplates.map((template) => (
+                                <ContextMenu key={template.id}>
+                                    <ContextMenuTrigger asChild>{renderTemplateCard(template)}</ContextMenuTrigger>
+                                    <ContextMenuContent>{renderRowContextMenu(template)}</ContextMenuContent>
+                                </ContextMenu>
+                            ))}
+                        </div>
+                        {renderPager()}
+                    </>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredTemplates.map((template) => (
-                            <ContextMenu key={template.id}>
-                                <ContextMenuTrigger asChild>{renderTemplateCard(template)}</ContextMenuTrigger>
-                                <ContextMenuContent>{renderRowContextMenu(template)}</ContextMenuContent>
-                            </ContextMenu>
-                        ))}
+                    <div className="bg-card border-border overflow-hidden rounded-lg border">
+                        <div className="overflow-x-auto">
+                            <table className="tbl">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>System / Custom</th>
+                                        <th />
+                                    </tr>
+                                </thead>
+                                <tbody>{pageTemplates.map((template) => renderTemplateRow(template))}</tbody>
+                            </table>
+                        </div>
+                        {renderPager()}
                     </div>
                 )}
 
