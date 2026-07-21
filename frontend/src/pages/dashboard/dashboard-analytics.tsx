@@ -11,9 +11,39 @@ import {
     useFlowsExecutionStatsByPeriodQuery,
     useFlowsStatsByPeriodQuery,
     useToolcallsStatsByPeriodQuery,
+    useUsageStatsByAgentTypeQuery,
     useUsageStatsByPeriodQuery,
 } from '@/graphql/types';
 import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/pages/dashboard/format-utils';
+
+// The 15 real AgentType enum values, each with a distinct colour + monogram —
+// mirrors the prototype's owned-orange agent identity system.
+const AGENT_META: Record<string, { color: string; mono: string }> = {
+    adviser: { color: '#2FBF71', mono: 'AD' },
+    assistant: { color: '#818CF8', mono: 'AS' },
+    coder: { color: '#A78BFA', mono: 'CD' },
+    enricher: { color: '#34D399', mono: 'EN' },
+    generator: { color: '#FBBF24', mono: 'GN' },
+    installer: { color: '#94A3B8', mono: 'IN' },
+    memorist: { color: '#C084FC', mono: 'MM' },
+    pentester: { color: '#FB3B4E', mono: 'PT' },
+    primary_agent: { color: '#F5A524', mono: 'PA' },
+    refiner: { color: '#60A5FA', mono: 'RN' },
+    reflector: { color: '#F472B6', mono: 'RF' },
+    reporter: { color: '#FF6B2C', mono: 'RP' },
+    searcher: { color: '#38BDF8', mono: 'SR' },
+    summarizer: { color: '#22D3EE', mono: 'SM' },
+    tool_call_fixer: { color: '#F87171', mono: 'TF' },
+};
+
+const agentMeta = (type: string) =>
+    AGENT_META[type] ?? { color: '#8B93A0', mono: (type || '?').slice(0, 2).toUpperCase() };
+
+const agentLabel = (type: string) =>
+    (type || '')
+        .split('_')
+        .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
+        .join(' ');
 
 const CHART_COLORS = {
     area1: 'var(--color-chart-1)',
@@ -105,6 +135,7 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
     const { data: executionStatsData, loading: executionStatsLoading } = useFlowsExecutionStatsByPeriodQuery({
         variables: { period },
     });
+    const { data: usageByAgentTypeData, loading: usageByAgentTypeLoading } = useUsageStatsByAgentTypeQuery();
 
     const usageChartData = [...(usageByPeriodData?.usageStatsByPeriod ?? [])].reverse().map((item) => ({
         cacheIn: item.stats.totalUsageCacheIn,
@@ -131,6 +162,21 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
     }));
 
     const executionStats = executionStatsData?.flowsExecutionStatsByPeriod ?? [];
+
+    const agentTypeRows = (usageByAgentTypeData?.usageStatsByAgentType ?? []).map((item) => ({
+        label: item.agentType,
+        stats: item.stats,
+    }));
+
+    // Client-side share-of-tokens over the loaded agent-type rows (no new query).
+    const agentTokensTotal =
+        agentTypeRows.reduce((sum, row) => sum + row.stats.totalUsageIn + row.stats.totalUsageOut, 0) || 1;
+    const agentEffort = agentTypeRows
+        .map((row) => ({
+            label: row.label,
+            pct: Math.round(((row.stats.totalUsageIn + row.stats.totalUsageOut) / agentTokensTotal) * 100),
+        }))
+        .slice(0, 15);
 
     return (
         <div className="flex flex-col gap-6">
@@ -341,6 +387,66 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                     </CardContent>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                        <CardTitle className={overlineClass}>Agent effort · share of tokens</CardTitle>
+                        <span className="text-muted-foreground font-mono text-[11px]">
+                            {agentEffort.length} agent types with usage
+                        </span>
+                    </div>
+                    <CardDescription>usageStatsByAgentType · up to 15 agent types</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {usageByAgentTypeLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="text-primary size-6 animate-spin" />
+                        </div>
+                    ) : !agentEffort.length ? (
+                        <p className="text-muted-foreground py-8 text-center text-sm">No agent usage in this range</p>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
+                            {agentEffort.map((agent) => {
+                                const meta = agentMeta(agent.label);
+
+                                return (
+                                    <div
+                                        className="mb-[15px]"
+                                        key={agent.label}
+                                    >
+                                        <div className="mb-2 flex items-center gap-2">
+                                            <span
+                                                className="agent"
+                                                style={{ backgroundColor: meta.color }}
+                                                title={agentLabel(agent.label)}
+                                            >
+                                                {meta.mono}
+                                            </span>
+                                            <span className="text-[12.5px] font-semibold">
+                                                {agentLabel(agent.label)}
+                                            </span>
+                                            <span className="text-foreground ml-auto font-mono text-[12.5px] tabular-nums">
+                                                {agent.pct}%
+                                            </span>
+                                        </div>
+                                        <div className="bg-well h-2 overflow-hidden rounded-full">
+                                            <div
+                                                className="h-full rounded-full"
+                                                style={{
+                                                    background:
+                                                        'linear-gradient(90deg,var(--primary),var(--primary-hover))',
+                                                    width: `${agent.pct}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHead

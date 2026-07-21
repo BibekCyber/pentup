@@ -351,9 +351,7 @@ const Template = () => {
     const asideContent = useMemo(
         () => (
             <div className="flex h-full max-h-[calc(100dvh-3rem)] flex-col overflow-y-auto p-4">
-                <h3 className="text-muted-foreground mb-3 font-mono text-[11px] font-semibold tracking-wide uppercase">
-                    Preset templates
-                </h3>
+                <h3 className="mb-3 block overline">Preset templates</h3>
                 {PRESET_TEMPLATES.map((preset, index) => (
                     <Collapsible
                         key={index}
@@ -495,6 +493,7 @@ const Template = () => {
                                         name="title"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="field-label">Title</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         autoFocus={isNew}
@@ -511,9 +510,7 @@ const Template = () => {
                                         name="targetTypes"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                                    Target types
-                                                </FormLabel>
+                                                <FormLabel className="field-label">Target types</FormLabel>
                                                 <FormControl>
                                                     <TargetTypePicker
                                                         disabled={isSaving}
@@ -521,7 +518,7 @@ const Template = () => {
                                                         value={field.value}
                                                     />
                                                 </FormControl>
-                                                <FormDescription>
+                                                <FormDescription className="field-hint">
                                                     Tag this template with the scan types it applies to.
                                                 </FormDescription>
                                             </FormItem>
@@ -537,6 +534,7 @@ const Template = () => {
                                         name="text"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="field-label">Content</FormLabel>
                                                 <FormControl>
                                                     <InputGroup className="block">
                                                         <InputGroupTextareaAutosize

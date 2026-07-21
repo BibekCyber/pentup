@@ -249,14 +249,15 @@ const SettingsMcpServer = () => {
     return (
         <Fragment>
             <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        <Server className="text-muted-foreground size-5" />
-                        {isNew ? 'New MCP Server' : 'MCP Server Settings'}
-                    </h2>
-
-                    <div className="text-muted-foreground">
-                        {isNew ? 'Configure a new MCP server' : 'Update MCP server settings'}
+                <div className="flex items-center gap-3">
+                    <span className="border-primary/30 bg-brand-tint text-primary grid size-[30px] shrink-0 place-items-center rounded-md border">
+                        <Server className="size-4" />
+                    </span>
+                    <div className="flex flex-col gap-0.5">
+                        <h2 className="text-lg font-semibold">{isNew ? 'New MCP Server' : 'MCP Server Settings'}</h2>
+                        <div className="text-muted-foreground text-sm">
+                            {isNew ? 'Configure a new MCP server' : 'Update MCP server settings'}
+                        </div>
                     </div>
                 </div>
 
@@ -289,7 +290,7 @@ const SettingsMcpServer = () => {
                             </Alert>
                         )}
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="bg-card grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-2">
                             <FormField
                                 control={form.control}
                                 name="name"
@@ -358,10 +359,8 @@ const SettingsMcpServer = () => {
 
                         {/* STDIO configuration */}
                         {transport === 'stdio' && (
-                            <div className="flex flex-col gap-4">
-                                <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                    STDIO Configuration
-                                </h3>
+                            <div className="bg-card flex flex-col gap-4 rounded-lg border p-4">
+                                <h3 className="overline">STDIO Configuration</h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <FormField
                                         control={form.control}
@@ -405,9 +404,7 @@ const SettingsMcpServer = () => {
 
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                            Environment Variables
-                                        </h4>
+                                        <h4 className="overline">Environment Variables</h4>
                                         <Button
                                             onClick={() => handleAddKeyValue('env')}
                                             size="sm"
@@ -465,10 +462,8 @@ const SettingsMcpServer = () => {
 
                         {/* SSE configuration */}
                         {transport === 'sse' && (
-                            <div className="flex flex-col gap-4">
-                                <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                    SSE Configuration
-                                </h3>
+                            <div className="bg-card flex flex-col gap-4 rounded-lg border p-4">
+                                <h3 className="overline">SSE Configuration</h3>
                                 <FormField
                                     control={form.control}
                                     name="sse.url"
@@ -490,9 +485,7 @@ const SettingsMcpServer = () => {
 
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h4 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                            Headers
-                                        </h4>
+                                        <h4 className="overline">Headers</h4>
                                         <Button
                                             onClick={() => handleAddKeyValue('headers')}
                                             size="sm"
@@ -550,11 +543,9 @@ const SettingsMcpServer = () => {
 
                         {/* Tools configuration - only for existing servers; toggles only */}
                         {!isNew && (
-                            <div className="flex flex-col gap-4">
+                            <div className="bg-card flex flex-col gap-4 rounded-lg border p-4">
                                 <div>
-                                    <h3 className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
-                                        Tools
-                                    </h3>
+                                    <h3 className="overline">Tools</h3>
                                     <p className="text-muted-foreground mt-1 text-sm">
                                         Enable or disable available tools
                                     </p>
@@ -565,7 +556,7 @@ const SettingsMcpServer = () => {
                                     )}
                                     {toolsArray.fields.map((tool, index) => (
                                         <div
-                                            className="bg-card border-border-strong flex flex-col gap-2 rounded-md border p-2"
+                                            className="bg-well border-border-strong flex flex-col gap-2 rounded-md border p-2"
                                             key={tool.id}
                                         >
                                             <div className="flex items-start justify-between gap-4">

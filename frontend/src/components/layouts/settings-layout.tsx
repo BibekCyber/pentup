@@ -1,40 +1,23 @@
-import { ArrowLeft, FileText, Key, Plug, Settings as SettingsIcon, Users } from 'lucide-react';
+import { ArrowLeft, FileText, Key, Plug, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
 import CommandBar from '@/components/layouts/command-bar';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarHeader,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-} from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { usePermission } from '@/hooks/use-permission';
-
-// EMBER nav active accent (matches main rail): left brand bar on top of the
-// token-driven brand-tint fill + primary icon from `data-[active=true]`.
-const navActiveAccent =
-    "relative data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1.5 data-[active=true]:before:bottom-1.5 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-r-full data-[active=true]:before:bg-primary data-[active=true]:before:content-['']";
+import { cn } from '@/lib/utils';
 
 // Types
 export interface MenuItem {
     icon?: React.ReactNode;
     id: string;
     isActive?: boolean;
+    // Presentational tab label (falls back to `title`, which drives the
+    // CommandBar header logic below and must stay stable).
+    label?: string;
     path: string;
     permission?: string;
     title: string;
-}
-
-interface SettingsSidebarMenuItemProps {
-    item: MenuItem;
 }
 
 // Settings menu items definition
@@ -54,6 +37,7 @@ const menuItems: readonly MenuItem[] = [
     {
         icon: <Key className="size-4" />,
         id: 'api-tokens',
+        label: 'API Tokens',
         path: '/settings/api-tokens',
         title: 'PentAGI API',
     },
@@ -71,28 +55,6 @@ const menuItems: readonly MenuItem[] = [
     //     icon: <Server className="size-4" />,
     // },
 ] as const;
-
-// Individual menu item component to properly use hooks
-const SettingsSidebarMenuItem = ({ item }: SettingsSidebarMenuItemProps) => {
-    const location = useLocation();
-    // Check if current path starts with item path (for nested routes)
-    const isActive = location.pathname.startsWith(item.path);
-
-    return (
-        <SidebarMenuItem>
-            <SidebarMenuButton
-                asChild
-                className={navActiveAccent}
-                isActive={isActive}
-            >
-                <NavLink to={item.path}>
-                    {item.icon}
-                    {item.title}
-                </NavLink>
-            </SidebarMenuButton>
-        </SidebarMenuItem>
-    );
-};
 
 // Settings header component
 const SettingsHeader = () => {
@@ -141,53 +103,46 @@ const SettingsHeader = () => {
     return <CommandBar title={title} />;
 };
 
-// Settings sidebar component
-const SettingsSidebar = () => {
+// Settings sub-navigation — horizontal EMBER tab row (underline-active),
+// replacing the previous sidebar menu. Keeps the permission gating logic.
+const SettingsTabs = () => {
     const canViewUsers = usePermission('users.view');
     const visibleMenuItems = menuItems.filter(
         (item) => !item.permission || (item.permission === 'users.view' && canViewUsers),
     );
 
     return (
-        <Sidebar collapsible="icon">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-2.5 px-1 py-1.5">
-                        <div className="flex aspect-square size-8 items-center justify-center">
-                            <SettingsIcon className="text-primary size-6" />
-                        </div>
-                        <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                            <span className="truncate text-[15px] font-bold tracking-[0.02em]">Settings</span>
-                            <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
-                                configuration
-                            </span>
-                        </div>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
-            <SidebarContent>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {visibleMenuItems.map((item) => (
-                                <SettingsSidebarMenuItem
-                                    item={item}
-                                    key={item.id}
-                                />
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-            </SidebarContent>
-            <SidebarFooter>
-                <SidebarMenuButton asChild>
-                    <NavLink to="/flows">
-                        <ArrowLeft className="size-4" />
-                        Back to App
-                    </NavLink>
-                </SidebarMenuButton>
-            </SidebarFooter>
-        </Sidebar>
+        <nav className="border-border bg-background/80 flex shrink-0 items-center gap-0.5 overflow-x-auto border-b px-[22px] backdrop-blur-md">
+            {visibleMenuItems.map((item) => (
+                <NavLink
+                    className={({ isActive }) =>
+                        cn(
+                            'relative flex items-center gap-[7px] px-[13px] py-[9px] text-[13px] font-semibold whitespace-nowrap transition-colors',
+                            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                        )
+                    }
+                    key={item.id}
+                    to={item.path}
+                >
+                    {({ isActive }) => (
+                        <>
+                            {item.icon}
+                            {item.label ?? item.title}
+                            {isActive ? (
+                                <span className="bg-primary absolute inset-x-2 -bottom-px h-0.5 rounded-full shadow-[0_0_8px_var(--primary)]" />
+                            ) : null}
+                        </>
+                    )}
+                </NavLink>
+            ))}
+            <NavLink
+                className="text-muted-foreground hover:text-foreground ml-auto flex shrink-0 items-center gap-1.5 py-[9px] pl-4 text-[12px] font-medium whitespace-nowrap transition-colors"
+                to="/flows"
+            >
+                <ArrowLeft className="size-3.5" />
+                Back to App
+            </NavLink>
+        </nav>
     );
 };
 
@@ -195,17 +150,15 @@ const SettingsSidebar = () => {
 const SettingsLayout = () => {
     return (
         <SidebarProvider>
-            <div className="flex h-screen w-full overflow-hidden">
-                <SettingsSidebar />
-                <SidebarInset className="flex flex-1 flex-col">
-                    <SettingsHeader />
-                    {/* Content area for nested routes */}
-                    <main className="min-h-0 flex-1 overflow-auto p-6">
-                        <div className="mx-auto w-full max-w-[1320px]">
-                            <Outlet />
-                        </div>
-                    </main>
-                </SidebarInset>
+            <div className="flex h-screen w-full flex-col overflow-hidden">
+                <SettingsHeader />
+                <SettingsTabs />
+                {/* Content area for nested routes */}
+                <main className="min-h-0 flex-1 overflow-auto">
+                    <div className="mx-auto w-full max-w-[1320px] p-6">
+                        <Outlet />
+                    </div>
+                </main>
             </div>
         </SidebarProvider>
     );

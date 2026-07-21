@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     AlertCircle,
-    Bot,
     CheckCircle,
     Code,
     FileDiff,
@@ -21,6 +20,7 @@ import { z } from 'zod';
 
 import type { AgentPrompt, AgentPrompts, DefaultPrompt, PromptType } from '@/graphql/types';
 
+import { AgentMonogram } from '@/components/shared/agent-monogram';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -144,9 +144,7 @@ const Variables: React.FC<VariablesProps> = ({ currentTemplate, onVariableClick,
 
     return (
         <div className="bg-well border-border-strong mb-4 rounded-md border p-3">
-            <h4 className="text-muted-foreground mb-2 font-mono text-[11px] font-semibold tracking-wide uppercase">
-                Available Variables
-            </h4>
+            <h4 className="mb-2 block overline">Available Variables</h4>
             <div className="flex flex-wrap gap-1">
                 {variables.map((variable) => {
                     const isUsed = usedVariables.has(variable);
@@ -750,20 +748,24 @@ const SettingsPrompt = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    {promptInfo.type === 'agent' ? (
-                        <Bot className="text-muted-foreground size-5" />
-                    ) : (
-                        <Wrench className="text-muted-foreground size-5" />
-                    )}
-                    {promptInfo.displayName}
-                </h2>
-
-                <div className="text-muted-foreground">
-                    {promptInfo.type === 'agent'
-                        ? 'Configure prompts for this AI agent'
-                        : 'Configure the prompt for this tool'}
+            <div className="flex items-center gap-3">
+                {promptInfo.type === 'agent' ? (
+                    <AgentMonogram
+                        size="lg"
+                        type={promptId ?? ''}
+                    />
+                ) : (
+                    <span className="border-border bg-muted text-muted-foreground grid size-[30px] shrink-0 place-items-center rounded-md border">
+                        <Wrench className="size-4" />
+                    </span>
+                )}
+                <div className="flex flex-col gap-0.5">
+                    <h2 className="text-lg font-semibold">{promptInfo.displayName}</h2>
+                    <div className="text-muted-foreground text-sm">
+                        {promptInfo.type === 'agent'
+                            ? 'Configure prompts for this AI agent'
+                            : 'Configure the prompt for this tool'}
+                    </div>
                 </div>
             </div>
 

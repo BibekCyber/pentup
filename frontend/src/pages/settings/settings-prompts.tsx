@@ -6,6 +6,7 @@ import {
     ArrowUp,
     Bot,
     Code,
+    FileText,
     Loader2,
     MoreHorizontal,
     Pencil,
@@ -20,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type { AgentPrompt, AgentPrompts, DefaultPrompt, PromptType } from '@/graphql/types';
 
+import { AgentMonogram } from '@/components/shared/agent-monogram';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -334,7 +336,8 @@ const SettingsPrompts = () => {
         {
             accessorKey: 'displayName',
             cell: ({ row }) => (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
+                    <AgentMonogram type={row.original.name} />
                     <span className="font-medium">{row.original.displayName}</span>
                 </div>
             ),
@@ -364,14 +367,11 @@ const SettingsPrompts = () => {
             cell: ({ row }) => {
                 const status = row.getValue('systemStatus') as string;
 
-                return (
-                    <Badge
-                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
-                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
-                    >
-                        {status}
-                    </Badge>
-                );
+                if (status === 'N/A') {
+                    return <span className="text-muted-foreground">—</span>;
+                }
+
+                return <span className={`badge ${status === 'Custom' ? 'badge-sys' : 'badge-outline'}`}>{status}</span>;
             },
             header: 'System Prompt',
             size: 100,
@@ -381,14 +381,11 @@ const SettingsPrompts = () => {
             cell: ({ row }) => {
                 const status = row.getValue('humanStatus') as string;
 
-                return (
-                    <Badge
-                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
-                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
-                    >
-                        {status}
-                    </Badge>
-                );
+                if (status === 'N/A') {
+                    return <span className="text-muted-foreground">—</span>;
+                }
+
+                return <span className={`badge ${status === 'Custom' ? 'badge-sys' : 'badge-outline'}`}>{status}</span>;
             },
             header: 'Human Prompt',
             size: 100,
@@ -540,14 +537,11 @@ const SettingsPrompts = () => {
             cell: ({ row }) => {
                 const status = row.getValue('status') as string;
 
-                return (
-                    <Badge
-                        className="font-mono text-[10px] font-bold tracking-wide uppercase"
-                        variant={status === 'Custom' ? 'default' : status === 'Default' ? 'secondary' : 'outline'}
-                    >
-                        {status}
-                    </Badge>
-                );
+                if (status === 'N/A') {
+                    return <span className="text-muted-foreground">—</span>;
+                }
+
+                return <span className={`badge ${status === 'Custom' ? 'badge-sys' : 'badge-outline'}`}>{status}</span>;
             },
             header: 'Prompt',
             size: 100,
@@ -852,18 +846,35 @@ const SettingsPrompts = () => {
             <div className="flex flex-col gap-6">
                 <SettingsPromptsHeader />
 
+                {/* Intro card */}
+                <div className="bg-card flex items-start gap-3.5 rounded-lg border p-4">
+                    <div className="border-primary/30 bg-brand-tint text-primary grid size-[34px] shrink-0 place-items-center rounded-lg border">
+                        <FileText className="size-[17px]" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-sm font-bold">System prompts</div>
+                        <p className="text-muted-foreground mt-1.5 max-w-[680px] text-[12.5px] leading-relaxed">
+                            Built-in defaults you can override per agent and per tool. Each prompt has a{' '}
+                            <span className="text-foreground font-semibold">System</span> template (and some agents an
+                            additional <span className="text-foreground font-semibold">Human</span> template); overrides
+                            fall back to{' '}
+                            <code className="bg-well border-border-strong text-primary rounded border px-1.5 py-0.5 font-mono text-xs">
+                                Default
+                            </code>{' '}
+                            when reset.
+                        </p>
+                    </div>
+                </div>
+
                 {/* Agent Prompts Section */}
                 {agentPrompts.length > 0 && (
                     <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <Bot className="text-muted-foreground size-5" />
-                            <h2 className="font-mono text-sm font-semibold tracking-wide uppercase">Agent Prompts</h2>
-                            <Badge
-                                className="font-mono text-[10px] font-bold tracking-wide"
-                                variant="secondary"
-                            >
-                                {agentPrompts.length}
-                            </Badge>
+                        <div className="flex items-center gap-2.5">
+                            <span className="border-border bg-muted text-muted-foreground grid size-7 shrink-0 place-items-center rounded-md border">
+                                <Bot className="size-[15px]" />
+                            </span>
+                            <span className="text-sm font-bold">Agent prompts</span>
+                            <span className="badge badge-outline">{agentPrompts.length}</span>
                         </div>
                         <p className="text-muted-foreground text-sm">System and human prompts for AI agents</p>
                         <DataTable<AgentPromptTableData>
@@ -881,15 +892,12 @@ const SettingsPrompts = () => {
                 {/* Tool Prompts Section */}
                 {toolPrompts.length > 0 && (
                     <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <Wrench className="text-muted-foreground size-5" />
-                            <h2 className="font-mono text-sm font-semibold tracking-wide uppercase">Tool Prompts</h2>
-                            <Badge
-                                className="font-mono text-[10px] font-bold tracking-wide"
-                                variant="secondary"
-                            >
-                                {toolPrompts.length}
-                            </Badge>
+                        <div className="flex items-center gap-2.5">
+                            <span className="border-border bg-muted text-muted-foreground grid size-7 shrink-0 place-items-center rounded-md border">
+                                <Wrench className="size-[15px]" />
+                            </span>
+                            <span className="text-sm font-bold">Tool prompts</span>
+                            <span className="badge badge-outline">{toolPrompts.length}</span>
                         </div>
                         <p className="text-muted-foreground text-sm">Prompt templates for system tools and utilities</p>
                         <DataTable<ToolPromptTableData>

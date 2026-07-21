@@ -6,6 +6,7 @@ import {
     Cloud,
     FileText,
     Globe,
+    ListFilter,
     Loader2,
     MoreHorizontal,
     Network,
@@ -20,7 +21,6 @@ import { useNavigate } from 'react-router-dom';
 
 import TargetTypeChip from '@/components/forms/target-type-chip';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
@@ -37,12 +37,12 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusCard } from '@/components/ui/status-card';
 import { TargetType } from '@/graphql/types';
 import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
+import { cn } from '@/lib/utils';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 const ALL_FILTER = 'all';
@@ -59,6 +59,12 @@ const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
     [TargetType.Network]: Network,
     [TargetType.WebApp]: Globe,
 };
+
+// Target-type filter chips shown in the toolbar (All / Web app / Cloud).
+const TYPE_FILTERS: Array<{ icon: LucideIcon | null; label: string; value: string }> = [
+    { icon: null, label: 'All templates', value: ALL_FILTER },
+    ...ALL_TARGET_TYPES.map((type) => ({ icon: TARGET_GLYPH[type], label: getTargetTypeLabel(type), value: type })),
+];
 
 const Templates = () => {
     const navigate = useNavigate();
@@ -117,7 +123,7 @@ const Templates = () => {
                 onClick={() => handleTemplateOpen(template.id)}
             >
                 <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-                    <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border">
+                    <span className="tgt-glyph">
                         <Glyph className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -127,20 +133,12 @@ const Templates = () => {
                         </div>
                     </div>
                     {template.systemOwned ? (
-                        <Badge
-                            className="border-primary/30 bg-primary/10 text-primary shrink-0 gap-1 font-mono text-[10px] font-bold tracking-wide uppercase"
-                            variant="outline"
-                        >
+                        <span className="badge badge-sys shrink-0 uppercase">
                             <Shield className="size-3" />
                             System
-                        </Badge>
+                        </span>
                     ) : (
-                        <Badge
-                            className="border-border-strong text-muted-foreground shrink-0 font-mono text-[10px] font-bold tracking-wide uppercase"
-                            variant="outline"
-                        >
-                            Custom
-                        </Badge>
+                        <span className="badge badge-outline shrink-0 uppercase">Custom</span>
                     )}
                     <div onClick={(event) => event.stopPropagation()}>
                         <DropdownMenu>
@@ -233,25 +231,6 @@ const Templates = () => {
                 </Breadcrumb>
             </div>
             <div className="ml-auto flex items-center gap-2 px-4">
-                <Select
-                    onValueChange={setTargetTypeFilter}
-                    value={targetTypeFilter}
-                >
-                    <SelectTrigger className="h-8 w-[130px] sm:w-[160px]">
-                        <SelectValue placeholder="All target types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_FILTER}>All target types</SelectItem>
-                        {ALL_TARGET_TYPES.map((type) => (
-                            <SelectItem
-                                key={type}
-                                value={type}
-                            >
-                                {getTargetTypeLabel(type)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
                 <Button
                     onClick={() => navigate('/templates/new')}
                     size="sm"
@@ -262,6 +241,38 @@ const Templates = () => {
                 </Button>
             </div>
         </header>
+    );
+
+    // Filter toolbar — target-type chips (client wants chips, not a dropdown) + Sort.
+    const filterToolbar = (
+        <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-1.5">
+                {TYPE_FILTERS.map((filter) => {
+                    const Icon = filter.icon;
+
+                    return (
+                        <button
+                            className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
+                            key={filter.value}
+                            onClick={() => setTargetTypeFilter(filter.value)}
+                            type="button"
+                        >
+                            {Icon ? <Icon /> : null}
+                            {filter.label}
+                        </button>
+                    );
+                })}
+            </div>
+            <span className="ml-auto" />
+            <Button
+                className="text-muted-foreground"
+                size="sm"
+                variant="ghost"
+            >
+                <ListFilter />
+                Sort
+            </Button>
+        </div>
     );
 
     if (!templates.length) {
@@ -291,7 +302,8 @@ const Templates = () => {
     return (
         <>
             {pageHeader}
-            <div className="flex flex-col gap-4 p-4 pt-0">
+            <div className="flex flex-col gap-4 p-4">
+                {filterToolbar}
                 {filteredTemplates.length === 0 ? (
                     <StatusCard
                         action={

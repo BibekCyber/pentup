@@ -19,7 +19,6 @@ import { useNavigate } from 'react-router-dom';
 
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { DataTable } from '@/components/ui/data-table';
@@ -278,14 +277,7 @@ const SettingsMcpServers = () => {
             cell: ({ row }) => {
                 const t = row.getValue('transport') as McpTransport;
 
-                return (
-                    <Badge
-                        className="border-border-strong text-muted-foreground font-mono text-[10px] font-bold tracking-wide"
-                        variant="outline"
-                    >
-                        {t.toUpperCase()}
-                    </Badge>
-                );
+                return <span className="badge badge-outline font-mono">{t.toUpperCase()}</span>;
             },
             header: 'Transport',
             size: 120,
@@ -307,29 +299,18 @@ const SettingsMcpServers = () => {
                 return (
                     <div className="flex w-full flex-wrap items-center gap-1 overflow-hidden">
                         {first.map((t) => (
-                            <Badge
-                                className="font-mono text-[10px] tracking-wide"
+                            <span
+                                className="chip font-mono !text-[11px]"
                                 key={t.name}
-                                variant="secondary"
                             >
                                 {t.name}
-                            </Badge>
+                            </span>
                         ))}
-                        {rest > 0 && (
-                            <Badge
-                                className="border-border-strong text-muted-foreground font-mono text-[10px] tracking-wide"
-                                variant="outline"
-                            >
-                                +{rest}
-                            </Badge>
-                        )}
+                        {rest > 0 && <span className="badge badge-outline font-mono">+{rest}</span>}
                         {disabledCount > 0 && (
-                            <Badge
-                                className="border-border-strong text-muted-foreground/70 ml-1 font-mono text-[10px] tracking-wide"
-                                variant="outline"
-                            >
+                            <span className="badge badge-outline ml-1 font-mono opacity-70">
                                 {disabledCount} disabled
-                            </Badge>
+                            </span>
                         )}
                     </div>
                 );
@@ -672,6 +653,28 @@ const SettingsMcpServers = () => {
     return (
         <div className="flex flex-col gap-4">
             <SettingsMcpServersHeader />
+
+            {/* Intro card */}
+            <div className="bg-card flex items-start gap-3.5 rounded-lg border p-4">
+                <div className="border-primary/30 bg-brand-tint text-primary grid size-[34px] shrink-0 place-items-center rounded-lg border">
+                    <Server className="size-[17px]" />
+                </div>
+                <div className="flex-1">
+                    <div className="text-sm font-bold">Model Context Protocol servers</div>
+                    <p className="text-muted-foreground mt-1.5 max-w-[680px] text-[12.5px] leading-relaxed">
+                        Connect external MCP servers to extend the assistant with additional tools. Each server exposes
+                        tools over a{' '}
+                        <code className="bg-well border-border-strong text-primary rounded border px-1.5 py-0.5 font-mono text-xs">
+                            stdio
+                        </code>{' '}
+                        or{' '}
+                        <code className="bg-well border-border-strong text-primary rounded border px-1.5 py-0.5 font-mono text-xs">
+                            sse
+                        </code>{' '}
+                        transport that you can enable or disable per tool.
+                    </p>
+                </div>
+            </div>
 
             {deleteErrorMessage && (
                 <Alert variant="destructive">

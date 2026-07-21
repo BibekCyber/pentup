@@ -1,4 +1,4 @@
-import { LayoutDashboard } from 'lucide-react';
+import { Activity, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
@@ -45,30 +45,43 @@ const Dashboard = () => {
                     onValueChange={setActiveTab}
                     value={activeTab}
                 >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="border-border mb-4 flex flex-wrap items-end justify-between gap-2 border-b">
                         <TabsList>
-                            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
+                            <TabsTrigger value="analytics">
+                                <Activity className="size-[15px]" />
+                                Analytics
+                            </TabsTrigger>
+                            <TabsTrigger value="overview">
+                                <LayoutDashboard className="size-[15px]" />
+                                Overview
+                            </TabsTrigger>
                         </TabsList>
 
-                        {activeTab === 'analytics' && (
-                            <Tabs
-                                onValueChange={(value) => setPeriod(value as UsageStatsPeriod)}
-                                value={period}
-                            >
-                                <TabsList className="border-border-strong bg-well h-8 gap-0.5 rounded-md border border-b p-0.5">
-                                    {periodOptions.map(({ label, value }) => (
-                                        <TabsTrigger
-                                            className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary mb-0 rounded-[6px] border-b-0 px-3 py-1 font-mono text-xs tracking-wide data-[state=active]:border-transparent"
-                                            key={value}
-                                            value={value}
-                                        >
-                                            {label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </Tabs>
-                        )}
+                        <div className="flex items-center gap-3 pb-2">
+                            {activeTab === 'analytics' && (
+                                <Tabs
+                                    onValueChange={(value) => setPeriod(value as UsageStatsPeriod)}
+                                    value={period}
+                                >
+                                    <TabsList className="border-border-strong bg-well h-8 gap-0.5 rounded-md border border-b p-0.5">
+                                        {periodOptions.map(({ label, value }) => (
+                                            <TabsTrigger
+                                                className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary mb-0 rounded-[6px] border-b-0 px-3 py-1 font-mono text-xs tracking-wide data-[state=active]:border-transparent"
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {label}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                </Tabs>
+                            )}
+
+                            <span className="fresh live">
+                                <span className="dot" />
+                                Live
+                            </span>
+                        </div>
                     </div>
 
                     <TabsContent value="analytics">

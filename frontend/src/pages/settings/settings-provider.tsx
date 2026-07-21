@@ -99,9 +99,7 @@ const FormInputStringItem: React.FC<FormInputStringItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
-                {label}
-            </FormLabel>
+            <FormLabel className="field-label">{label}</FormLabel>
             <FormControl>
                 <Input
                     {...field}
@@ -109,9 +107,7 @@ const FormInputStringItem: React.FC<FormInputStringItemProps> = ({
                     value={field.value ?? ''}
                 />
             </FormControl>
-            {description && (
-                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
-            )}
+            {description && <FormDescription className="field-hint">{description}</FormDescription>}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -154,9 +150,7 @@ const FormInputNumberItem: React.FC<FormInputNumberItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
-                {label}
-            </FormLabel>
+            <FormLabel className="field-label">{label}</FormLabel>
             <FormControl>
                 <Input
                     {...field}
@@ -169,9 +163,7 @@ const FormInputNumberItem: React.FC<FormInputNumberItemProps> = ({
                     value={field.value ?? ''}
                 />
             </FormControl>
-            {description && (
-                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
-            )}
+            {description && <FormDescription className="field-hint">{description}</FormDescription>}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -212,9 +204,7 @@ const FormComboboxItem: React.FC<FormComboboxItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
-                {label}
-            </FormLabel>
+            <FormLabel className="field-label">{label}</FormLabel>
             <FormControl>
                 <Popover
                     onOpenChange={setIsOpen}
@@ -291,9 +281,7 @@ const FormComboboxItem: React.FC<FormComboboxItemProps> = ({
                     </PopoverContent>
                 </Popover>
             </FormControl>
-            {description && (
-                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
-            )}
+            {description && <FormDescription className="field-hint">{description}</FormDescription>}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -376,9 +364,7 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
 
     return (
         <FormItem>
-            <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
-                {label}
-            </FormLabel>
+            <FormLabel className="field-label">{label}</FormLabel>
             <FormControl>
                 <Popover
                     onOpenChange={setIsOpen}
@@ -477,9 +463,7 @@ const FormModelComboboxItem: React.FC<FormModelComboboxItemProps> = ({
                     </div>
                 </Popover>
             </FormControl>
-            {description && (
-                <FormDescription className="text-muted-foreground font-mono text-[11px]">{description}</FormDescription>
-            )}
+            {description && <FormDescription className="field-hint">{description}</FormDescription>}
             {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
@@ -1689,7 +1673,7 @@ const SettingsProvider = () => {
                                                             name={`agents.${agentKey}.reasoning.effort`}
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.12em] uppercase">
+                                                                    <FormLabel className="field-label">
                                                                         Reasoning Effort
                                                                     </FormLabel>
                                                                     <Select
