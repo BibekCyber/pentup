@@ -10,10 +10,12 @@ import (
 	"pentagi/pkg/providers/pconfig"
 )
 
-const (
-	defChannelLen  = 50
-	defSendTimeout = 5 * time.Second
-)
+const defChannelLen = 50
+
+// defSendTimeout bounds how long Publish/Broadcast waits on a single slow
+// subscriber before dropping the event for it. Declared as a var (not const)
+// so tests can lower it; production keeps the 5s default.
+var defSendTimeout = 5 * time.Second
 
 type SubscriptionsController interface {
 	NewFlowSubscriber(userID, flowID int64) FlowSubscriber
@@ -251,13 +253,7 @@ func (c *channel[T]) Publish(ctx context.Context, id int64, data T) {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	for _, ch := range c.subs[id] {
-		select {
-		case ch <- data:
-		case <-ctx.Done():
-			return
-		}
-	}
+	c.send(ctx, c.subs[id], data)
 }
 
 func (c *channel[T]) Broadcast(ctx context.Context, data T) {
@@ -265,12 +261,34 @@ func (c *channel[T]) Broadcast(ctx context.Context, data T) {
 	defer c.mx.RUnlock()
 
 	for _, subs := range c.subs {
-		for _, ch := range subs {
-			select {
-			case ch <- data:
-			case <-ctx.Done():
-				return
-			}
+		c.send(ctx, subs, data)
+	}
+}
+
+// send delivers data to each subscriber channel, allowing each up to
+// defSendTimeout to receive. A subscriber that cannot keep up (a slow or dead
+// WebSocket, a backgrounded browser tab) has this event dropped rather than
+// blocking the publisher. Blocking here would hold the read lock indefinitely
+// and, together with a pending Subscribe cleanup waiting on the write lock,
+// stall every publisher on this channel — the deadlock that leaves scans hung
+// with an empty message box until the server is restarted.
+func (c *channel[T]) send(ctx context.Context, subs []chan T, data T) {
+	if len(subs) == 0 {
+		return
+	}
+
+	// One reused timer per call (safe to Reset without draining on Go 1.23+).
+	timer := time.NewTimer(defSendTimeout)
+	defer timer.Stop()
+
+	for _, ch := range subs {
+		timer.Reset(defSendTimeout)
+		select {
+		case ch <- data:
+		case <-timer.C:
+			// slow/stalled subscriber: drop this event for it and continue
+		case <-ctx.Done():
+			return
 		}
 	}
 }
