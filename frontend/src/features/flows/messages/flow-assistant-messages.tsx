@@ -184,7 +184,7 @@ const AssistantsDropdown = ({
             >
                 <PopoverTrigger asChild>
                     <Button
-                        className="px-2"
+                        className="rounded-full px-2"
                         disabled={isAssistantCreating}
                         variant="outline"
                     >
@@ -545,7 +545,7 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
                                 name="search"
                                 render={({ field }) => (
                                     <FormControl>
-                                        <InputGroup>
+                                        <InputGroup className="bg-well">
                                             <InputGroupAddon>
                                                 <Search />
                                             </InputGroupAddon>

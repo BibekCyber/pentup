@@ -23,9 +23,9 @@ import { toast } from 'sonner';
 
 import { FlowStatusIcon } from '@/components/icons/flow-status-icon';
 import { ProviderIcon } from '@/components/icons/provider-icon';
+import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { DataTable } from '@/components/ui/data-table';
@@ -37,8 +37,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusCard } from '@/components/ui/status-card';
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -235,14 +233,14 @@ const Flows = () => {
         () => [
             {
                 accessorKey: 'id',
-                cell: ({ row }) => <div className="font-mono text-sm">{row.getValue('id')}</div>,
+                cell: ({ row }) => <div className="text-muted-foreground font-mono text-sm">{row.getValue('id')}</div>,
                 enableHiding: false,
                 header: ({ column }) => {
                     const sorted = column.getIsSorted();
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -317,7 +315,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -354,7 +352,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -377,13 +375,13 @@ const Flows = () => {
                     const flow = row.original;
 
                     return (
-                        <div className="flex items-center gap-2">
+                        <span className="border-border bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
                             <ProviderIcon
-                                className="size-4"
+                                className="size-3.5"
                                 provider={flow.provider}
                             />
-                            <span className="text-sm">{flow.provider?.name || 'N/A'}</span>
-                        </div>
+                            {flow.provider?.name || 'N/A'}
+                        </span>
                     );
                 },
                 header: ({ column }) => {
@@ -391,7 +389,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -462,7 +460,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -506,7 +504,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -550,7 +548,7 @@ const Flows = () => {
 
                     return (
                         <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
+                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase no-underline hover:no-underline"
                             onClick={() => handleColumnSort(column)}
                             variant="link"
                         >
@@ -744,23 +742,8 @@ const Flows = () => {
     );
 
     const pageHeader = (
-        <header className="bg-background sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                    className="h-4"
-                    orientation="vertical"
-                />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <GitFork className="size-4" />
-                            <BreadcrumbPage>Flows</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </div>
-            <div className="ml-auto flex items-center gap-2 px-4">
+        <CommandBar
+            actions={
                 <Button
                     onClick={() => navigate('/flows/new')}
                     size="sm"
@@ -769,8 +752,18 @@ const Flows = () => {
                     <Plus />
                     New Flow
                 </Button>
-            </div>
-        </header>
+            }
+            ctx={
+                <>
+                    <span className="text-foreground font-semibold">{flows.length}</span> flows
+                    <span className="text-muted-foreground/50">·</span>
+                    <span className="text-[var(--st-running)]">
+                        {flows.filter((flow) => flow.status === StatusType.Running).length} running
+                    </span>
+                </>
+            }
+            title="Flows"
+        />
     );
 
     if (isLoading) {

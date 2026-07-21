@@ -1,3 +1,5 @@
+import { Bot, LayoutDashboard, Workflow } from 'lucide-react';
+
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FlowDashboard from '@/features/flows/dashboard/flow-dashboard';
@@ -23,11 +25,22 @@ const FlowCentralTabs = () => {
                     {/* Only the tab matching how the flow was created is shown. */}
                     <TabsList className="flex w-fit">
                         {isAssistantMode ? (
-                            <TabsTrigger value="assistant">Assistant</TabsTrigger>
+                            <TabsTrigger value="assistant">
+                                <Bot className="size-4" />
+                                Assistant
+                            </TabsTrigger>
                         ) : (
-                            <TabsTrigger value="automation">Automation</TabsTrigger>
+                            <TabsTrigger value="automation">
+                                <Workflow className="size-4" />
+                                Automation
+                            </TabsTrigger>
                         )}
-                        {canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
+                        {canSeeDashboard && (
+                            <TabsTrigger value="dashboard">
+                                <LayoutDashboard className="size-4" />
+                                Dashboard
+                            </TabsTrigger>
+                        )}
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>

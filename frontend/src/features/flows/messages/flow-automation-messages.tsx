@@ -220,7 +220,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
                             name="search"
                             render={({ field }) => (
                                 <FormControl>
-                                    <InputGroup className="flex-1">
+                                    <InputGroup className="bg-well flex-1">
                                         <InputGroupAddon>
                                             <Search />
                                         </InputGroupAddon>

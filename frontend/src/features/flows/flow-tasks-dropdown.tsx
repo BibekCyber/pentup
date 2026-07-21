@@ -123,7 +123,7 @@ const FlowTasksDropdown = ({ disabled, onChange, value }: FlowTasksDropdownProps
                     size="icon"
                     variant="outline"
                 >
-                    <ListFilter className={cn(hasActiveFilters ? 'text-foreground' : 'text-muted-foreground')} />
+                    <ListFilter className={cn(hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
                 </Button>
             </PopoverTrigger>
             <PopoverContent

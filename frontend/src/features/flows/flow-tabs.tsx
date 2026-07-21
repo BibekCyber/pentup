@@ -1,3 +1,4 @@
+import { Bot, LayoutDashboard, ListChecks, Terminal, Users, Workflow } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -45,12 +46,36 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                     <ScrollArea className="w-full pb-3">
                         <TabsList className="flex w-fit">
                             {/* Mobile only: the flow's mode tab + dashboard live here too. */}
-                            {!isDesktop && isAssistantMode && <TabsTrigger value="assistant">Assistant</TabsTrigger>}
-                            {!isDesktop && !isAssistantMode && <TabsTrigger value="automation">Automation</TabsTrigger>}
-                            {!isDesktop && canSeeDashboard && <TabsTrigger value="dashboard">Dashboard</TabsTrigger>}
-                            <TabsTrigger value="terminal">Terminal</TabsTrigger>
-                            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                            <TabsTrigger value="agents">Agents</TabsTrigger>
+                            {!isDesktop && isAssistantMode && (
+                                <TabsTrigger value="assistant">
+                                    <Bot className="size-4" />
+                                    Assistant
+                                </TabsTrigger>
+                            )}
+                            {!isDesktop && !isAssistantMode && (
+                                <TabsTrigger value="automation">
+                                    <Workflow className="size-4" />
+                                    Automation
+                                </TabsTrigger>
+                            )}
+                            {!isDesktop && canSeeDashboard && (
+                                <TabsTrigger value="dashboard">
+                                    <LayoutDashboard className="size-4" />
+                                    Dashboard
+                                </TabsTrigger>
+                            )}
+                            <TabsTrigger value="terminal">
+                                <Terminal className="size-4" />
+                                Terminal
+                            </TabsTrigger>
+                            <TabsTrigger value="tasks">
+                                <ListChecks className="size-4" />
+                                Tasks
+                            </TabsTrigger>
+                            <TabsTrigger value="agents">
+                                <Users className="size-4" />
+                                Agents
+                            </TabsTrigger>
                         </TabsList>
                         <ScrollBar orientation="horizontal" />
                     </ScrollArea>

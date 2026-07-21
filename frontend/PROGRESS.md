@@ -19,10 +19,11 @@ system-function check + a className/JSX-only `git diff`.
       (header dossier + child FlowCards), `new-engagement.tsx` (wrappers only: stepper/choice/seg/review/CommandBar).
       _Gate: build ✓, lint baseline (0 new); R2 create-scan contract (buildCredential/onSubmit/createScan/navigate)
       + ScanInitializing = ZERO diff (byte-identical). Deferred: optional wizard summary aside (kept single-col for R2)._
-- [ ] **P5 — Flows list + Cockpit** — `flow.tsx`, `flows.tsx` (table only), `flow-central-tabs.tsx`, `flow-tabs.tsx`,
-      `messages/{flow-message,flow-message-type-icon,flow-automation-messages,flow-assistant-messages}.tsx`,
-      `flow-form.tsx`, `flow-tasks-dropdown.tsx`. VERBATIM: `flow-provider.tsx`.
-      _Sanity: send message + status gating, tab-switch xterm survival, boot overlay, report dropdown._
+- [x] **P5 — Flows list + Cockpit** — `flow.tsx` (CommandBar + pane-head + resizable split kept), `flows.tsx`
+      (DataTable reskin in place), `flow-central-tabs`/`flow-tabs` (underline + icons, forceMount kept), messages
+      (EMBER .msg bubbles + both disclosures), `flow-form.tsx` (dock frame + chips), `flow-tasks-dropdown.tsx`.
+      _Gate: build ✓, lint baseline (0 new); R1 flow-provider EMPTY diff; R6 gating + R7 forceMount = 0 altered lines._
+      _Deferred: Flows dossier grid (per-flow severity not in list query)._
 - [ ] **P6 — Terminal + Tasks (chrome only)** — `terminal/{flow-terminal,flow-split-terminal,flow-command-panes}.tsx`,
       `shared/terminal/{terminal-output-card,terminal-frame,terminal-config}.tsx`,
       `tasks/{flow-tasks,flow-task,flow-subtask,flow-task-status-icon}.tsx`. VERBATIM: `terminal.tsx`,
