@@ -1622,7 +1622,7 @@ export type FlowExecutionStatsFragmentFragment = {
 
 export type FlowsQueryVariables = Exact<{ [key: string]: never }>;
 
-export type FlowsQuery = { flows?: Array<FlowFragmentFragment> | null };
+export type FlowsQuery = { flows?: Array<{ findings: Array<{ severity: Severity }> } & FlowFragmentFragment> | null };
 
 export type ProvidersQueryVariables = Exact<{ [key: string]: never }>;
 
@@ -2261,7 +2261,13 @@ export type DomainQueryVariables = Exact<{
     id: Scalars['ID']['input'];
 }>;
 
-export type DomainQuery = { domain?: DomainFragmentFragment | null };
+export type DomainQuery = {
+    domain?:
+        | ({
+              flows: Array<{ findings: Array<{ severity: Severity }> } & FlowFragmentFragment>;
+          } & DomainFragmentFragment)
+        | null;
+};
 
 export type QuotaUsageQueryVariables = Exact<{ [key: string]: never }>;
 
@@ -2878,6 +2884,9 @@ export const FlowsDocument = gql`
     query flows {
         flows {
             ...flowFragment
+            findings {
+                severity
+            }
         }
     }
     ${FlowFragmentFragmentDoc}
@@ -7387,9 +7396,16 @@ export const DomainDocument = gql`
     query domain($id: ID!) {
         domain(id: $id) {
             ...domainFragment
+            flows {
+                ...flowFragment
+                findings {
+                    severity
+                }
+            }
         }
     }
     ${DomainFragmentFragmentDoc}
+    ${FlowFragmentFragmentDoc}
 `;
 
 /**
