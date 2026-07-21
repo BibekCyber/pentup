@@ -9,6 +9,12 @@ import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
 import { usePermission } from '@/hooks/use-permission';
 import { useFlow } from '@/providers/flow-provider';
 
+// Box/segmented (.seg) tab look: a well-toned pill container with a border; the
+// active tab is a filled box (card bg + subtle shadow), inactive tabs are muted.
+const SEG_LIST = 'h-auto w-fit gap-[3px] rounded-[var(--r-md)] border border-border bg-well p-[3px]';
+const SEG_TRIGGER =
+    'mb-0 rounded-[5px] border-b-0 px-[11px] py-[5px] text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-[var(--hi)]';
+
 const FlowCentralTabs = () => {
     const { handleTabChange, resolvedTab } = useFlowTabDetection();
     const canSeeDashboard = usePermission('usage.view');
@@ -23,20 +29,29 @@ const FlowCentralTabs = () => {
             <div className="max-w-full">
                 <ScrollArea className="w-full pb-3">
                     {/* Only the tab matching how the flow was created is shown. */}
-                    <TabsList className="flex w-fit">
+                    <TabsList className={SEG_LIST}>
                         {isAssistantMode ? (
-                            <TabsTrigger value="assistant">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="assistant"
+                            >
                                 <Bot className="size-4" />
                                 Assistant
                             </TabsTrigger>
                         ) : (
-                            <TabsTrigger value="automation">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="automation"
+                            >
                                 <Workflow className="size-4" />
                                 Automation
                             </TabsTrigger>
                         )}
                         {canSeeDashboard && (
-                            <TabsTrigger value="dashboard">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="dashboard"
+                            >
                                 <LayoutDashboard className="size-4" />
                                 Dashboard
                             </TabsTrigger>

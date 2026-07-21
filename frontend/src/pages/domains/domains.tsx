@@ -148,7 +148,7 @@ const Domains = () => {
                 title="Scans"
             />
 
-            <div className="p-4">
+            <div className="mx-auto w-full max-w-[1320px] p-6">
                 {isLoading && domains.length === 0 ? (
                     <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center">
                         <Spinner variant="circle" />

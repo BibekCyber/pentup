@@ -331,7 +331,7 @@ const Domain = () => {
                 title={<span className="font-mono">{domain.name}</span>}
             />
 
-            <div className="flex flex-col gap-6 p-4">
+            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 p-6">
                 <Card className="relative overflow-hidden">
                     <span
                         aria-hidden

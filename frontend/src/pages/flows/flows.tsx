@@ -770,7 +770,7 @@ const Flows = () => {
         return (
             <>
                 {pageHeader}
-                <div className="flex flex-col gap-4 p-4">
+                <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                     <StatusCard
                         description="Please wait while we fetch your conversation flows"
                         icon={<Loader2 className="text-muted-foreground size-16 animate-spin" />}
@@ -786,7 +786,7 @@ const Flows = () => {
         return (
             <>
                 {pageHeader}
-                <div className="flex flex-col gap-4 p-4">
+                <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                     <StatusCard
                         action={
                             <Button
@@ -809,7 +809,7 @@ const Flows = () => {
     return (
         <>
             {pageHeader}
-            <div className="flex flex-col gap-4 p-4 pt-0">
+            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                 <DataTable<Flow>
                     columns={columns}
                     data={flows}

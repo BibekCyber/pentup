@@ -200,8 +200,10 @@ const SettingsLayout = () => {
                 <SidebarInset className="flex flex-1 flex-col">
                     <SettingsHeader />
                     {/* Content area for nested routes */}
-                    <main className="min-h-0 flex-1 overflow-auto p-4">
-                        <Outlet />
+                    <main className="min-h-0 flex-1 overflow-auto p-6">
+                        <div className="mx-auto w-full max-w-[1320px]">
+                            <Outlet />
+                        </div>
                     </main>
                 </SidebarInset>
             </div>

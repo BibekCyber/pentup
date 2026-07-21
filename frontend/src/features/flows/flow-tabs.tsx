@@ -14,6 +14,12 @@ import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { usePermission } from '@/hooks/use-permission';
 import { useFlow } from '@/providers/flow-provider';
 
+// Box/segmented (.seg) tab look: a well-toned pill container with a border; the
+// active tab is a filled box (card bg + subtle shadow), inactive tabs are muted.
+const SEG_LIST = 'h-auto w-fit gap-[3px] rounded-[var(--r-md)] border border-border bg-well p-[3px]';
+const SEG_TRIGGER =
+    'mb-0 rounded-[5px] border-b-0 px-[11px] py-[5px] text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-[var(--hi)]';
+
 interface FlowTabsProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
@@ -44,35 +50,53 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
             >
                 <div className="max-w-full pr-4">
                     <ScrollArea className="w-full pb-3">
-                        <TabsList className="flex w-fit">
+                        <TabsList className={SEG_LIST}>
                             {/* Mobile only: the flow's mode tab + dashboard live here too. */}
                             {!isDesktop && isAssistantMode && (
-                                <TabsTrigger value="assistant">
+                                <TabsTrigger
+                                    className={SEG_TRIGGER}
+                                    value="assistant"
+                                >
                                     <Bot className="size-4" />
                                     Assistant
                                 </TabsTrigger>
                             )}
                             {!isDesktop && !isAssistantMode && (
-                                <TabsTrigger value="automation">
+                                <TabsTrigger
+                                    className={SEG_TRIGGER}
+                                    value="automation"
+                                >
                                     <Workflow className="size-4" />
                                     Automation
                                 </TabsTrigger>
                             )}
                             {!isDesktop && canSeeDashboard && (
-                                <TabsTrigger value="dashboard">
+                                <TabsTrigger
+                                    className={SEG_TRIGGER}
+                                    value="dashboard"
+                                >
                                     <LayoutDashboard className="size-4" />
                                     Dashboard
                                 </TabsTrigger>
                             )}
-                            <TabsTrigger value="terminal">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="terminal"
+                            >
                                 <Terminal className="size-4" />
                                 Terminal
                             </TabsTrigger>
-                            <TabsTrigger value="tasks">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="tasks"
+                            >
                                 <ListChecks className="size-4" />
                                 Tasks
                             </TabsTrigger>
-                            <TabsTrigger value="agents">
+                            <TabsTrigger
+                                className={SEG_TRIGGER}
+                                value="agents"
+                            >
                                 <Users className="size-4" />
                                 Agents
                             </TabsTrigger>

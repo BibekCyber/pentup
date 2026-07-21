@@ -356,7 +356,7 @@ const NewEngagement = () => {
                 title="New engagement"
             />
 
-            <div className="flex min-h-[calc(100dvh-3rem)] items-start justify-center p-4">
+            <div className="flex min-h-[calc(100dvh-3rem)] items-start justify-center p-6">
                 {isLoading ? (
                     <Card className="w-full max-w-3xl">
                         <CardContent className="pt-6">
