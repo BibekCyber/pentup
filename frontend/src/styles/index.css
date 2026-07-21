@@ -1091,6 +1091,9 @@
     font-size: 11px;
     color: var(--ink-3);
     font-weight: 500;
+    /* Tailwind ships a built-in `.overline` utility (text-decoration-line: overline)
+       that draws a stray line above every label — override it. */
+    text-decoration: none;
 }
 .tnum {
     font-variant-numeric: tabular-nums;
