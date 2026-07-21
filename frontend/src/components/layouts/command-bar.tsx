@@ -53,7 +53,7 @@ export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) 
                     type="button"
                 >
                     <Search className="size-[15px] shrink-0" />
-                    <span className="truncate">Search…</span>
+                    <span className="truncate">Search targets, findings…</span>
                     <kbd className="text-muted-foreground border-border ml-auto rounded-[5px] border bg-[var(--hover)] px-1.5 py-px font-mono text-[10px] leading-none">
                         ⌘K
                     </kbd>

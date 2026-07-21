@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Key, Plug, Users } from 'lucide-react';
+import { ArrowLeft, FileText, Key, Plug, Server, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
@@ -48,12 +48,12 @@ const menuItems: readonly MenuItem[] = [
         permission: 'users.view',
         title: 'Users',
     },
-    // {
-    //     id: 'mcp-servers',
-    //     title: 'MCP Servers',
-    //     path: '/settings/mcp-servers',
-    //     icon: <Server className="size-4" />,
-    // },
+    {
+        icon: <Server className="size-4" />,
+        id: 'mcp-servers',
+        path: '/settings/mcp-servers',
+        title: 'MCP Servers',
+    },
 ] as const;
 
 // Settings header component

@@ -1,11 +1,9 @@
 import { Loader2 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
     useFlowsStatsTotalQuery,
     useToolcallsStatsByFunctionQuery,
-    useToolcallsStatsTotalQuery,
     useUsageStatsByModelQuery,
     useUsageStatsByProviderQuery,
     useUsageStatsTotalQuery,
@@ -32,29 +30,6 @@ const TableCardHead = ({ query, title }: { query: string; title: string }) => (
             className="ml-auto"
             query={query}
         />
-    </div>
-);
-
-/** `.kpi` headline tile — overline label, big `.k-val`, small mono delta. */
-const KpiTile = ({
-    delta,
-    hero,
-    label,
-    loading,
-    value,
-}: {
-    delta: string;
-    hero?: boolean;
-    label: string;
-    loading: boolean;
-    value: string;
-}) => (
-    <div className={cn('kpi', hero && 'hero')}>
-        <div className="k-label">
-            <span className="overline">{label}</span>
-        </div>
-        {loading ? <Skeleton className="mt-2.5 h-8 w-24" /> : <div className="k-val">{value}</div>}
-        <div className="text-muted-foreground mt-1.5 font-mono text-[11px]">{delta}</div>
     </div>
 );
 
@@ -86,12 +61,10 @@ export const DashboardOverview = () => {
     const { data: usageTotalData, loading: usageTotalLoading } = useUsageStatsTotalQuery();
     const { data: usageByProviderData, loading: usageByProviderLoading } = useUsageStatsByProviderQuery();
     const { data: usageByModelData, loading: usageByModelLoading } = useUsageStatsByModelQuery();
-    const { data: toolcallsTotalData, loading: toolcallsTotalLoading } = useToolcallsStatsTotalQuery();
     const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } = useToolcallsStatsByFunctionQuery();
-    const { data: flowsTotalData, loading: flowsTotalLoading } = useFlowsStatsTotalQuery();
+    const { data: flowsTotalData } = useFlowsStatsTotalQuery();
 
     const usageTotal = usageTotalData?.usageStatsTotal;
-    const toolcallsTotal = toolcallsTotalData?.toolcallsStatsTotal;
     const flowsTotal = flowsTotalData?.flowsStatsTotal;
 
     const totalCost = usageTotal ? usageTotal.totalUsageCostIn + usageTotal.totalUsageCostOut : 0;
@@ -123,35 +96,6 @@ export const DashboardOverview = () => {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* ---- headline KPI strip (all real totals, no invented risk metric) ---- */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <KpiTile
-                    delta={`${formatNumber(flowsTotal?.totalTasksCount ?? 0)} tasks · ${formatNumber(flowsTotal?.totalSubtasksCount ?? 0)} subtasks`}
-                    hero
-                    label="Flows"
-                    loading={flowsTotalLoading}
-                    value={flowsTotal ? formatNumber(flowsTotal.totalFlowsCount) : '0'}
-                />
-                <KpiTile
-                    delta={`${formatNumber(totalTokens)} · in + out`}
-                    label="Total tokens"
-                    loading={usageTotalLoading}
-                    value={formatTokenCount(totalTokens)}
-                />
-                <KpiTile
-                    delta={`in ${formatCost(usageTotal?.totalUsageCostIn ?? 0)} · out ${formatCost(usageTotal?.totalUsageCostOut ?? 0)}`}
-                    label="Agent spend"
-                    loading={usageTotalLoading}
-                    value={formatCost(totalCost)}
-                />
-                <KpiTile
-                    delta={`total ${toolcallsTotal ? formatDuration(toolcallsTotal.totalDurationSeconds) : '—'}`}
-                    label="Tool calls"
-                    loading={toolcallsTotalLoading}
-                    value={toolcallsTotal ? formatNumber(toolcallsTotal.totalCount) : '0'}
-                />
-            </div>
-
             {/* ---- usage totals (usageStatsTotal) ---- */}
             <Card className="p-4">
                 <div className="flex items-center justify-between gap-2">

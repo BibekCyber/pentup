@@ -48,8 +48,10 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 onValueChange={onTabChange}
                 value={activeTab}
             >
-                <div className="max-w-full pr-4">
-                    <ScrollArea className="w-full pb-3">
+                {/* Single ~46px pane head carrying the only divider; the .seg tab
+                    control fills the bordered row (no separate label row). */}
+                <div className="border-border flex h-[46px] flex-none items-center border-b px-4">
+                    <ScrollArea className="w-full">
                         <TabsList className={SEG_LIST}>
                             {/* Mobile only: the flow's mode tab + dashboard live here too. */}
                             {!isDesktop && isAssistantMode && (
@@ -108,7 +110,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 {/* Mobile Tabs only */}
                 {!isDesktop && isAssistantMode && (
                     <TabsContent
-                        className="mt-1 flex-1 overflow-auto"
+                        className="mt-0 min-h-0 flex-1 overflow-auto py-4 pl-4"
                         value="assistant"
                     >
                         <FlowAssistantMessages className="pr-4" />
@@ -116,7 +118,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 )}
                 {!isDesktop && !isAssistantMode && (
                     <TabsContent
-                        className="mt-1 flex-1 overflow-auto"
+                        className="mt-0 min-h-0 flex-1 overflow-auto py-4 pl-4"
                         value="automation"
                     >
                         <FlowAutomationMessages className="pr-4" />
@@ -124,7 +126,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 )}
                 {!isDesktop && canSeeDashboard && (
                     <TabsContent
-                        className="mt-1 flex-1 overflow-auto pr-4"
+                        className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                         value="dashboard"
                     >
                         <FlowDashboard />
@@ -137,7 +139,7 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                     Rebuilding is cheap with little data (local) but freezes on large log histories
                     (cloud). The xterm ResizeObserver re-fits automatically when the tab is shown. */}
                 <TabsContent
-                    className="mt-1 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                    className="mt-0 min-h-0 flex-1 overflow-hidden py-4 pl-4 data-[state=inactive]:hidden"
                     forceMount
                     value="terminal"
                 >
@@ -145,14 +147,14 @@ const FlowTabs = ({ activeTab, onTabChange }: FlowTabsProps) => {
                 </TabsContent>
 
                 <TabsContent
-                    className="mt-1 flex-1 overflow-auto pr-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                     value="tasks"
                 >
                     <FlowTasks />
                 </TabsContent>
 
                 <TabsContent
-                    className="mt-1 flex-1 overflow-auto pr-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                     value="agents"
                 >
                     <FlowAgents />

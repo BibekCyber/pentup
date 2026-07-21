@@ -52,6 +52,23 @@ import { type Flow, useFlows } from '@/providers/flows-provider';
 
 const PAGE_SIZE = 24;
 
+// Proper-case provider names for chips. Known providers get a curated label;
+// anything else falls back to a capitalize of the raw name.
+const PROVIDER_LABELS: Record<string, string> = {
+    anthropic: 'Anthropic',
+    gemini: 'Gemini',
+    kimi: 'Kimi',
+    openai: 'OpenAI',
+};
+
+const providerLabel = (name?: null | string): string => {
+    if (!name) {
+        return 'N/A';
+    }
+
+    return PROVIDER_LABELS[name.toLowerCase()] ?? name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 // The flows list query augments every flow with its findings (severity only).
 // That field lives on the runtime object but is not part of the base
 // FlowFragmentFragment type, so we read it through this local widening.
@@ -712,12 +729,15 @@ const Flows = () => {
                                                 </div>
 
                                                 <div className="d-foot">
-                                                    <span className="chip">
+                                                    <span
+                                                        className="chip"
+                                                        title={`Provider: ${providerLabel(flow.provider?.name)}`}
+                                                    >
                                                         <Cpu className="size-[13px]" />
-                                                        {flow.provider?.name || 'N/A'}
+                                                        {providerLabel(flow.provider?.name)}
                                                     </span>
-                                                    <span className="flex-1" />
                                                     <span className="phase">{formatDateTime(flow.createdAt)}</span>
+                                                    <span className="flex-1" />
                                                 </div>
                                             </div>
                                         </ContextMenuTrigger>
@@ -740,7 +760,6 @@ const Flows = () => {
                                         <th>ID</th>
                                         <th>Title</th>
                                         <th>Provider</th>
-                                        <th>Target</th>
                                         <th>Findings</th>
                                         <th>Created</th>
                                         <th />
@@ -778,12 +797,14 @@ const Flows = () => {
                                                             )}
                                                         </td>
                                                         <td>
-                                                            <span className="chip">
+                                                            <span
+                                                                className="chip"
+                                                                title={`Provider: ${providerLabel(flow.provider?.name)}`}
+                                                            >
                                                                 <Cpu className="size-[13px]" />
-                                                                {flow.provider?.name || 'N/A'}
+                                                                {providerLabel(flow.provider?.name)}
                                                             </span>
                                                         </td>
-                                                        <td className="m text-muted-foreground">—</td>
                                                         <td style={{ minWidth: 150 }}>
                                                             <div className="flex items-center gap-2.5">
                                                                 <span className="min-w-[80px] flex-1">

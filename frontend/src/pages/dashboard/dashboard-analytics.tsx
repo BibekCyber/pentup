@@ -85,6 +85,12 @@ const ChartLoading = () => (
     </div>
 );
 
+const CompactChartLoading = () => (
+    <div className="flex h-[140px] items-center justify-center">
+        <Loader2 className="text-primary size-5 animate-spin" />
+    </div>
+);
+
 const CustomTooltip = ({
     active,
     formatter,
@@ -178,8 +184,92 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
         }))
         .slice(0, 15);
 
+    // Presentation-only headline totals for the compact top cards (no new query).
+    const totalPeriodCost = usageChartData.reduce((sum, item) => sum + item.totalCost, 0);
+    const totalPeriodFlows = flowsChartData.reduce((sum, item) => sum + item.flows, 0);
+
     return (
         <div className="flex flex-col gap-6">
+            {/* ---- compact 7/5 headline cards (single owned-orange language) ---- */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                <Card className="flex flex-col p-4 lg:col-span-7">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="overline">Cost / usage · 14-day</span>
+                        <SourceChip query="usageStatsByPeriod" />
+                    </div>
+                    <div className="mt-3.5 flex items-end gap-3">
+                        <div className="k-val text-[30px]">{formatCost(totalPeriodCost)}</div>
+                        <span className="text-muted-foreground mb-[7px] font-mono text-[11px]">daily agent spend</span>
+                    </div>
+                    <div className="mt-auto pt-3.5">
+                        {usageByPeriodLoading ? (
+                            <CompactChartLoading />
+                        ) : (
+                            <ResponsiveContainer
+                                height={140}
+                                width="100%"
+                            >
+                                <AreaChart data={usageChartData}>
+                                    <XAxis
+                                        dataKey="date"
+                                        hide
+                                    />
+                                    <Tooltip content={<CustomTooltip formatter={(value) => formatCost(value)} />} />
+                                    <Area
+                                        dataKey="totalCost"
+                                        fill="var(--primary)"
+                                        fillOpacity={0.18}
+                                        name="Cost"
+                                        stroke="var(--primary)"
+                                        strokeWidth={2}
+                                        type="monotone"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </Card>
+
+                <Card className="flex flex-col p-4 lg:col-span-5">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="overline">Flows executed · 14-day</span>
+                        <SourceChip query="flowsStatsByPeriod" />
+                    </div>
+                    <div className="mt-3.5 flex items-end gap-3">
+                        <div className="k-val text-[30px]">{formatNumber(totalPeriodFlows)}</div>
+                        <span className="text-muted-foreground mb-[7px] font-mono text-[11px]">flows run</span>
+                    </div>
+                    <div className="mt-auto pt-3.5">
+                        {flowsByPeriodLoading ? (
+                            <CompactChartLoading />
+                        ) : (
+                            <ResponsiveContainer
+                                height={140}
+                                width="100%"
+                            >
+                                <BarChart data={flowsChartData}>
+                                    <XAxis
+                                        dataKey="date"
+                                        hide
+                                    />
+                                    <Tooltip
+                                        content={<CustomTooltip />}
+                                        cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.1 }}
+                                    />
+                                    <Bar
+                                        dataKey="flows"
+                                        fill="var(--primary)"
+                                        name="Flows"
+                                        radius={[3, 3, 0, 0]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </Card>
+            </div>
+
+            {/* ---- deeper Recharts detail ---- */}
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card>
                     <CardHead
@@ -237,58 +327,6 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
 
                 <Card>
                     <CardHead
-                        description="LLM spending per day"
-                        query="usageStatsByPeriod"
-                        title="Cost Over Time"
-                    />
-                    <CardContent>
-                        {usageByPeriodLoading ? (
-                            <ChartLoading />
-                        ) : (
-                            <ResponsiveContainer
-                                height={300}
-                                width="100%"
-                            >
-                                <AreaChart data={usageChartData}>
-                                    <CartesianGrid
-                                        className="stroke-border"
-                                        strokeDasharray="3 3"
-                                    />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                        tickMargin={8}
-                                    />
-                                    <YAxis
-                                        tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                        tickFormatter={(value) => formatCost(value)}
-                                        tickMargin={8}
-                                    />
-                                    <Tooltip content={<CustomTooltip formatter={(value) => formatCost(value)} />} />
-                                    <Area
-                                        dataKey="costIn"
-                                        fill={CHART_COLORS.area1}
-                                        fillOpacity={0.3}
-                                        name="Cost In"
-                                        stroke={CHART_COLORS.area1}
-                                        type="monotone"
-                                    />
-                                    <Area
-                                        dataKey="costOut"
-                                        fill={CHART_COLORS.area3}
-                                        fillOpacity={0.3}
-                                        name="Cost Out"
-                                        stroke={CHART_COLORS.area3}
-                                        type="monotone"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHead
                         description="Number of tool executions per day"
                         query="toolcallsStatsByPeriod"
                         title="Tool Calls Over Time"
@@ -323,62 +361,6 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                                         dataKey="count"
                                         fill={CHART_COLORS.bar1}
                                         name="Tool Calls"
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHead
-                        description="Flows, tasks, and subtasks created per day"
-                        query="flowsStatsByPeriod"
-                        title="Flows Activity Over Time"
-                    />
-                    <CardContent>
-                        {flowsByPeriodLoading ? (
-                            <ChartLoading />
-                        ) : (
-                            <ResponsiveContainer
-                                height={300}
-                                width="100%"
-                            >
-                                <BarChart data={flowsChartData}>
-                                    <CartesianGrid
-                                        className="stroke-border"
-                                        strokeDasharray="3 3"
-                                    />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                        tickMargin={8}
-                                    />
-                                    <YAxis
-                                        tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                        tickMargin={8}
-                                    />
-                                    <Tooltip
-                                        content={<CustomTooltip />}
-                                        cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.1 }}
-                                    />
-                                    <Bar
-                                        dataKey="flows"
-                                        fill={CHART_COLORS.area1}
-                                        name="Flows"
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                    <Bar
-                                        dataKey="tasks"
-                                        fill={CHART_COLORS.area2}
-                                        name="Tasks"
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                    <Bar
-                                        dataKey="subtasks"
-                                        fill={CHART_COLORS.area3}
-                                        name="Subtasks"
                                         radius={[4, 4, 0, 0]}
                                     />
                                 </BarChart>

@@ -1,6 +1,5 @@
 import { Bot, LayoutDashboard, Workflow } from 'lucide-react';
 
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FlowDashboard from '@/features/flows/dashboard/flow-dashboard';
 import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-messages';
@@ -26,51 +25,51 @@ const FlowCentralTabs = () => {
             onValueChange={handleTabChange}
             value={resolvedTab}
         >
-            <div className="max-w-full">
-                <ScrollArea className="w-full pb-3">
-                    {/* Only the tab matching how the flow was created is shown. */}
-                    <TabsList className={SEG_LIST}>
-                        {isAssistantMode ? (
-                            <TabsTrigger
-                                className={SEG_TRIGGER}
-                                value="assistant"
-                            >
-                                <Bot className="size-4" />
-                                Assistant
-                            </TabsTrigger>
-                        ) : (
-                            <TabsTrigger
-                                className={SEG_TRIGGER}
-                                value="automation"
-                            >
-                                <Workflow className="size-4" />
-                                Automation
-                            </TabsTrigger>
-                        )}
-                        {canSeeDashboard && (
-                            <TabsTrigger
-                                className={SEG_TRIGGER}
-                                value="dashboard"
-                            >
-                                <LayoutDashboard className="size-4" />
-                                Dashboard
-                            </TabsTrigger>
-                        )}
-                    </TabsList>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+            {/* Single ~46px pane head: mode overline on the left, the .seg tab
+                control inline on the right. This bordered row is the only divider. */}
+            <div className="border-border flex h-[46px] flex-none items-center gap-2.5 border-b px-4">
+                <span className="overline">{isAssistantMode ? 'Assistant' : 'Automation'}</span>
+                {/* Only the tab matching how the flow was created is shown. */}
+                <TabsList className={`${SEG_LIST} ml-auto`}>
+                    {isAssistantMode ? (
+                        <TabsTrigger
+                            className={SEG_TRIGGER}
+                            value="assistant"
+                        >
+                            <Bot className="size-4" />
+                            Assistant
+                        </TabsTrigger>
+                    ) : (
+                        <TabsTrigger
+                            className={SEG_TRIGGER}
+                            value="automation"
+                        >
+                            <Workflow className="size-4" />
+                            Automation
+                        </TabsTrigger>
+                    )}
+                    {canSeeDashboard && (
+                        <TabsTrigger
+                            className={SEG_TRIGGER}
+                            value="dashboard"
+                        >
+                            <LayoutDashboard className="size-4" />
+                            Dashboard
+                        </TabsTrigger>
+                    )}
+                </TabsList>
             </div>
 
             {isAssistantMode ? (
                 <TabsContent
-                    className="mt-1 flex-1 overflow-auto pr-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                     value="assistant"
                 >
                     <FlowAssistantMessages />
                 </TabsContent>
             ) : (
                 <TabsContent
-                    className="mt-1 flex-1 overflow-auto pr-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                     value="automation"
                 >
                     <FlowAutomationMessages />
@@ -78,7 +77,7 @@ const FlowCentralTabs = () => {
             )}
             {canSeeDashboard && (
                 <TabsContent
-                    className="mt-1 flex-1 overflow-auto pr-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
                     value="dashboard"
                 >
                     <FlowDashboard />

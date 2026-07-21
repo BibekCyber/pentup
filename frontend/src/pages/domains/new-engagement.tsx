@@ -14,7 +14,6 @@ import {
     Eye,
     EyeOff,
     Globe,
-    KeyRound,
     Lock,
     Network,
     Server,
@@ -34,7 +33,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ScanInitializing from '@/features/flows/scan-initializing';
 import {
     type CreateScanInput,
@@ -445,7 +443,7 @@ const NewEngagement = () => {
                         <span className="capitalize">{currentKey}</span>
                     </>
                 }
-                title="New engagement"
+                title="New scan"
             />
 
             <div className="p-6">
@@ -687,29 +685,42 @@ const NewEngagement = () => {
                                                                             <span className="text-muted-foreground ml-auto font-mono text-[11px]">
                                                                                 run as
                                                                             </span>
-                                                                            <ToggleGroup
-                                                                                onValueChange={(v) =>
-                                                                                    v &&
-                                                                                    setSelected((prev) => ({
-                                                                                        ...prev,
-                                                                                        [template.id]: v as ScanRunMode,
-                                                                                    }))
-                                                                                }
-                                                                                size="sm"
-                                                                                type="single"
-                                                                                value={selected[template.id]}
-                                                                            >
-                                                                                <ToggleGroupItem
-                                                                                    value={ScanRunMode.Automatic}
+                                                                            <div className="seg">
+                                                                                <button
+                                                                                    className={cn(
+                                                                                        selected[template.id] ===
+                                                                                            ScanRunMode.Automatic &&
+                                                                                            'active',
+                                                                                    )}
+                                                                                    onClick={() =>
+                                                                                        setSelected((prev) => ({
+                                                                                            ...prev,
+                                                                                            [template.id]:
+                                                                                                ScanRunMode.Automatic,
+                                                                                        }))
+                                                                                    }
+                                                                                    type="button"
                                                                                 >
                                                                                     Auto
-                                                                                </ToggleGroupItem>
-                                                                                <ToggleGroupItem
-                                                                                    value={ScanRunMode.Assistant}
+                                                                                </button>
+                                                                                <button
+                                                                                    className={cn(
+                                                                                        selected[template.id] ===
+                                                                                            ScanRunMode.Assistant &&
+                                                                                            'active',
+                                                                                    )}
+                                                                                    onClick={() =>
+                                                                                        setSelected((prev) => ({
+                                                                                            ...prev,
+                                                                                            [template.id]:
+                                                                                                ScanRunMode.Assistant,
+                                                                                        }))
+                                                                                    }
+                                                                                    type="button"
                                                                                 >
                                                                                     Assistant
-                                                                                </ToggleGroupItem>
-                                                                            </ToggleGroup>
+                                                                                </button>
+                                                                            </div>
                                                                         </>
                                                                     ) : null}
                                                                 </div>
@@ -819,21 +830,21 @@ const NewEngagement = () => {
                                         {targetClass === 'web' ? (
                                             <div className="flex flex-col gap-2">
                                                 <label className="field-label">Credential type</label>
-                                                <div className="flex flex-col gap-3 sm:flex-row">
-                                                    <ChoiceCard
-                                                        description="An auth/bearer token or API key."
-                                                        icon={KeyRound}
+                                                <div className="seg self-start">
+                                                    <button
+                                                        className={cn(webCredType === 'token' && 'active')}
                                                         onClick={() => setWebCredType('token')}
-                                                        selected={webCredType === 'token'}
-                                                        title="Token"
-                                                    />
-                                                    <ChoiceCard
-                                                        description="Email + password against a login form."
-                                                        icon={Lock}
+                                                        type="button"
+                                                    >
+                                                        Token
+                                                    </button>
+                                                    <button
+                                                        className={cn(webCredType === 'form' && 'active')}
                                                         onClick={() => setWebCredType('form')}
-                                                        selected={webCredType === 'form'}
-                                                        title="Email + password"
-                                                    />
+                                                        type="button"
+                                                    >
+                                                        Email + password
+                                                    </button>
                                                 </div>
                                             </div>
                                         ) : null}
@@ -944,10 +955,25 @@ const NewEngagement = () => {
                                                     {needsCredentials ? 'Provided (encrypted)' : 'None'}
                                                 </span>
                                             </div>
-                                            <p className="text-muted-foreground px-4 py-3 font-mono text-xs">
-                                                About to start {selectedIds.length} flow
-                                                {selectedIds.length === 1 ? '' : 's'}.
-                                            </p>
+                                            <div className="border-border flex items-center gap-3 border-t px-4 py-3.5">
+                                                <span className="text-muted-foreground font-mono text-xs">
+                                                    About to start {selectedIds.length} flow
+                                                    {selectedIds.length === 1 ? '' : 's'}.
+                                                </span>
+                                                <Button
+                                                    className="ml-auto"
+                                                    disabled={isLoading || !fullValid}
+                                                    onClick={onSubmit}
+                                                    type="button"
+                                                >
+                                                    {isLoading ? (
+                                                        <Spinner variant="circle" />
+                                                    ) : (
+                                                        <Zap className="size-4" />
+                                                    )}
+                                                    Create scan
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : null}

@@ -200,12 +200,10 @@ const Flow = () => {
 
     const tabsCard = (
         <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
-            <div className="flex-1 overflow-auto py-4 pr-0 pl-4">
-                <FlowTabs
-                    activeTab={activeTabsTab}
-                    onTabChange={handleTabsTabChange}
-                />
-            </div>
+            <FlowTabs
+                activeTab={activeTabsTab}
+                onTabChange={handleTabsTabChange}
+            />
         </div>
     );
 
@@ -274,14 +272,7 @@ const Flow = () => {
                             minSize={30}
                         >
                             <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
-                                <div className="border-border flex-none border-b px-4 py-2.5">
-                                    <span className="text-muted-foreground font-mono text-[11px] font-medium tracking-[0.14em] uppercase">
-                                        Conversation
-                                    </span>
-                                </div>
-                                <div className="min-h-0 flex-1 overflow-auto py-4 pr-0 pl-4">
-                                    <FlowCentralTabs />
-                                </div>
+                                <FlowCentralTabs />
                             </div>
                         </ResizablePanel>
                         <ResizableHandle withHandle>
@@ -292,17 +283,10 @@ const Flow = () => {
                             minSize={30}
                         >
                             <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
-                                <div className="border-border flex-none border-b px-4 py-2.5">
-                                    <span className="text-muted-foreground font-mono text-[11px] font-medium tracking-[0.14em] uppercase">
-                                        Execution
-                                    </span>
-                                </div>
-                                <div className="min-h-0 flex-1 overflow-auto py-4 pr-0 pl-4">
-                                    <FlowTabs
-                                        activeTab={activeTabsTab}
-                                        onTabChange={handleTabsTabChange}
-                                    />
-                                </div>
+                                <FlowTabs
+                                    activeTab={activeTabsTab}
+                                    onTabChange={handleTabsTabChange}
+                                />
                             </div>
                         </ResizablePanel>
                     </ResizablePanelGroup>

@@ -396,55 +396,64 @@ const Domains = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {pageDomains.map((domain) => (
-                                                <tr
-                                                    key={domain.id}
-                                                    onClick={() => navigate(`/scans/${domain.id}`)}
-                                                >
-                                                    <td>
-                                                        <StatusInline status={domain.status} />
-                                                    </td>
-                                                    <td className="m">{domain.name}</td>
-                                                    <td>{getTargetTypeLabel(domain.targetType)}</td>
-                                                    <td className="m text-muted-foreground">
-                                                        {domain.scope ?? '—'}
-                                                        {domain.box ? ` · ${domain.box}-box` : ''}
-                                                    </td>
-                                                    <td className="num">{domain.flows.length}</td>
-                                                    <td className="m text-muted-foreground">
-                                                        {formatDay(domain.createdAt)}
-                                                    </td>
-                                                    <td className="w-11 text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button
-                                                                    className="text-muted-foreground hover:text-foreground ml-auto size-7"
+                                            {pageDomains.map((domain) => {
+                                                const Glyph = TARGET_GLYPH[domain.targetType] ?? Box;
+
+                                                return (
+                                                    <tr
+                                                        key={domain.id}
+                                                        onClick={() => navigate(`/scans/${domain.id}`)}
+                                                    >
+                                                        <td>
+                                                            <StatusInline status={domain.status} />
+                                                        </td>
+                                                        <td className="m">{domain.name}</td>
+                                                        <td>
+                                                            <span className="chip">
+                                                                <Glyph className="size-[13px]" />
+                                                                {getTargetTypeLabel(domain.targetType)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="m text-muted-foreground">
+                                                            {domain.scope ?? '—'}
+                                                            {domain.box ? ` · ${domain.box}-box` : ''}
+                                                        </td>
+                                                        <td className="num">{domain.flows.length}</td>
+                                                        <td className="m text-muted-foreground">
+                                                            {formatDay(domain.createdAt)}
+                                                        </td>
+                                                        <td className="w-11 text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button
+                                                                        className="text-muted-foreground hover:text-foreground ml-auto size-7"
+                                                                        onClick={(event) => event.stopPropagation()}
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                    >
+                                                                        <MoreHorizontal className="size-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent
+                                                                    align="end"
                                                                     onClick={(event) => event.stopPropagation()}
-                                                                    size="icon"
-                                                                    variant="ghost"
                                                                 >
-                                                                    <MoreHorizontal className="size-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent
-                                                                align="end"
-                                                                onClick={(event) => event.stopPropagation()}
-                                                            >
-                                                                <DropdownMenuItem
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        setDeletingDomain(domain);
-                                                                    }}
-                                                                    variant="destructive"
-                                                                >
-                                                                    <Trash2 />
-                                                                    Delete
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                                    <DropdownMenuItem
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            setDeletingDomain(domain);
+                                                                        }}
+                                                                        variant="destructive"
+                                                                    >
+                                                                        <Trash2 />
+                                                                        Delete
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

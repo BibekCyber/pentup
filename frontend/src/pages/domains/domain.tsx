@@ -10,6 +10,7 @@ import {
     Clock,
     Cloud,
     Cpu,
+    Download,
     Globe,
     MoreVertical,
     Network,
@@ -242,105 +243,126 @@ const FlowCard = ({
 
     return (
         <>
-            <div
-                className={cn('dossier', isRunning && 'is-running')}
-                onClick={() => navigate(`/flows/${flow.id}`)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        navigate(`/flows/${flow.id}`);
-                    }
-                }}
-                role="button"
-                tabIndex={0}
-            >
-                <div className="d-top">
-                    <span className="tgt-glyph">
-                        <Glyph className="size-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <div className="d-name">{flow.title}</div>
-                        <div className="d-id">#{flow.id}</div>
-                    </div>
-                    {meta ? (
-                        <StatusPill
-                            className="shrink-0"
-                            label={meta.label}
-                            pulse={meta.pulse}
-                            tone={meta.tone}
-                        />
-                    ) : null}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                className="-mr-1.5 size-7 shrink-0"
-                                // the dossier itself opens the flow; keep the menu button from triggering that
-                                onClick={(e) => e.stopPropagation()}
-                                size="icon"
-                                variant="ghost"
-                            >
-                                <MoreVertical className="size-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            // portaled menu content still bubbles through the React tree to the dossier's
-                            // onClick — stop it so item clicks don't navigate to the flow
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <DropdownMenuItem
-                                onSelect={(e) => {
-                                    // keep focus on the trigger so the dialog can grab it cleanly
-                                    e.preventDefault();
-                                    setTitle(flow.title);
-                                    setIsRenameOpen(true);
-                                }}
-                            >
-                                <Pencil className="size-4" />
-                                Rename
-                            </DropdownMenuItem>
-                            {isActive ? (
-                                <DropdownMenuItem onSelect={() => void handleFinish()}>
-                                    <CheckCircle2 className="size-4" />
-                                    Finish
-                                </DropdownMenuItem>
-                            ) : null}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    setIsDeleteOpen(true);
-                                }}
-                            >
-                                <Trash2 className="size-4" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
-                <div
-                    className="d-sev"
-                    style={{ margin: '12px 0 2px' }}
-                >
-                    {findingCount > 0 ? (
-                        <>
-                            <SevCounts counts={counts} />
-                            <SevBar counts={counts} />
-                        </>
-                    ) : (
-                        <span className="text-muted-foreground font-mono text-[11px]">No findings yet</span>
-                    )}
-                </div>
-
-                <div className="d-foot">
-                    <span className="chip">
-                        <Cpu className="size-[13px]" />
-                        {flow.provider?.name || 'N/A'}
-                    </span>
+            <div className="flex flex-col">
+                {/* Mode/cockpit header row above the dossier (matches scandetail.js).
+                    NOTE: the prototype's leading MODE chip (Automation/Assistant) is
+                    omitted — a flow's run mode (ScanRunMode) is a scan-creation input and
+                    is not queryable per-Flow (FlowFragmentFragment has no mode field), so
+                    there is no data to drive it here without adding a query. */}
+                <div className="mb-2 flex items-center gap-2">
                     <span className="flex-1" />
-                    <span className="phase">{formatDate(flow.createdAt)}</span>
+                    <button
+                        className="phase hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                        onClick={() => navigate(`/flows/${flow.id}`)}
+                        type="button"
+                    >
+                        Open cockpit
+                        <ChevronRight className="size-3" />
+                    </button>
+                </div>
+                <div
+                    className={cn('dossier', isRunning && 'is-running')}
+                    onClick={() => navigate(`/flows/${flow.id}`)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            navigate(`/flows/${flow.id}`);
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                >
+                    <div className="d-top">
+                        <span className="tgt-glyph">
+                            <Glyph className="size-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <div className="d-name">{flow.title}</div>
+                            <div className="d-id">
+                                #{flow.id} · {getTargetTypeLabel(targetType)}
+                                {flow.provider?.name ? ` · ${flow.provider.name}` : ''}
+                            </div>
+                        </div>
+                        {meta ? (
+                            <StatusPill
+                                className="shrink-0"
+                                label={meta.label}
+                                pulse={meta.pulse}
+                                tone={meta.tone}
+                            />
+                        ) : null}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    className="-mr-1.5 size-7 shrink-0"
+                                    // the dossier itself opens the flow; keep the menu button from triggering that
+                                    onClick={(e) => e.stopPropagation()}
+                                    size="icon"
+                                    variant="ghost"
+                                >
+                                    <MoreVertical className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                // portaled menu content still bubbles through the React tree to the dossier's
+                                // onClick — stop it so item clicks don't navigate to the flow
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenuItem
+                                    onSelect={(e) => {
+                                        // keep focus on the trigger so the dialog can grab it cleanly
+                                        e.preventDefault();
+                                        setTitle(flow.title);
+                                        setIsRenameOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="size-4" />
+                                    Rename
+                                </DropdownMenuItem>
+                                {isActive ? (
+                                    <DropdownMenuItem onSelect={() => void handleFinish()}>
+                                        <CheckCircle2 className="size-4" />
+                                        Finish
+                                    </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                        setIsDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="size-4" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    <div
+                        className="d-sev"
+                        style={{ margin: '12px 0 2px' }}
+                    >
+                        {findingCount > 0 ? (
+                            <>
+                                <SevCounts counts={counts} />
+                                <SevBar counts={counts} />
+                            </>
+                        ) : (
+                            <span className="text-muted-foreground font-mono text-[11px]">No findings yet</span>
+                        )}
+                    </div>
+
+                    <div className="d-foot">
+                        <span className="chip">
+                            <Cpu className="size-[13px]" />
+                            {flow.provider?.name || 'N/A'}
+                        </span>
+                        <span className="flex-1" />
+                        <span className="phase">{formatDate(flow.createdAt)}</span>
+                    </div>
                 </div>
             </div>
 
@@ -466,6 +488,10 @@ const Domain = () => {
     const totalFindings = findingsTotal(scanCounts);
     const flowCount = domain.flows.length;
 
+    // The scan's report is the report of its primary (first) child flow — same target
+    // the prototype's Report action points at. Undefined until a child flow exists.
+    const reportFlowId = domain.flows[0]?.id;
+
     // Client-side pagination over the scan's child flows.
     const pageCount = Math.max(1, Math.ceil(flowCount / PAGE_SIZE));
     const safePage = Math.min(page, pageCount - 1);
@@ -476,6 +502,42 @@ const Domain = () => {
     return (
         <>
             <CommandBar
+                actions={
+                    <>
+                        <Button
+                            disabled={!reportFlowId}
+                            onClick={() => reportFlowId && navigate(`/flows/${reportFlowId}/report`)}
+                            size="sm"
+                            variant="outline"
+                        >
+                            <Download />
+                            Report
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    className="size-8"
+                                    size="icon"
+                                    variant="outline"
+                                >
+                                    <MoreVertical />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                        setIsDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="size-4" />
+                                    Delete scan
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </>
+                }
                 ctx={
                     <>
                         {getTargetTypeLabel(domain.targetType)}
@@ -493,13 +555,20 @@ const Domain = () => {
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 p-6">
                 {/* (1) Scan header dossier — identity + scan-level findings roll-up. */}
                 <Card className="relative overflow-hidden">
-                    <span
-                        aria-hidden
-                        className={cn(
-                            'absolute inset-y-0 left-0 w-[3px]',
-                            STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
-                        )}
-                    />
+                    {domain.status === DomainStatusType.Running ? (
+                        <span
+                            aria-hidden
+                            className="scanline"
+                        />
+                    ) : (
+                        <span
+                            aria-hidden
+                            className={cn(
+                                'absolute inset-y-0 left-0 w-[3px]',
+                                STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
+                            )}
+                        />
+                    )}
                     <div className="flex flex-col p-5">
                         {/* identity row */}
                         <div className="flex flex-row items-start gap-3.5">
@@ -535,14 +604,6 @@ const Domain = () => {
                                 <span className="text-muted-foreground font-mono text-xs">
                                     {flowCount} child flow{flowCount === 1 ? '' : 's'}
                                 </span>
-                                <Button
-                                    onClick={() => setIsDeleteOpen(true)}
-                                    size="sm"
-                                    variant="destructive"
-                                >
-                                    <Trash2 />
-                                    Delete scan
-                                </Button>
                             </div>
                         </div>
 

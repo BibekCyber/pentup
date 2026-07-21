@@ -60,10 +60,21 @@ const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
     [TargetType.WebApp]: Globe,
 };
 
-// Target-type filter chips shown in the toolbar (All / Web app / Cloud).
+// Explicit chip labels (client-specified): the WebApp chip reads "Web app", not
+// the shared "Web" label, and Cloud reads "Cloud".
+const FILTER_LABELS: Partial<Record<TargetType, string>> = {
+    [TargetType.Cloud]: 'Cloud',
+    [TargetType.WebApp]: 'Web app',
+};
+
+// Target-type filter chips shown in the toolbar (All templates / Web app / Cloud).
 const TYPE_FILTERS: Array<{ icon: LucideIcon | null; label: string; value: string }> = [
     { icon: null, label: 'All templates', value: ALL_FILTER },
-    ...ALL_TARGET_TYPES.map((type) => ({ icon: TARGET_GLYPH[type], label: getTargetTypeLabel(type), value: type })),
+    ...ALL_TARGET_TYPES.map((type) => ({
+        icon: TARGET_GLYPH[type],
+        label: FILTER_LABELS[type] ?? getTargetTypeLabel(type),
+        value: type,
+    })),
 ];
 
 const Templates = () => {
@@ -73,6 +84,10 @@ const Templates = () => {
     const [deletingTemplate, setDeletingTemplate] = useState<null | Template>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [targetTypeFilter, setTargetTypeFilter] = useState<string>(ALL_FILTER);
+
+    // Header context line — total playbooks split into system / custom.
+    const systemCount = templates.filter((t) => t.systemOwned).length;
+    const customCount = templates.length - systemCount;
 
     const filteredTemplates = useMemo(() => {
         if (targetTypeFilter === ALL_FILTER) {
@@ -229,6 +244,19 @@ const Templates = () => {
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
+                {templates.length ? (
+                    <div className="text-muted-foreground hidden items-center gap-1.5 font-mono text-[11.5px] sm:flex">
+                        <Separator
+                            className="h-4"
+                            orientation="vertical"
+                        />
+                        <span className="text-foreground font-semibold">{templates.length}</span> playbooks
+                        <span className="text-muted-foreground/50">·</span>
+                        {systemCount} system
+                        <span className="text-muted-foreground/50">·</span>
+                        {customCount} custom
+                    </div>
+                ) : null}
             </div>
             <div className="ml-auto flex items-center gap-2 px-4">
                 <Button

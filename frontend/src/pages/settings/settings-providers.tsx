@@ -1,4 +1,17 @@
-import { AlertCircle, Check, ChevronDown, Copy, Cpu, Loader2, Pencil, Plus, Settings, Star, Trash } from 'lucide-react';
+import {
+    AlertCircle,
+    Check,
+    ChevronDown,
+    Copy,
+    Cpu,
+    Loader2,
+    MoreVertical,
+    Pencil,
+    Plus,
+    Settings,
+    Star,
+    Trash,
+} from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -197,20 +210,6 @@ const ProviderCard = ({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
-                            aria-label="Clone provider"
-                            className="text-muted-foreground hover:text-foreground size-8"
-                            onClick={() => onClone(provider.id)}
-                            size="icon"
-                            variant="ghost"
-                        >
-                            <Copy className="size-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Clone</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
                             aria-label="Configure provider"
                             className="text-muted-foreground hover:text-foreground size-8"
                             onClick={() => onEdit(provider.id)}
@@ -253,6 +252,24 @@ const ProviderCard = ({
                     </TooltipTrigger>
                     <TooltipContent>Delete provider</TooltipContent>
                 </Tooltip>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            aria-label="More actions"
+                            className="text-muted-foreground hover:text-foreground size-8"
+                            size="icon"
+                            variant="ghost"
+                        >
+                            <MoreVertical className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onClone(provider.id)}>
+                            <Copy className="size-4" />
+                            Clone
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );
