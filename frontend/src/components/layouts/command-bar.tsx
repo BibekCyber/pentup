@@ -34,7 +34,9 @@ export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) 
             />
             <h1 className="min-w-0 truncate text-base font-semibold tracking-tight">{title}</h1>
             {ctx ? (
-                <div className="text-muted-foreground flex min-w-0 items-center gap-2 font-mono text-xs">{ctx}</div>
+                <div className="text-muted-foreground flex min-w-0 items-center gap-2 overflow-hidden font-mono text-xs">
+                    {ctx}
+                </div>
             ) : null}
             {actions ? <div className="ml-auto flex items-center gap-2">{actions}</div> : null}
         </header>

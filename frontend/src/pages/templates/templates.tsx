@@ -237,7 +237,7 @@ const Templates = () => {
                     onValueChange={setTargetTypeFilter}
                     value={targetTypeFilter}
                 >
-                    <SelectTrigger className="h-8 w-[160px]">
+                    <SelectTrigger className="h-8 w-[130px] sm:w-[160px]">
                         <SelectValue placeholder="All target types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,7 +258,7 @@ const Templates = () => {
                     variant="default"
                 >
                     <Plus />
-                    New Template
+                    <span className="hidden sm:inline">New Template</span>
                 </Button>
             </div>
         </header>

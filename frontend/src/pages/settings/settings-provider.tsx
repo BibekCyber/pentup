@@ -1807,7 +1807,7 @@ const SettingsProvider = () => {
             </div>
 
             {/* Sticky buttons at bottom */}
-            <div className="bg-background/95 border-border-strong supports-[backdrop-filter]:bg-background/80 sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4 backdrop-blur">
+            <div className="bg-background/95 border-border-strong supports-[backdrop-filter]:bg-background/80 sticky -bottom-4 -mx-4 mt-4 -mb-4 flex flex-wrap items-center gap-y-2 border-t p-4 backdrop-blur">
                 <div className="flex gap-2">
                     {/* Delete button - only show when editing existing provider */}
                     {!isNew && (

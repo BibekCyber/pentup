@@ -45,7 +45,7 @@ const Dashboard = () => {
                     onValueChange={setActiveTab}
                     value={activeTab}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <TabsList>
                             <TabsTrigger value="analytics">Analytics</TabsTrigger>
                             <TabsTrigger value="overview">Overview</TabsTrigger>

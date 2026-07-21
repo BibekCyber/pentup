@@ -630,7 +630,7 @@ const SettingsMcpServer = () => {
             </div>
 
             {/* Sticky buttons */}
-            <div className="bg-background border-border-strong sticky -bottom-4 -mx-4 mt-4 -mb-4 flex items-center border-t p-4">
+            <div className="bg-background border-border-strong sticky -bottom-4 -mx-4 mt-4 -mb-4 flex flex-wrap items-center gap-y-2 border-t p-4">
                 <div className="flex gap-2">
                     {!isNew && (
                         <Button

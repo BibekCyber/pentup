@@ -111,9 +111,9 @@ export const TerminalFrame = ({
                     <span className="bg-border-strong size-2.5 rounded-full" />
                     <span className="bg-border-strong size-2.5 rounded-full" />
                 </span>
-                <span className="term-chrome-title ml-1 flex items-center gap-1.5 font-mono text-xs font-medium">
-                    <SquareTerminal className="size-3.5" />
-                    {title}
+                <span className="term-chrome-title ml-1 flex min-w-0 items-center gap-1.5 font-mono text-xs font-medium">
+                    <SquareTerminal className="size-3.5 shrink-0" />
+                    <span className="truncate">{title}</span>
                 </span>
                 {copyText != null && (
                     <TerminalCopyButton

@@ -403,7 +403,7 @@ const FlowExecutionItem = ({ flow }: { flow: FlowExecution }) => {
         >
             <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors">
                 <ChevronRight className={`size-4 shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                <div className="flex-1 truncate font-medium">{flow.flowTitle || `Flow #${flow.flowId}`}</div>
+                <div className="min-w-0 flex-1 truncate font-medium">{flow.flowTitle || `Flow #${flow.flowId}`}</div>
                 <div className="text-muted-foreground flex items-center gap-4 font-mono text-sm tabular-nums">
                     <span className="flex items-center gap-1">
                         <Clock className="size-3" />
@@ -447,7 +447,9 @@ const TaskExecutionItem = ({ task }: { task: FlowExecution['tasks'][number] }) =
                 ) : (
                     <span className="size-3 shrink-0" />
                 )}
-                <div className="text-muted-foreground flex-1 truncate">{task.taskTitle || `Task #${task.taskId}`}</div>
+                <div className="text-muted-foreground min-w-0 flex-1 truncate">
+                    {task.taskTitle || `Task #${task.taskId}`}
+                </div>
                 <div className="text-muted-foreground flex items-center gap-4 font-mono text-xs tabular-nums">
                     <span className="flex items-center gap-1">
                         <Clock className="size-3" />
@@ -467,7 +469,7 @@ const TaskExecutionItem = ({ task }: { task: FlowExecution['tasks'][number] }) =
                                 className="text-muted-foreground flex items-center gap-3 px-3 py-1 text-xs"
                                 key={subtask.subtaskId}
                             >
-                                <div className="flex-1 truncate">
+                                <div className="min-w-0 flex-1 truncate">
                                     {subtask.subtaskTitle || `Subtask #${subtask.subtaskId}`}
                                 </div>
                                 <div className="flex items-center gap-4 font-mono tabular-nums">

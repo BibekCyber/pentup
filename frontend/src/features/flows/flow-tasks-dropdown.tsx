@@ -128,7 +128,7 @@ const FlowTasksDropdown = ({ disabled, onChange, value }: FlowTasksDropdownProps
             </PopoverTrigger>
             <PopoverContent
                 align="end"
-                className="w-[360px] p-0"
+                className="w-[min(360px,calc(100vw-2rem))] p-0"
             >
                 <Command>
                     <CommandInput placeholder="Search tasks..." />

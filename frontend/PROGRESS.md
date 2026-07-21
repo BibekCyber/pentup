@@ -55,14 +55,28 @@ system-function check + a className/JSX-only `git diff`.
       _Gate: build ✓, lint baseline, 159/159 tests. Adversarially verified (3 lenses): full-text/copy/find CLEAN,
       zero blockers. Accepted trade-off: viewport root (best flow-load perf, the actual complaint) leaves a narrow
       1-frame upgrade when scrolling *within* one tall pane — documented; scroll-parent root would regress load._
-- [ ] **P10 — Responsiveness + regression pass** — no new files; full sweep both themes + all system functions +
-      `build`/`lint`/`prettier`/`test`. _Sanity: no horizontal body scroll; grids collapse; logic diff is style-only._
+- [x] **P10 — Responsiveness + regression pass** — audited all 61 changed files via workflow (4 responsive lenses +
+      cumulative-diff integrity). Reskin was already broadly responsive (grid ladders, contained table scroll, cockpit
+      stacks to tabs on mobile, no viewport forcers). Applied 11 className-only mobile-overflow fixes: CommandBar ctx
+      `overflow-hidden`; terminal-frame title `min-w-0 truncate`; assistant/tasks popovers → `w-[min(…,100vw-2rem)]`;
+      templates toolbar (`w-[130px] sm:w-[160px]` + `hidden sm:inline` label); dashboard tab-row + 4 settings sticky
+      footers + api-tokens header → `flex-wrap gap-y-2`; dashboard-analytics rows `min-w-0`. _Gate: build ✓, lint
+      baseline (0 new), prettier ✓, full 159/159 tests, P10 diff pure className. **Integrity lens: the only logic
+      across all 9 phases is terminal-highlight.tsx (P9) + the intended dark-default flip + 3 presentational derives
+      (KPI counts, running-count, sidebar chevron state) — zero regressions.**_
 
 ## Deferred / decisions to surface (flag, don't guess)
 - Always-dark vs theme-aware rail — plan defaults to **theme-aware** (one-line flip to always-dark).
 - Password-policy mismatch (legacy 8/16 schema vs 12-char mandate) — preserve schema; reconcile only on approval (R11).
 - Flows **dossier-card Grid** + grid/list toggle — needs per-flow severity/findings not in the list query (data task).
 - CommandBar Approach B (layout-persistent bar) + Settings Option B (in-page tab strip) — routing restructures; deferred.
+- Templates gallery dropped DataTable's title text-search + column sort (plan-sanctioned in P7) — restore as a cheap
+  client-side title filter over `filteredTemplates` if the client wants it back.
+- `ui/tabs.tsx` global `overflow-x-auto` (P10 nit) — skipped: shared primitive, `overflow-x-auto` forces `overflow-y`
+  and risks clipping the active-tab underline app-wide for marginal benefit (no tab row is actually wide; the one
+  wide case — the dashboard tab+period row — was fixed locally with `flex-wrap`).
+- Terminal lazy-highlight (P9) intra-pane scroll: viewport observer root = best flow-load perf (the actual complaint);
+  narrow self-healing 1-frame upgrade when scrolling *within* one tall pane. A per-box root would regress load.
 
 ## Log
 - P1 — EMBER tokens (warm-graphite dark default + off-white light + sev/st/ag ramps + radius 8px + JetBrains mono),

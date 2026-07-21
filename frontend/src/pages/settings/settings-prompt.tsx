@@ -880,7 +880,7 @@ const SettingsPrompt = () => {
                 )}
 
                 {/* Action buttons */}
-                <div className="flex items-center">
+                <div className="flex flex-wrap items-center gap-y-2">
                     <div className="flex gap-2">
                         {/* Reset button - only show when user has custom prompt */}
                         {((activeTab === 'system' && promptInfo?.userSystemPrompt) ||

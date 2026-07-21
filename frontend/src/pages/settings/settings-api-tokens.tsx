@@ -142,7 +142,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 
 const SettingsAPITokensHeader = ({ onCreateClick }: { onCreateClick: () => void }) => {
     return (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col gap-2">
                 <p className="text-muted-foreground">Manage API tokens for programmatic access</p>
                 <div className="flex gap-4 text-sm">
