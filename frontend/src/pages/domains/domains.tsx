@@ -1,36 +1,42 @@
 import type { LucideIcon } from 'lucide-react';
 
-import { Box, Braces, Cloud, Globe, Network, Plus, Smartphone, Trash2 } from 'lucide-react';
+import {
+    Box,
+    Braces,
+    ChevronLeft,
+    ChevronRight,
+    Cloud,
+    Globe,
+    ListFilter,
+    MoreHorizontal,
+    Network,
+    Plus,
+    Smartphone,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { DomainStatusBadge } from '@/components/forms/domain-status-badge';
 import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { DomainStatusType, TargetType } from '@/graphql/types';
-import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
+import { getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
 import { type Domain, useDomains } from '@/providers/domains-provider';
 
 const ALL_FILTER = 'all';
+const PAGE_SIZE = 24;
 
-const formatDate = (value: string) => new Date(value).toLocaleString();
-
-// Status edge-bar color (left accent) keyed by the status enum's string value,
-// which lines up 1:1 with the shared --st-* token ramp landed in P1/P3.
-const STATUS_EDGE: Record<string, string> = {
-    classifying: 'bg-[var(--st-classifying)]',
-    created: 'bg-[var(--st-created)]',
-    failed: 'bg-[var(--st-failed)]',
-    finished: 'bg-[var(--st-finished)]',
-    running: 'bg-[var(--st-running)]',
-    waiting: 'bg-[var(--st-waiting)]',
-};
+const formatDay = (value: string) => new Date(value).toLocaleDateString();
 
 // A leading glyph for the dossier tile, chosen per target type.
 const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
@@ -45,30 +51,57 @@ const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
     [TargetType.WebApp]: Globe,
 };
 
+// Status → prototype `.status .st-*` label. Values line up 1:1 with the shared
+// --st-* token ramp; labels mirror the EMBER prototype copy.
+const STATUS_LABEL: Record<DomainStatusType, string> = {
+    [DomainStatusType.Classifying]: 'Classifying',
+    [DomainStatusType.Created]: 'Queued',
+    [DomainStatusType.Failed]: 'Failed',
+    [DomainStatusType.Finished]: 'Finished',
+    [DomainStatusType.Running]: 'Running',
+    [DomainStatusType.Waiting]: 'Needs input',
+};
+
+// Type-filter chips shown in the toolbar (matches scans.js: All / Web app / Cloud).
+const TYPE_FILTERS: Array<{ label: string; value: string }> = [
+    { label: 'All types', value: ALL_FILTER },
+    { label: 'Web app', value: TargetType.WebApp },
+    { label: 'Cloud', value: TargetType.Cloud },
+];
+
+/** Inline status pill matching the prototype `.status` helper (dot + colored label). */
+const StatusInline = ({ status }: { status: DomainStatusType }) => (
+    <span className={cn('status', `st-${status}`)}>
+        <span className="dot" />
+        {STATUS_LABEL[status]}
+    </span>
+);
+
+/** KPI tile matching the prototype `.kpi` block (overline label, big value, mono delta). */
 const Kpi = ({
+    cap,
+    delta,
     hero,
     label,
-    sub,
+    up,
     value,
-    valueClassName,
 }: {
+    cap?: string;
+    delta: string;
     hero?: boolean;
     label: string;
-    sub?: string;
+    up?: boolean;
     value: number;
-    valueClassName?: string;
 }) => (
-    <div
-        className={cn(
-            'bg-card relative overflow-hidden rounded-lg border p-4',
-            hero && 'bg-[linear-gradient(160deg,var(--brand-tint),var(--card)_55%)]',
-        )}
-    >
-        <div className="text-muted-foreground font-mono text-[11px] font-medium tracking-[0.14em] uppercase">
-            {label}
+    <div className={cn('kpi', hero && 'hero')}>
+        <div className="k-label">
+            <span className="overline">{label}</span>
         </div>
-        <div className={cn('mt-2 text-3xl font-bold tracking-tight tabular-nums', valueClassName)}>{value}</div>
-        {sub ? <div className="text-muted-foreground mt-1.5 font-mono text-[11px]">{sub}</div> : null}
+        <div className="k-val">{value}</div>
+        <div className={cn('k-delta', up ? 'k-up' : 'k-flat')}>
+            <span aria-hidden>{up ? '▲' : '•'}</span> {delta}
+            {cap ? <span className="text-muted-foreground"> {cap}</span> : null}
+        </div>
     </div>
 );
 
@@ -77,6 +110,8 @@ const Domains = () => {
     const { deleteDomain, domains, isLoading } = useDomains();
     const [targetTypeFilter, setTargetTypeFilter] = useState<string>(ALL_FILTER);
     const [deletingDomain, setDeletingDomain] = useState<Domain | null>(null);
+    const [view, setView] = useState<'grid' | 'list'>('grid');
+    const [page, setPage] = useState(1);
 
     const filteredDomains = useMemo(() => {
         if (targetTypeFilter === ALL_FILTER) {
@@ -106,37 +141,70 @@ const Domains = () => {
         return { finished, running, targets: domains.length, waiting };
     }, [domains]);
 
+    // Client-side pagination — the provider loads the whole list, we render only
+    // the current page so the DOM stays light as the list scales.
+    const totalPages = Math.max(1, Math.ceil(filteredDomains.length / PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const pageDomains = filteredDomains.slice(startIndex, startIndex + PAGE_SIZE);
+    const rangeStart = filteredDomains.length === 0 ? 0 : startIndex + 1;
+    const rangeEnd = Math.min(startIndex + PAGE_SIZE, filteredDomains.length);
+
+    const selectFilter = (value: string) => {
+        setTargetTypeFilter(value);
+        setPage(1);
+    };
+
+    const renderPager = () => (
+        <div className="pager">
+            <span className="text-muted-foreground font-mono text-[11.5px]">
+                Showing {rangeStart}–{rangeEnd} of {filteredDomains.length.toLocaleString()}
+            </span>
+            <span className="ml-auto" />
+            <span className="text-muted-foreground mr-3 font-mono text-[11px]">Rows {PAGE_SIZE}</span>
+            <div className="pg-group">
+                <button
+                    className="pg-btn"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    title="Previous"
+                    type="button"
+                >
+                    <ChevronLeft />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                    <button
+                        className={cn('pg-btn', n === currentPage && 'active')}
+                        key={n}
+                        onClick={() => setPage(n)}
+                        type="button"
+                    >
+                        {n}
+                    </button>
+                ))}
+                <button
+                    className="pg-btn"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    title="Next"
+                    type="button"
+                >
+                    <ChevronRight />
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <>
             <CommandBar
                 actions={
-                    <>
-                        <Select
-                            onValueChange={setTargetTypeFilter}
-                            value={targetTypeFilter}
-                        >
-                            <SelectTrigger className="w-44">
-                                <SelectValue placeholder="All target types" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL_FILTER}>All target types</SelectItem>
-                                {ALL_TARGET_TYPES.map((type) => (
-                                    <SelectItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        {getTargetTypeLabel(type)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button asChild>
-                            <Link to="/scans/new">
-                                <Plus />
-                                New Scan
-                            </Link>
-                        </Button>
-                    </>
+                    <Button asChild>
+                        <Link to="/scans/new">
+                            <Plus />
+                            New Scan
+                        </Link>
+                    </Button>
                 }
                 ctx={
                     <>
@@ -153,7 +221,7 @@ const Domains = () => {
                     <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center">
                         <Spinner variant="circle" />
                     </div>
-                ) : filteredDomains.length === 0 ? (
+                ) : domains.length === 0 ? (
                     <Empty className="min-h-[calc(100dvh-8rem)]">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -175,87 +243,214 @@ const Domains = () => {
                     </Empty>
                 ) : (
                     <>
+                        {/* KPI strip — cheap counts derived from the loaded domains list. */}
                         <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                             <Kpi
+                                delta="engagements"
                                 label="Targets"
-                                sub="engagements"
                                 value={rollup.targets}
                             />
                             <Kpi
-                                hero
+                                cap="real-time"
+                                delta="live"
+                                hero={rollup.running > 0}
                                 label="Running now"
-                                sub="real-time"
                                 value={rollup.running}
-                                valueClassName="text-[var(--st-running)]"
                             />
                             <Kpi
+                                delta="awaiting you"
                                 label="Needs input"
-                                sub="awaiting you"
                                 value={rollup.waiting}
                             />
                             <Kpi
+                                delta="reportable"
                                 label="Finished"
-                                sub="reportable"
+                                up
                                 value={rollup.finished}
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {filteredDomains.map((domain) => {
-                                const Glyph = TARGET_GLYPH[domain.targetType] ?? Box;
-
-                                return (
-                                    <Card
-                                        className="hover:border-primary/50 relative cursor-pointer overflow-hidden transition-colors"
-                                        key={domain.id}
-                                        onClick={() => navigate(`/scans/${domain.id}`)}
+                        {/* Toolbar — view toggle + type chips (moved down here) + sort. */}
+                        <div className="mb-4 flex flex-wrap items-center gap-2">
+                            <div className="seg">
+                                <button
+                                    className={cn(view === 'grid' && 'active')}
+                                    onClick={() => setView('grid')}
+                                    type="button"
+                                >
+                                    Grid
+                                </button>
+                                <button
+                                    className={cn(view === 'list' && 'active')}
+                                    onClick={() => setView('list')}
+                                    type="button"
+                                >
+                                    List
+                                </button>
+                            </div>
+                            <div className="ml-1.5 flex flex-wrap gap-1.5">
+                                {TYPE_FILTERS.map((filter) => (
+                                    <button
+                                        className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
+                                        key={filter.value}
+                                        onClick={() => selectFilter(filter.value)}
+                                        type="button"
                                     >
-                                        <span
-                                            aria-hidden
-                                            className={cn(
-                                                'absolute inset-y-0 left-0 w-[3px]',
-                                                STATUS_EDGE[domain.status] ?? STATUS_EDGE.created,
-                                            )}
-                                        />
-                                        <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-                                            <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border">
-                                                <Glyph className="size-4" />
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate font-mono text-sm font-semibold">
-                                                    {domain.name}
+                                        {filter.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <span className="ml-auto" />
+                            <Button
+                                className="text-muted-foreground"
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <ListFilter />
+                                Sort: Recent
+                            </Button>
+                        </div>
+
+                        {view === 'grid' ? (
+                            <>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    {pageDomains.map((domain) => {
+                                        const Glyph = TARGET_GLYPH[domain.targetType] ?? Box;
+                                        const running = domain.status === DomainStatusType.Running;
+
+                                        return (
+                                            <div
+                                                className={cn('dossier', running && 'is-running')}
+                                                key={domain.id}
+                                                onClick={() => navigate(`/scans/${domain.id}`)}
+                                            >
+                                                <div className="d-top">
+                                                    <span className="tgt-glyph">
+                                                        <Glyph />
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <div className="d-name">{domain.name}</div>
+                                                        <div className="d-id">
+                                                            #{domain.id} · {getTargetTypeLabel(domain.targetType)}
+                                                            {domain.scope ? ` · ${domain.scope}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-auto flex items-center gap-1">
+                                                        <StatusInline status={domain.status} />
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    className="text-muted-foreground hover:text-foreground -mr-1 size-7 shrink-0"
+                                                                    onClick={(event) => event.stopPropagation()}
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                >
+                                                                    <MoreHorizontal className="size-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setDeletingDomain(domain);
+                                                                    }}
+                                                                    variant="destructive"
+                                                                >
+                                                                    <Trash2 />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
                                                 </div>
-                                                <div className="text-muted-foreground truncate font-mono text-[10.5px]">
-                                                    #{domain.id} · {getTargetTypeLabel(domain.targetType)}
-                                                    {domain.scope ? ` · ${domain.scope}` : ''}
+                                                <div className="d-foot">
+                                                    <span className="phase">{formatDay(domain.createdAt)}</span>
+                                                    <span className="ml-auto" />
+                                                    <span className="phase">
+                                                        {domain.flows.length} flow
+                                                        {domain.flows.length === 1 ? '' : 's'}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <DomainStatusBadge
-                                                className="shrink-0"
-                                                status={domain.status}
-                                            />
-                                            <Button
-                                                className="text-muted-foreground hover:text-destructive -mt-1 -mr-2 size-7 shrink-0"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    setDeletingDomain(domain);
-                                                }}
-                                                size="icon"
-                                                variant="ghost"
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        </CardHeader>
-                                        <CardFooter className="text-muted-foreground justify-between font-mono text-[11px]">
-                                            <span>{formatDate(domain.createdAt)}</span>
-                                            <span>
-                                                {domain.flows.length} flow{domain.flows.length === 1 ? '' : 's'}
-                                            </span>
-                                        </CardFooter>
-                                    </Card>
-                                );
-                            })}
-                        </div>
+                                        );
+                                    })}
+                                </div>
+                                {renderPager()}
+                            </>
+                        ) : (
+                            <div className="bg-card border-border overflow-hidden rounded-lg border">
+                                <div className="overflow-x-auto">
+                                    <table className="tbl">
+                                        <thead>
+                                            <tr>
+                                                <th>Status</th>
+                                                <th>Target</th>
+                                                <th>Type</th>
+                                                <th>Scope</th>
+                                                <th className="text-right">Flows</th>
+                                                <th>Created</th>
+                                                <th />
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pageDomains.map((domain) => (
+                                                <tr
+                                                    key={domain.id}
+                                                    onClick={() => navigate(`/scans/${domain.id}`)}
+                                                >
+                                                    <td>
+                                                        <StatusInline status={domain.status} />
+                                                    </td>
+                                                    <td className="m">{domain.name}</td>
+                                                    <td>{getTargetTypeLabel(domain.targetType)}</td>
+                                                    <td className="m text-muted-foreground">
+                                                        {domain.scope ?? '—'}
+                                                        {domain.box ? ` · ${domain.box}-box` : ''}
+                                                    </td>
+                                                    <td className="num">{domain.flows.length}</td>
+                                                    <td className="m text-muted-foreground">
+                                                        {formatDay(domain.createdAt)}
+                                                    </td>
+                                                    <td className="w-11 text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    className="text-muted-foreground hover:text-foreground ml-auto size-7"
+                                                                    onClick={(event) => event.stopPropagation()}
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                >
+                                                                    <MoreHorizontal className="size-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setDeletingDomain(domain);
+                                                                    }}
+                                                                    variant="destructive"
+                                                                >
+                                                                    <Trash2 />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {renderPager()}
+                            </div>
+                        )}
                     </>
                 )}
             </div>
