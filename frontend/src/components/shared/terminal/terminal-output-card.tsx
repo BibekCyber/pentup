@@ -1,5 +1,3 @@
-import { SquareTerminal } from 'lucide-react';
-
 import { cn } from '@/lib/utils';
 
 import { TerminalCopyButton } from './terminal-frame';
@@ -22,7 +20,9 @@ export const TermChromeBar = ({ blockType, copyText }: { blockType?: null | stri
 
     return (
         <div className="term-chrome-bar flex items-center gap-2 px-3 py-1.5">
-            <SquareTerminal className="term-chrome-title size-3.5" />
+            <span className="term-muted rounded border border-white/10 px-1.5 py-px font-mono text-[9px] tracking-[0.1em] uppercase">
+                SHELL
+            </span>
             {badge ? <span className="term-type-badge">{badge}</span> : null}
             <TerminalCopyButton
                 className="ml-auto"

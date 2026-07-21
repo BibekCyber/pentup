@@ -107,9 +107,9 @@ export const TerminalFrame = ({
         <div className={cn('terminal-scope flex flex-col overflow-hidden rounded-lg border shadow-sm', className)}>
             <div className="term-chrome-bar flex items-center gap-2 px-3 py-2">
                 <span className="flex gap-1.5">
-                    <span className="size-2.5 rounded-full bg-red-500/80" />
-                    <span className="size-2.5 rounded-full bg-yellow-500/80" />
-                    <span className="size-2.5 rounded-full bg-emerald-500/80" />
+                    <span className="bg-border-strong size-2.5 rounded-full" />
+                    <span className="bg-border-strong size-2.5 rounded-full" />
+                    <span className="bg-border-strong size-2.5 rounded-full" />
                 </span>
                 <span className="term-chrome-title ml-1 flex items-center gap-1.5 font-mono text-xs font-medium">
                     <SquareTerminal className="size-3.5" />

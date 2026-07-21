@@ -247,13 +247,14 @@ const FlowTasks = () => {
                             name="search"
                             render={({ field }) => (
                                 <FormControl>
-                                    <InputGroup>
+                                    <InputGroup className="bg-well">
                                         <InputGroupAddon>
                                             <Search />
                                         </InputGroupAddon>
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
+                                            className="font-mono"
                                             placeholder="Search tasks and subtasks..."
                                             type="text"
                                         />

@@ -650,7 +650,7 @@
     /* JetBrains Mono for the whole terminal surface. Overriding --font-mono here means
        any `font-mono` descendant (command panes, chrome) picks it up automatically. */
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    background-color: #0f1216;
+    background-color: #0b0d10;
     color: var(--term-fg);
     font-family: var(--font-mono);
     font-feature-settings: 'liga' 0; /* keep raw shell glyphs; no ligatures for -> etc. */

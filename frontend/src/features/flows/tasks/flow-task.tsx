@@ -95,10 +95,10 @@ const FlowTask = ({ commandsBySubtask, onToggleCommands, searchValue = '', task 
     const hasCommands = totalCommands > 0;
 
     return (
-        <div className="flex flex-col">
+        <div className="border-border bg-card flex flex-col rounded-lg border p-4">
             <div className="relative flex gap-2 pb-4">
                 <FlowTaskStatusIcon
-                    className="bg-background ring-border ring-background relative z-1 -mt-px size-5 rounded-full ring-3"
+                    className="bg-card ring-border ring-card relative z-1 -mt-px size-5 rounded-full ring-3"
                     status={status}
                     tooltip={`Task ID: ${id}`}
                 />
@@ -115,7 +115,7 @@ const FlowTask = ({ commandsBySubtask, onToggleCommands, searchValue = '', task 
                     {hasSubtasks && (
                         <div className="flex items-center gap-2">
                             <Progress
-                                className="h-1.5 flex-1"
+                                className="bg-muted h-[5px] flex-1"
                                 value={progress}
                             />
                             <div className="text-muted-foreground shrink-0 text-xs text-nowrap">
@@ -164,7 +164,7 @@ const FlowTask = ({ commandsBySubtask, onToggleCommands, searchValue = '', task 
                         </div>
                     )}
                 </div>
-                <div className="border-red absolute top-0 left-[calc((--spacing(2.5))-0.5px)] h-full border-l"></div>
+                <div className="border-border-strong absolute top-0 left-[calc((--spacing(2.5))-0.5px)] h-full border-l"></div>
             </div>
 
             {hasSubtasks ? (

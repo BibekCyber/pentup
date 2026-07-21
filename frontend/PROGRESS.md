@@ -24,11 +24,12 @@ system-function check + a className/JSX-only `git diff`.
       (EMBER .msg bubbles + both disclosures), `flow-form.tsx` (dock frame + chips), `flow-tasks-dropdown.tsx`.
       _Gate: build ✓, lint baseline (0 new); R1 flow-provider EMPTY diff; R6 gating + R7 forceMount = 0 altered lines._
       _Deferred: Flows dossier grid (per-flow severity not in list query)._
-- [ ] **P6 — Terminal + Tasks (chrome only)** — `terminal/{flow-terminal,flow-split-terminal,flow-command-panes}.tsx`,
-      `shared/terminal/{terminal-output-card,terminal-frame,terminal-config}.tsx`,
-      `tasks/{flow-tasks,flow-task,flow-subtask,flow-task-status-icon}.tsx`. VERBATIM: `terminal.tsx`,
-      `use-xterm.ts`, `use-terminal-search.ts`, `flow-command-list.tsx`, `terminal-highlight.tsx`.
-      _Sanity: step tabs + Raw xterm alive, terminal search, "Show commands". Drop `flow-task.tsx:167` border-red._
+- [x] **P6 — Terminal + Tasks (chrome only)** — `terminal-config.ts` (surface #0B0D10 / cursor #F57214),
+      `terminal-frame.tsx` (mono dots), `terminal-output-card.tsx` (SHELL overline chip), `flow-terminal.tsx` +
+      `flow-tasks.tsx` (search → bg-well + font-mono), `flow-task.tsx` (EMBER card + 5px progress, border-red dropped),
+      `flow-subtask.tsx` (ring-card + border-strong rule), `index.css` (.terminal-scope bg nudge). command-panes /
+      split-terminal / status-icon / dropdown already EMBER → untouched. _Gate: build ✓, lint baseline (0 new);
+      R8 terminal-highlight + xterm/tokenizer + budget engine (1500/200/100/300) = EMPTY diff. border-red removed._
 - [ ] **P7 — Dashboard + Report + Templates** — dashboard {`dashboard,dashboard-analytics,dashboard-overview`}.tsx +
       `flows/dashboard/{flow-dashboard,flow-dashboard-overview}.tsx`; report view + children + `finding-card.tsx` +
       `lib/report-pdf/*`; templates {`templates,template`}.tsx. VERBATIM: `build-report-model.ts`, `report-model.ts`,

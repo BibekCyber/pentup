@@ -26,7 +26,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 // green/red/yellow stay reserved for success/error/warning. Kept dark in both app
 // themes, the way premium editors keep their integrated terminal dark. Surface is
 // exported so the frame chrome (.terminal-scope) matches it seamlessly.
-export const TERMINAL_SURFACE = '#0f1216';
+export const TERMINAL_SURFACE = '#0B0D10';
 
 const RANKLOCAL_TERMINAL: ITheme = {
     background: TERMINAL_SURFACE,
@@ -40,8 +40,8 @@ const RANKLOCAL_TERMINAL: ITheme = {
     brightRed: '#ef7a70',
     brightWhite: '#eef1f5',
     brightYellow: '#e9bd6e',
-    cursor: '#f5843a',
-    cursorAccent: '#0f1216',
+    cursor: '#F57214',
+    cursorAccent: '#0B0D10',
     cyan: '#59b6a6',
     foreground: '#cdd2d9',
     green: '#63c28d', // real success green
