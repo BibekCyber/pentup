@@ -7,8 +7,9 @@ system-function check + a className/JSX-only `git diff`.
 - [x] **P1 — Design-system tokens + base components** — `index.css` (@theme + `:root` + `.dark` + radius/mono),
       `theme-provider.tsx` + `app.tsx` default-flip to dark, `ui/{button,card,tabs,input,table}.tsx` (badge generic;
       sidebar token-driven → P2). _Gate: build green, lint = baseline (0 new), prettier clean, dark login screenshot._
-- [ ] **P2 — App shell** — `main-sidebar.tsx`, `ui/sidebar.tsx` (SidebarRail), NEW `layouts/command-bar.tsx`,
-      `settings-layout.tsx` (Option A). _Sanity: nav routes, favorite star, ⌘/Ctrl+B, mobile drawer, profile menu._
+- [x] **P2 — App shell** — `main-sidebar.tsx` (EMBER rail + profile-pop), `ui/sidebar.tsx` (SidebarRail→collapse
+      circle, icon-rail 4.25rem), NEW `layouts/command-bar.tsx`, `settings-layout.tsx` (Option A). Rail theme-aware.
+      _Gate: build ✓, lint = baseline (0 new), diff style-only (sole logic line: additive `state` destructure)._
 - [ ] **P3 — Shared signal components** — `lib/severity-palette.ts` (values only, keep `pdf.*`), `severity-badge.tsx`,
       `flow-status-icon.tsx`, `domain-status-badge.tsx`, `target-type-chip.tsx`+`target-type-colors.ts`,
       `flow-task-status-icon.tsx`, NEW `shared/agent-monogram.tsx`, NEW `shared/status-pill.tsx`.

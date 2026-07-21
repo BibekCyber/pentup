@@ -54,6 +54,11 @@ import { useFavorites } from '@/providers/favorites-provider';
 import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
 import { useUser } from '@/providers/user-provider';
 
+// EMBER nav active accent: left brand bar on top of the token-driven
+// brand-tint fill + primary icon that `data-[active=true]` already provides.
+const navActiveAccent =
+    "relative data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1.5 data-[active=true]:before:bottom-1.5 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-r-full data-[active=true]:before:bg-primary data-[active=true]:before:content-['']";
+
 interface FlowMenuItemProps {
     activeFlowId: null | number;
     flow: Flow;
@@ -66,13 +71,14 @@ const FlowMenuItem = ({ activeFlowId, flow, isFavorite, onToggleFavorite }: Flow
         <SidebarMenuItem>
             <SidebarMenuButton
                 asChild
+                className={navActiveAccent}
                 isActive={activeFlowId === Number(flow.id)}
             >
                 <Link to={`/flows/${flow.id}`}>
-                    <span className="-mx-2 w-8 shrink-0 text-center text-xs group-data-[state=expanded]:hidden">
+                    <span className="-mx-2 w-8 shrink-0 text-center font-mono text-xs group-data-[state=expanded]:hidden">
                         {flow.id}
                     </span>
-                    <span className="text-muted-foreground bg-background dark:bg-muted -my-0.5 -ml-0.5 h-5 min-w-5 shrink-0 rounded-md px-px py-0.5 text-center text-xs group-data-[state=collapsed]:hidden">
+                    <span className="text-muted-foreground bg-well border-border -my-0.5 -ml-0.5 h-5 min-w-5 shrink-0 rounded-md border px-px py-0.5 text-center font-mono text-[11px] group-data-[state=collapsed]:hidden">
                         {flow.id}
                     </span>
                     <span className="truncate">{flow.title}</span>
@@ -128,12 +134,17 @@ export const MainSidebar = () => {
         <Sidebar collapsible="icon">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-2">
+                    <SidebarMenuItem className="flex items-center gap-2.5 px-1 py-1.5">
                         <div className="flex aspect-square size-8 items-center justify-center">
-                            <Logo className="hover:animate-logo-spin size-6" />
+                            <Logo className="hover:animate-logo-spin size-6 drop-shadow-[0_0_10px_rgba(245,114,20,0.45)]" />
                         </div>
-                        <div className="grid flex-1 text-left leading-tight">
-                            <span className="truncate font-semibold">PentAGI</span>
+                        <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                            <span className="truncate text-[15px] font-bold tracking-[0.02em]">
+                                Pent<span className="text-primary">AGI</span>
+                            </span>
+                            <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
+                                operator console
+                            </span>
                         </div>
                     </SidebarMenuItem>
                 </SidebarMenu>
@@ -142,8 +153,11 @@ export const MainSidebar = () => {
                 <SidebarGroup className="bg-sidebar sticky top-0 z-10">
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <SidebarMenuItem className="group-data-[state=expanded]:hidden">
-                                <SidebarMenuButton asChild>
+                            <SidebarMenuItem className="mb-1">
+                                <SidebarMenuButton
+                                    asChild
+                                    className="text-primary-foreground shadow-glow-brand hover:text-primary-foreground h-9 justify-center bg-[linear-gradient(180deg,var(--primary-hover),var(--primary))] font-semibold hover:bg-transparent hover:brightness-105"
+                                >
                                     <Link to="/flows/new">
                                         <Plus />
                                         New Flow
@@ -154,6 +168,7 @@ export const MainSidebar = () => {
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         asChild
+                                        className={navActiveAccent}
                                         isActive={!!isDashboardActive}
                                     >
                                         <Link to="/dashboard">
@@ -166,6 +181,7 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={navActiveAccent}
                                     isActive={!!isDomainsActive}
                                 >
                                     <Link to="/scans">
@@ -186,6 +202,7 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={navActiveAccent}
                                     isActive={!!isFlowsActive}
                                 >
                                     <Link to="/flows">
@@ -206,6 +223,7 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={navActiveAccent}
                                     isActive={!!isTemplatesActive}
                                 >
                                     <Link to="/templates">
@@ -229,7 +247,7 @@ export const MainSidebar = () => {
 
                 {recentFlows.length > 0 && (
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center gap-2">
+                        <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
                             <Clock />
                             Recent Flows
                         </SidebarGroupLabel>
@@ -251,7 +269,7 @@ export const MainSidebar = () => {
 
                 {favoriteFlows.length > 0 && (
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center gap-2">
+                        <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
                             <Star />
                             Favorite Flows
                         </SidebarGroupLabel>
@@ -276,6 +294,7 @@ export const MainSidebar = () => {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
+                            className={navActiveAccent}
                             isActive={!!isSettingsActive}
                         >
                             <Link to="/settings">
@@ -288,38 +307,42 @@ export const MainSidebar = () => {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton
-                                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                                    className="border-sidebar-border data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mt-1 border-t pt-3"
                                     size="lg"
                                 >
-                                    <Avatar className="bg-background dark:bg-muted size-8 rounded-lg">
-                                        <AvatarFallback className="flex size-8 items-center justify-center">
+                                    <Avatar className="bg-brand-tint border-border text-primary size-8 items-center justify-center rounded-lg border">
+                                        <AvatarFallback className="bg-brand-tint text-primary flex size-8 items-center justify-center rounded-lg text-xs font-bold">
                                             <UserIcon className="size-4" />
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="grid flex-1 text-left text-sm leading-tight">
                                         <span className="truncate font-semibold">{user?.name}</span>
-                                        <span className="truncate text-xs">{user?.mail}</span>
+                                        <span className="text-muted-foreground truncate font-mono text-[10px]">
+                                            {user?.mail}
+                                        </span>
                                     </div>
                                     <ChevronsUpDown className="ml-auto size-4" />
                                 </SidebarMenuButton>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 align="end"
-                                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                                className="border-border-strong w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg p-1.5"
                                 side="bottom"
                                 sideOffset={4}
                             >
                                 <DropdownMenuLabel className="p-0 font-normal">
                                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                        <Avatar className="bg-muted flex size-8 items-center justify-center rounded-lg">
-                                            <AvatarFallback className="flex items-center justify-center rounded-lg">
+                                        <Avatar className="bg-brand-tint border-border text-primary flex size-8 items-center justify-center rounded-lg border">
+                                            <AvatarFallback className="bg-brand-tint text-primary flex items-center justify-center rounded-lg font-bold">
                                                 <UserIcon className="size-4" />
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
                                             <span className="truncate font-semibold">{user?.name}</span>
-                                            <span className="truncate text-xs">{user?.mail}</span>
-                                            <span className="text-muted-foreground truncate text-xs">
+                                            <span className="text-muted-foreground truncate font-mono text-[10.5px]">
+                                                {user?.mail}
+                                            </span>
+                                            <span className="text-muted-foreground truncate font-mono text-[10.5px] uppercase">
                                                 {user?.type === 'local' ? 'local' : 'oauth'}
                                             </span>
                                         </div>

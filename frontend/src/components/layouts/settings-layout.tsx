@@ -2,7 +2,7 @@ import { ArrowLeft, FileText, Key, Plug, Settings as SettingsIcon, Users } from 
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
-import { Separator } from '@/components/ui/separator';
+import CommandBar from '@/components/layouts/command-bar';
 import {
     Sidebar,
     SidebarContent,
@@ -15,9 +15,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
-    SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { usePermission } from '@/hooks/use-permission';
+
+// EMBER nav active accent (matches main rail): left brand bar on top of the
+// token-driven brand-tint fill + primary icon from `data-[active=true]`.
+const navActiveAccent =
+    "relative data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1.5 data-[active=true]:before:bottom-1.5 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-r-full data-[active=true]:before:bg-primary data-[active=true]:before:content-['']";
 
 // Types
 export interface MenuItem {
@@ -78,6 +82,7 @@ const SettingsSidebarMenuItem = ({ item }: SettingsSidebarMenuItemProps) => {
         <SidebarMenuItem>
             <SidebarMenuButton
                 asChild
+                className={navActiveAccent}
                 isActive={isActive}
             >
                 <NavLink to={item.path}>
@@ -133,33 +138,29 @@ const SettingsHeader = () => {
         return activeItem?.title ?? 'Settings';
     }, [location.pathname, params]);
 
-    return (
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-                className="mr-2 h-4"
-                orientation="vertical"
-            />
-            <h1 className="text-lg font-semibold">{title}</h1>
-        </header>
-    );
+    return <CommandBar title={title} />;
 };
 
 // Settings sidebar component
 const SettingsSidebar = () => {
     const canViewUsers = usePermission('users.view');
-    const visibleMenuItems = menuItems.filter((item) => !item.permission || (item.permission === 'users.view' && canViewUsers));
+    const visibleMenuItems = menuItems.filter(
+        (item) => !item.permission || (item.permission === 'users.view' && canViewUsers),
+    );
 
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-2">
+                    <SidebarMenuItem className="flex items-center gap-2.5 px-1 py-1.5">
                         <div className="flex aspect-square size-8 items-center justify-center">
-                            <SettingsIcon className="size-6" />
+                            <SettingsIcon className="text-primary size-6" />
                         </div>
-                        <div className="grid flex-1 text-left leading-tight">
-                            <span className="truncate font-semibold">Settings</span>
+                        <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                            <span className="truncate text-[15px] font-bold tracking-[0.02em]">Settings</span>
+                            <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
+                                configuration
+                            </span>
                         </div>
                     </SidebarMenuItem>
                 </SidebarMenu>
