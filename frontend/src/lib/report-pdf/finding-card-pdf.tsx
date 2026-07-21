@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     },
     chip: {
         backgroundColor: '#ffffff',
-        color: '#475569',
+        color: '#57534e',
         fontFamily: 'Courier',
         fontSize: 8,
         paddingHorizontal: 5,
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     factLabel: {
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontFamily: 'Helvetica-Bold',
         fontSize: 7,
         letterSpacing: 0.5,
@@ -43,19 +43,19 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     facts: {
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#faf7f4',
         flexDirection: 'row',
         paddingHorizontal: 10,
         paddingVertical: 7,
     },
     factUrl: {
-        color: '#475569',
+        color: '#57534e',
         fontFamily: 'Courier',
         fontSize: 8,
         marginBottom: 1,
     },
     factValue: {
-        color: '#334155',
+        color: '#44403c',
         fontSize: 9,
     },
     headerBar: {
@@ -74,31 +74,31 @@ const styles = StyleSheet.create({
         marginBottom: 2.5,
     },
     listMarker: {
-        color: '#64748b',
+        color: '#78716c',
         fontSize: 9,
         minWidth: 16,
     },
     listText: {
-        color: '#334155',
+        color: '#44403c',
         flex: 1,
         fontSize: 9.5,
         lineHeight: 1.45,
     },
     paragraph: {
-        color: '#334155',
+        color: '#44403c',
         fontSize: 9.5,
         lineHeight: 1.5,
     },
     placeholder: {
-        backgroundColor: '#f1f5f9',
-        color: '#94a3b8',
+        backgroundColor: '#f5f3f0',
+        color: '#a8a29e',
         fontSize: 8,
         marginTop: 4,
         padding: 10,
         textAlign: 'center',
     },
     reference: {
-        color: '#1d4ed8',
+        color: '#c2410c',
         fontSize: 8.5,
         marginBottom: 1,
         textDecoration: 'none',
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
         backgroundColor: BRAND.tint,
         borderLeftColor: BRAND.solid,
         borderLeftWidth: 2,
-        color: '#0f3d39',
+        color: '#7c3a06',
         fontSize: 9.5,
         lineHeight: 1.5,
         padding: 7,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     sectionLabel: {
-        color: '#475569',
+        color: '#57534e',
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         letterSpacing: 0.4,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     title: {
-        color: '#0f172a',
+        color: '#1c1917',
         fontFamily: 'Helvetica-Bold',
         fontSize: 12,
     },
@@ -136,7 +136,10 @@ const styles = StyleSheet.create({
 const BulletList = ({ items, ordered }: { items: string[]; ordered?: boolean }) => (
     <View>
         {items.map((item, i) => (
-            <View key={i} style={styles.listItem}>
+            <View
+                key={i}
+                style={styles.listItem}
+            >
                 <Text style={styles.listMarker}>{ordered ? `${i + 1}.` : '•'}</Text>
                 <Text style={styles.listText}>{item}</Text>
             </View>
@@ -157,33 +160,46 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
             <View wrap={false}>
                 <View style={[styles.headerBar, { backgroundColor: style.pdf.tint }]}>
                     <View style={styles.headerRow}>
-                    <Text style={[styles.badge, { backgroundColor: style.pdf.solid }]}>{style.label.toUpperCase()}</Text>
-                    {typeof finding.cvss === 'number' && <Text style={styles.chip}>CVSS {finding.cvss.toFixed(1)}</Text>}
-                    {finding.cve && <Text style={styles.chip}>{finding.cve}</Text>}
-                </View>
-                <Text style={styles.title}>
-                    {index}. {finding.title}
-                </Text>
-            </View>
-
-            <View style={styles.facts}>
-                <View style={[styles.factCol, { width: '18%' }]}>
-                    <Text style={styles.factLabel}>CVSS</Text>
-                    <Text style={styles.factValue}>{typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}</Text>
-                </View>
-                <View style={[styles.factCol, { width: '22%' }]}>
-                    <Text style={styles.factLabel}>Risk Rating</Text>
-                    <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold' }]}>{style.label}</Text>
-                </View>
-                <View style={[styles.factCol, { width: '60%' }]}>
-                    <Text style={styles.factLabel}>Affected URL{(finding.affectedUrls?.length ?? 0) > 1 ? 's' : ''}</Text>
-                    {(finding.affectedUrls ?? ['—']).map((url) => (
-                        <Text key={url} style={styles.factUrl}>
-                            {url}
+                        <Text style={[styles.badge, { backgroundColor: style.pdf.solid }]}>
+                            {style.label.toUpperCase()}
                         </Text>
-                    ))}
+                        {typeof finding.cvss === 'number' && (
+                            <Text style={styles.chip}>CVSS {finding.cvss.toFixed(1)}</Text>
+                        )}
+                        {finding.cve && <Text style={styles.chip}>{finding.cve}</Text>}
+                    </View>
+                    <Text style={styles.title}>
+                        {index}. {finding.title}
+                    </Text>
                 </View>
-            </View>
+
+                <View style={styles.facts}>
+                    <View style={[styles.factCol, { width: '18%' }]}>
+                        <Text style={styles.factLabel}>CVSS</Text>
+                        <Text style={styles.factValue}>
+                            {typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}
+                        </Text>
+                    </View>
+                    <View style={[styles.factCol, { width: '22%' }]}>
+                        <Text style={styles.factLabel}>Risk Rating</Text>
+                        <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold' }]}>
+                            {style.label}
+                        </Text>
+                    </View>
+                    <View style={[styles.factCol, { width: '60%' }]}>
+                        <Text style={styles.factLabel}>
+                            Affected URL{(finding.affectedUrls?.length ?? 0) > 1 ? 's' : ''}
+                        </Text>
+                        {(finding.affectedUrls ?? ['—']).map((url) => (
+                            <Text
+                                key={url}
+                                style={styles.factUrl}
+                            >
+                                {url}
+                            </Text>
+                        ))}
+                    </View>
+                </View>
             </View>
 
             <View style={styles.body}>
@@ -197,14 +213,30 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
                 {finding.stepsToReproduce && finding.stepsToReproduce.length > 0 && (
                     <View>
                         <Text style={styles.sectionLabel}>Steps to Reproduce</Text>
-                        <BulletList items={finding.stepsToReproduce} ordered />
+                        <BulletList
+                            items={finding.stepsToReproduce}
+                            ordered
+                        />
                     </View>
                 )}
 
                 {finding.screenshots && finding.screenshots.length > 0 && (
                     <View>
                         {finding.screenshots.map((shot) =>
-                            shot.dataUrl ? <Image key={shot.id} src={shot.dataUrl} style={styles.screenshot} /> : <Text key={shot.id} style={styles.placeholder}>{shot.name}</Text>,
+                            shot.dataUrl ? (
+                                <Image
+                                    key={shot.id}
+                                    src={shot.dataUrl}
+                                    style={styles.screenshot}
+                                />
+                            ) : (
+                                <Text
+                                    key={shot.id}
+                                    style={styles.placeholder}
+                                >
+                                    {shot.name}
+                                </Text>
+                            ),
                         )}
                     </View>
                 )}
@@ -227,7 +259,11 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
                     <View>
                         <Text style={styles.sectionLabel}>References</Text>
                         {finding.references.map((ref) => (
-                            <Link key={ref} src={ref} style={styles.reference}>
+                            <Link
+                                key={ref}
+                                src={ref}
+                                style={styles.reference}
+                            >
                                 {ref}
                             </Link>
                         ))}

@@ -56,9 +56,10 @@ const Dashboard = () => {
                                 onValueChange={(value) => setPeriod(value as UsageStatsPeriod)}
                                 value={period}
                             >
-                                <TabsList>
+                                <TabsList className="border-border-strong bg-well h-8 gap-0.5 rounded-md border border-b p-0.5">
                                     {periodOptions.map(({ label, value }) => (
                                         <TabsTrigger
+                                            className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary mb-0 rounded-[6px] border-b-0 px-3 py-1 font-mono text-xs tracking-wide data-[state=active]:border-transparent"
                                             key={value}
                                             value={value}
                                         >

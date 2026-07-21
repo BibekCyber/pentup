@@ -12,11 +12,11 @@ export const reportPdfStyles = StyleSheet.create({
         right: 44,
     },
     chromeFooterText: {
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontSize: 8,
     },
     chromeHairline: {
-        backgroundColor: '#e2e8f0',
+        backgroundColor: '#e7e5e4',
         height: 1,
     },
     chromeHeader: {
@@ -26,11 +26,11 @@ export const reportPdfStyles = StyleSheet.create({
         top: 24,
     },
     chromeHeaderDate: {
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontSize: 8.5,
     },
     chromeHeaderTitle: {
-        color: '#475569',
+        color: '#57534e',
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         maxWidth: 360,
@@ -42,7 +42,7 @@ export const reportPdfStyles = StyleSheet.create({
     },
     page: {
         backgroundColor: '#ffffff',
-        color: '#334155',
+        color: '#44403c',
         fontFamily: 'Helvetica',
         fontSize: 10.5,
         lineHeight: 1.5,
@@ -56,13 +56,13 @@ export const reportPdfStyles = StyleSheet.create({
         marginBottom: 10,
     },
     sectionHeading: {
-        color: '#0f172a',
+        color: '#1c1917',
         fontFamily: 'Helvetica-Bold',
         fontSize: 15,
         marginBottom: 8,
     },
     subHeading: {
-        color: '#334155',
+        color: '#44403c',
         fontFamily: 'Helvetica-Bold',
         fontSize: 11,
         letterSpacing: 0.5,

@@ -1,6 +1,20 @@
-import type { ColumnDef } from '@tanstack/react-table';
+import type { LucideIcon } from 'lucide-react';
 
-import { ArrowDown, ArrowUp, FileText, Loader2, MoreHorizontal, Pencil, Plus, Trash } from 'lucide-react';
+import {
+    Box,
+    Braces,
+    Cloud,
+    FileText,
+    Globe,
+    Loader2,
+    MoreHorizontal,
+    Network,
+    Pencil,
+    Plus,
+    Shield,
+    Smartphone,
+    Trash,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,8 +23,14 @@ import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
-import { DataTable } from '@/components/ui/data-table';
+import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,6 +46,19 @@ import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 const ALL_FILTER = 'all';
+
+// A leading glyph for the template's dossier tile, chosen per target type.
+const TARGET_GLYPH: Record<TargetType, LucideIcon> = {
+    [TargetType.Api]: Braces,
+    [TargetType.Aws]: Cloud,
+    [TargetType.Azure]: Cloud,
+    [TargetType.Cloud]: Cloud,
+    [TargetType.Gcp]: Cloud,
+    [TargetType.General]: Box,
+    [TargetType.MobileBackend]: Smartphone,
+    [TargetType.Network]: Network,
+    [TargetType.WebApp]: Globe,
+};
 
 const Templates = () => {
     const navigate = useNavigate();
@@ -74,104 +107,47 @@ const Templates = () => {
         }
     };
 
-    const columns: ColumnDef<Template>[] = [
-        {
-            accessorKey: 'title',
-            cell: ({ row }) => {
-                const template = row.original;
+    const renderTemplateCard = (template: Template) => {
+        const Glyph = TARGET_GLYPH[template.targetTypes[0]] ?? Box;
+        const primaryLabel = getTargetTypeLabel(template.targetTypes[0] ?? TargetType.General);
 
-                return (
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium">{template.title}</span>
-                        {template.systemOwned ? (
-                            <Badge
-                                className="shrink-0"
-                                variant="secondary"
-                            >
-                                System
-                            </Badge>
-                        ) : null}
+        return (
+            <Card
+                className="group hover:border-primary/50 flex cursor-pointer flex-col transition-colors"
+                onClick={() => handleTemplateOpen(template.id)}
+            >
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+                    <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border">
+                        <Glyph className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold tracking-tight">{template.title}</div>
+                        <div className="text-muted-foreground truncate font-mono text-[10.5px]">
+                            #{template.id} · {primaryLabel}
+                        </div>
                     </div>
-                );
-            },
-            header: ({ column }) => {
-                const sorted = column.getIsSorted();
-
-                return (
-                    <Button
-                        className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-                        variant="link"
-                    >
-                        Title
-                        {sorted === 'asc' ? (
-                            <ArrowDown className="size-4" />
-                        ) : sorted === 'desc' ? (
-                            <ArrowUp className="size-4" />
-                        ) : null}
-                    </Button>
-                );
-            },
-        },
-        {
-            accessorKey: 'text',
-            cell: ({ row }) => {
-                const text = (row.getValue('text') as string) ?? '';
-
-                return <div className="text-muted-foreground max-w-[380px] truncate text-sm">{text}</div>;
-            },
-            header: ({ column }) => {
-                const sorted = column.getIsSorted();
-
-                return (
-                    <Button
-                        className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-                        variant="link"
-                    >
-                        Text
-                        {sorted === 'asc' ? (
-                            <ArrowDown className="size-4" />
-                        ) : sorted === 'desc' ? (
-                            <ArrowUp className="size-4" />
-                        ) : null}
-                    </Button>
-                );
-            },
-        },
-        {
-            accessorKey: 'targetTypes',
-            cell: ({ row }) => {
-                const targetTypes = row.original.targetTypes;
-
-                if (!targetTypes.length) {
-                    return null;
-                }
-
-                return (
-                    <div className="flex max-w-[260px] flex-wrap gap-1">
-                        {targetTypes.map((type) => (
-                            <TargetTypeChip
-                                key={type}
-                                type={type}
-                            />
-                        ))}
-                    </div>
-                );
-            },
-            enableSorting: false,
-            header: () => <span className="text-muted-foreground">Target types</span>,
-        },
-        {
-            cell: ({ row }) => {
-                const template = row.original;
-
-                return (
-                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    {template.systemOwned ? (
+                        <Badge
+                            className="border-primary/30 bg-primary/10 text-primary shrink-0 gap-1 font-mono text-[10px] font-bold tracking-wide uppercase"
+                            variant="outline"
+                        >
+                            <Shield className="size-3" />
+                            System
+                        </Badge>
+                    ) : (
+                        <Badge
+                            className="border-border-strong text-muted-foreground shrink-0 font-mono text-[10px] font-bold tracking-wide uppercase"
+                            variant="outline"
+                        >
+                            Custom
+                        </Badge>
+                    )}
+                    <div onClick={(event) => event.stopPropagation()}>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    className="size-8 p-0"
+                                    className="text-muted-foreground hover:text-primary -mt-1 -mr-2 size-7 shrink-0"
+                                    size="icon"
                                     variant="ghost"
                                 >
                                     <MoreHorizontal />
@@ -204,15 +180,23 @@ const Templates = () => {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                );
-            },
-            enableHiding: false,
-            header: () => null,
-            id: 'actions',
-            meta: { preventRowClick: true },
-            size: 48,
-        },
-    ];
+                </CardHeader>
+                <p className="text-muted-foreground line-clamp-2 min-h-[2.6rem] px-4 text-xs leading-relaxed">
+                    {template.text}
+                </p>
+                {template.targetTypes.length ? (
+                    <CardFooter className="mt-auto flex-wrap gap-1.5 border-t pt-4">
+                        {template.targetTypes.map((type) => (
+                            <TargetTypeChip
+                                key={type}
+                                type={type}
+                            />
+                        ))}
+                    </CardFooter>
+                ) : null}
+            </Card>
+        );
+    };
 
     const renderRowContextMenu = (template: Template) => (
         <>
@@ -323,14 +307,14 @@ const Templates = () => {
                         title="No matching templates"
                     />
                 ) : (
-                    <DataTable
-                        columns={columns}
-                        data={filteredTemplates}
-                        filterColumn="title"
-                        filterPlaceholder="Filter templates..."
-                        onRowClick={(template) => handleTemplateOpen(template.id)}
-                        renderRowContextMenu={renderRowContextMenu}
-                    />
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {filteredTemplates.map((template) => (
+                            <ContextMenu key={template.id}>
+                                <ContextMenuTrigger asChild>{renderTemplateCard(template)}</ContextMenuTrigger>
+                                <ContextMenuContent>{renderRowContextMenu(template)}</ContextMenuContent>
+                            </ContextMenu>
+                        ))}
+                    </div>
                 )}
 
                 <ConfirmationDialog

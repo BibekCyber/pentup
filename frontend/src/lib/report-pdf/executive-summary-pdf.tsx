@@ -10,7 +10,7 @@ import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
     countCell: {
-        color: '#0f172a',
+        color: '#1c1917',
         fontFamily: 'Helvetica-Bold',
         fontSize: 10,
         textAlign: 'center',
@@ -23,25 +23,25 @@ const styles = StyleSheet.create({
         width: 7,
     },
     paragraph: {
-        color: '#334155',
+        color: '#44403c',
         fontSize: 10,
         lineHeight: 1.55,
         marginBottom: 4,
     },
     posture: {
-        color: '#475569',
+        color: '#57534e',
         fontSize: 9,
         marginTop: 8,
     },
     rangeCell: {
-        color: '#64748b',
+        color: '#78716c',
         fontFamily: 'Courier',
         fontSize: 9,
         width: '30%',
     },
     row: {
         alignItems: 'center',
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: '#e7e5e4',
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingHorizontal: 6,
@@ -53,30 +53,30 @@ const styles = StyleSheet.create({
         width: '50%',
     },
     sevLabel: {
-        color: '#334155',
+        color: '#44403c',
         fontFamily: 'Helvetica-Bold',
         fontSize: 10,
     },
     tableHeader: {
-        borderBottomColor: '#cbd5e1',
+        borderBottomColor: '#d6d3d1',
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingBottom: 5,
     },
     tableHeaderCell: {
-        color: '#64748b',
+        color: '#78716c',
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         textTransform: 'uppercase',
     },
     tile: {
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#faf7f4',
         flex: 1,
         paddingHorizontal: 10,
         paddingVertical: 8,
     },
     tileLabel: {
-        color: '#64748b',
+        color: '#78716c',
         fontSize: 8,
         marginTop: 2,
     },
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     tileValue: {
-        color: '#0f172a',
+        color: '#1c1917',
         fontFamily: 'Helvetica-Bold',
         fontSize: 15,
     },
@@ -119,7 +119,10 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
 
             <View style={styles.tileRow}>
                 {tiles.map((tile) => (
-                    <View key={tile.label} style={styles.tile}>
+                    <View
+                        key={tile.label}
+                        style={styles.tile}
+                    >
                         <Text style={styles.tileValue}>{tile.value}</Text>
                         <Text style={styles.tileLabel}>{tile.label}</Text>
                     </View>
@@ -139,7 +142,10 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
                         const count = summary.findingsBySeverity[severity];
 
                         return (
-                            <View key={severity} style={[styles.row, count > 0 ? { backgroundColor: style.pdf.tint } : {}]}>
+                            <View
+                                key={severity}
+                                style={[styles.row, count > 0 ? { backgroundColor: style.pdf.tint } : {}]}
+                            >
                                 <View style={styles.sevCell}>
                                     <View style={[styles.dot, { backgroundColor: style.pdf.solid }]} />
                                     <Text style={styles.sevLabel}>{style.label}</Text>
@@ -150,7 +156,9 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
                         );
                     })}
 
-                    {posture && <Text style={styles.posture}>Overall risk posture: {getSeverityStyle(posture).label}</Text>}
+                    {posture && (
+                        <Text style={styles.posture}>Overall risk posture: {getSeverityStyle(posture).label}</Text>
+                    )}
                 </>
             )}
         </View>

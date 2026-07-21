@@ -7,7 +7,9 @@ import { PDF_FOOTER_TEXT, reportPdfStyles } from './styles';
 const formatDate = (iso: string): string => {
     const date = new Date(iso);
 
-    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    return Number.isNaN(date.getTime())
+        ? ''
+        : date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 interface PageChromeProps {

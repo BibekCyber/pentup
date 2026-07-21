@@ -27,13 +27,18 @@ const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps)
             className="scroll-mt-24 space-y-4"
             id="findings-summary"
         >
-            <h2 className="text-foreground text-xl font-semibold">Findings Summary</h2>
+            <div className="space-y-1">
+                <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
+                    Section 02
+                </p>
+                <h2 className="text-foreground text-xl font-semibold">Findings Summary</h2>
+            </div>
             <Card>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-muted-foreground border-border border-b text-left text-xs uppercase">
+                                <tr className="text-muted-foreground border-border bg-muted/40 border-b text-left font-mono text-[10px] tracking-wide uppercase">
                                     <th className="px-4 py-2.5 font-medium">#</th>
                                     <th className="px-4 py-2.5 font-medium">Finding</th>
                                     <th className="px-4 py-2.5 font-medium">Severity</th>
@@ -46,7 +51,9 @@ const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps)
                                         className="border-border hover:bg-muted/40 border-b align-top transition-colors last:border-b-0"
                                         key={finding.id}
                                     >
-                                        <td className="text-muted-foreground px-4 py-3 tabular-nums">{index + 1}</td>
+                                        <td className="text-muted-foreground px-4 py-3 font-mono text-xs tabular-nums">
+                                            {index + 1}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <a
                                                 className="text-foreground hover:text-primary font-medium hover:underline"
@@ -58,7 +65,9 @@ const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps)
                                         <td className="px-4 py-3">
                                             <SeverityBadge severity={finding.severity} />
                                         </td>
-                                        <td className="text-muted-foreground max-w-md px-4 py-3 text-xs">{shorten(finding.recommendation)}</td>
+                                        <td className="text-muted-foreground max-w-md px-4 py-3 text-xs">
+                                            {shorten(finding.recommendation)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

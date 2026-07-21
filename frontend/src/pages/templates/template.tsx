@@ -351,7 +351,9 @@ const Template = () => {
     const asideContent = useMemo(
         () => (
             <div className="flex h-full max-h-[calc(100dvh-3rem)] flex-col overflow-y-auto p-4">
-                <h3 className="text-muted-foreground mb-2 text-sm font-medium">Preset templates</h3>
+                <h3 className="text-muted-foreground mb-3 font-mono text-[11px] font-semibold tracking-wide uppercase">
+                    Preset templates
+                </h3>
                 {PRESET_TEMPLATES.map((preset, index) => (
                     <Collapsible
                         key={index}
@@ -469,7 +471,7 @@ const Template = () => {
                     <Card className="w-full max-w-2xl">
                         <CardContent className="flex flex-col gap-4 pt-6">
                             <div className="text-center">
-                                <h1 className="text-2xl font-semibold">
+                                <h1 className="text-2xl font-semibold tracking-tight">
                                     {isNew ? 'Create a new template' : 'Edit template'}
                                 </h1>
                                 <p className="text-muted-foreground mt-2">
@@ -509,7 +511,9 @@ const Template = () => {
                                         name="targetTypes"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Target types</FormLabel>
+                                                <FormLabel className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">
+                                                    Target types
+                                                </FormLabel>
                                                 <FormControl>
                                                     <TargetTypePicker
                                                         disabled={isSaving}

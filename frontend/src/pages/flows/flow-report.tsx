@@ -77,13 +77,25 @@ const FlowReport = () => {
         }
 
         if (assistants.length > 0) {
-            return logsLoading ? null : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], { findings: mapFindings(assistants[0]?.findings) });
+            return logsLoading
+                ? null
+                : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], {
+                      findings: mapFindings(assistants[0]?.findings),
+                  });
         }
 
         return buildReportModel(data.flow, [], findings);
     }, [assistantSample, sample, data, isAutomation, tasks, assistantsLoading, assistants, logsLoading, logsData]);
 
-    const fileBaseName = useMemo(() => (sample ? `report_sample${assistantSample ? '_assistant' : ''}` : data?.flow ? generateFileName(data.flow) : 'report'), [sample, assistantSample, data]);
+    const fileBaseName = useMemo(
+        () =>
+            sample
+                ? `report_sample${assistantSample ? '_assistant' : ''}`
+                : data?.flow
+                  ? generateFileName(data.flow)
+                  : 'report',
+        [sample, assistantSample, data],
+    );
 
     useEffect(() => {
         if (!download || !model) {
@@ -147,10 +159,17 @@ const FlowReport = () => {
         return (
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="animate-logo-spin size-16" />
-                <h1 className="text-foreground text-2xl font-semibold">{downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}</h1>
+                <p className="text-primary font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
+                    PentAGI · Penetration Test Report
+                </p>
+                <h1 className="text-foreground text-2xl font-semibold">
+                    {downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}
+                </h1>
                 <div className="border-b-primary size-8 animate-spin rounded-full border-b-2" />
                 <p className="text-muted-foreground max-w-md">
-                    {downloadState === 'generating' ? 'Creating your PDF document. This may take a few moments.' : 'Please wait while we prepare your penetration testing report.'}
+                    {downloadState === 'generating'
+                        ? 'Creating your PDF document. This may take a few moments.'
+                        : 'Please wait while we prepare your penetration testing report.'}
                 </p>
             </div>
         );
@@ -160,8 +179,13 @@ const FlowReport = () => {
         return (
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="size-16" />
+                <p className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
+                    PentAGI · Penetration Test Report
+                </p>
                 <h1 className="text-destructive text-2xl font-semibold">Error Loading Report</h1>
-                <p className="text-muted-foreground max-w-md">We could not load this report. Please close this window and try again.</p>
+                <p className="text-muted-foreground max-w-md">
+                    We could not load this report. Please close this window and try again.
+                </p>
                 <button
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90 mt-2 rounded-md px-4 py-2 transition-colors"
                     onClick={() => window.close()}

@@ -16,9 +16,14 @@ const FlowReportFindingsDetail = ({ findings }: FlowReportFindingsDetailProps) =
             className="scroll-mt-24 space-y-5"
             id="detailed-findings"
         >
-            <div className="space-y-1 border-b pb-2">
+            <div className="border-border space-y-1 border-b pb-3">
+                <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
+                    Section 03
+                </p>
                 <h2 className="text-foreground text-xl font-semibold">Detailed Findings</h2>
-                <p className="text-muted-foreground text-xs">Findings are ordered by severity. Risk ratings are technical and based on CVSS v3.1.</p>
+                <p className="text-muted-foreground text-xs">
+                    Findings are ordered by severity. Risk ratings are technical and based on CVSS v3.1.
+                </p>
             </div>
             <div className="space-y-6">
                 {findings.map((finding, index) => (

@@ -23,6 +23,24 @@ const CHART_COLORS = {
     bar2: 'var(--color-chart-5)',
 };
 
+const overlineClass = 'text-foreground font-mono text-[11px] font-semibold tracking-[0.14em] uppercase';
+
+const SourceChip = ({ query }: { query: string }) => (
+    <span className="border-border-strong bg-well text-muted-foreground inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[10px] tracking-wide">
+        {query}
+    </span>
+);
+
+const CardHead = ({ description, query, title }: { description: string; query: string; title: string }) => (
+    <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+            <CardTitle className={overlineClass}>{title}</CardTitle>
+            <SourceChip query={query} />
+        </div>
+        <CardDescription>{description}</CardDescription>
+    </CardHeader>
+);
+
 const formatDateLabel = (dateString: string): string => {
     try {
         return format(new Date(dateString), 'MMM d');
@@ -118,10 +136,11 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
         <div className="flex flex-col gap-6">
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Token Usage Over Time</CardTitle>
-                        <CardDescription>Input and output tokens processed daily</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="Input and output tokens processed daily"
+                        query="usageStatsByPeriod"
+                        title="Token Usage Over Time"
+                    />
                     <CardContent>
                         {usageByPeriodLoading ? (
                             <ChartLoading />
@@ -171,10 +190,11 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Cost Over Time</CardTitle>
-                        <CardDescription>LLM spending per day</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="LLM spending per day"
+                        query="usageStatsByPeriod"
+                        title="Cost Over Time"
+                    />
                     <CardContent>
                         {usageByPeriodLoading ? (
                             <ChartLoading />
@@ -222,10 +242,11 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Tool Calls Over Time</CardTitle>
-                        <CardDescription>Number of tool executions per day</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="Number of tool executions per day"
+                        query="toolcallsStatsByPeriod"
+                        title="Tool Calls Over Time"
+                    />
                     <CardContent>
                         {toolcallsByPeriodLoading ? (
                             <ChartLoading />
@@ -265,10 +286,11 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Flows Activity Over Time</CardTitle>
-                        <CardDescription>Flows, tasks, and subtasks created per day</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="Flows, tasks, and subtasks created per day"
+                        query="flowsStatsByPeriod"
+                        title="Flows Activity Over Time"
+                    />
                     <CardContent>
                         {flowsByPeriodLoading ? (
                             <ChartLoading />
@@ -321,10 +343,11 @@ export const DashboardAnalytics = ({ period }: { period: UsageStatsPeriod }) => 
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Flow Execution Details</CardTitle>
-                    <CardDescription>Execution time and tool calls breakdown per flow</CardDescription>
-                </CardHeader>
+                <CardHead
+                    description="Execution time and tool calls breakdown per flow"
+                    query="flowsExecutionStatsByPeriod"
+                    title="Flow Execution Details"
+                />
                 <CardContent>
                     {executionStatsLoading ? (
                         <div className="flex items-center justify-center py-8">
@@ -381,7 +404,7 @@ const FlowExecutionItem = ({ flow }: { flow: FlowExecution }) => {
             <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors">
                 <ChevronRight className={`size-4 shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                 <div className="flex-1 truncate font-medium">{flow.flowTitle || `Flow #${flow.flowId}`}</div>
-                <div className="text-muted-foreground flex items-center gap-4 text-sm">
+                <div className="text-muted-foreground flex items-center gap-4 font-mono text-sm tabular-nums">
                     <span className="flex items-center gap-1">
                         <Clock className="size-3" />
                         {formatDuration(flow.totalDurationSeconds)}
@@ -425,7 +448,7 @@ const TaskExecutionItem = ({ task }: { task: FlowExecution['tasks'][number] }) =
                     <span className="size-3 shrink-0" />
                 )}
                 <div className="text-muted-foreground flex-1 truncate">{task.taskTitle || `Task #${task.taskId}`}</div>
-                <div className="text-muted-foreground flex items-center gap-4 text-xs">
+                <div className="text-muted-foreground flex items-center gap-4 font-mono text-xs tabular-nums">
                     <span className="flex items-center gap-1">
                         <Clock className="size-3" />
                         {formatDuration(task.totalDurationSeconds)}
@@ -447,7 +470,7 @@ const TaskExecutionItem = ({ task }: { task: FlowExecution['tasks'][number] }) =
                                 <div className="flex-1 truncate">
                                     {subtask.subtaskTitle || `Subtask #${subtask.subtaskId}`}
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 font-mono tabular-nums">
                                     <span className="flex items-center gap-1">
                                         <Clock className="size-3" />
                                         {formatDuration(subtask.totalDurationSeconds)}

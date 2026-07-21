@@ -28,28 +28,54 @@ const StatCard = ({
     title: string;
     value: string;
 }) => (
-    <Card>
+    <Card className="first:border-primary/40 first:bg-[linear-gradient(160deg,var(--brand-tint),var(--card)_55%)]">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <CardTitle className="text-muted-foreground font-mono text-[11px] font-medium tracking-[0.14em] uppercase">
+                {title}
+            </CardTitle>
             {icon}
         </CardHeader>
         <CardContent>
-            {loading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">{value}</div>}
-            <p className="text-muted-foreground text-xs">{description}</p>
+            {loading ? (
+                <Skeleton className="h-8 w-24" />
+            ) : (
+                <div className="font-mono text-3xl font-bold tracking-tight tabular-nums">{value}</div>
+            )}
+            <p className="text-muted-foreground mt-1.5 font-mono text-[11px]">{description}</p>
         </CardContent>
     </Card>
+);
+
+const overlineClass = 'text-foreground font-mono text-[11px] font-semibold tracking-[0.14em] uppercase';
+
+const SourceChip = ({ query }: { query: string }) => (
+    <span className="border-border-strong bg-well text-muted-foreground inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[10px] tracking-wide">
+        {query}
+    </span>
+);
+
+const CardHead = ({ description, query, title }: { description: string; query: string; title: string }) => (
+    <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+            <CardTitle className={overlineClass}>{title}</CardTitle>
+            <SourceChip query={query} />
+        </div>
+        <CardDescription>{description}</CardDescription>
+    </CardHeader>
 );
 
 const UsageStatsRow = ({ label, stats }: { label: string; stats: UsageStatsFragmentFragment }) => (
     <TableRow>
         <TableCell className="font-medium">{label}</TableCell>
-        <TableCell className="text-right">{formatTokenCount(stats.totalUsageIn)}</TableCell>
-        <TableCell className="text-right">{formatTokenCount(stats.totalUsageOut)}</TableCell>
-        <TableCell className="text-right">{formatTokenCount(stats.totalUsageCacheIn)}</TableCell>
-        <TableCell className="text-right">{formatTokenCount(stats.totalUsageCacheOut)}</TableCell>
-        <TableCell className="text-right">{formatCost(stats.totalUsageCostIn)}</TableCell>
-        <TableCell className="text-right">{formatCost(stats.totalUsageCostOut)}</TableCell>
-        <TableCell className="text-right font-semibold">
+        <TableCell className="text-right font-mono tabular-nums">{formatTokenCount(stats.totalUsageIn)}</TableCell>
+        <TableCell className="text-right font-mono tabular-nums">{formatTokenCount(stats.totalUsageOut)}</TableCell>
+        <TableCell className="text-right font-mono tabular-nums">{formatTokenCount(stats.totalUsageCacheIn)}</TableCell>
+        <TableCell className="text-right font-mono tabular-nums">
+            {formatTokenCount(stats.totalUsageCacheOut)}
+        </TableCell>
+        <TableCell className="text-right font-mono tabular-nums">{formatCost(stats.totalUsageCostIn)}</TableCell>
+        <TableCell className="text-right font-mono tabular-nums">{formatCost(stats.totalUsageCostOut)}</TableCell>
+        <TableCell className="text-primary text-right font-mono font-semibold tabular-nums">
             {formatCost(stats.totalUsageCostIn + stats.totalUsageCostOut)}
         </TableCell>
     </TableRow>
@@ -158,10 +184,11 @@ export const FlowDashboardOverview = ({ flowId }: { flowId: string }) => {
 
             {!!agentTypeRows.length && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Usage by Agent Type</CardTitle>
-                        <CardDescription>LLM token usage and costs per agent type in this flow</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="LLM token usage and costs per agent type in this flow"
+                        query="usageStatsByAgentTypeForFlow"
+                        title="Usage by Agent Type"
+                    />
                     <CardContent>
                         {usageByAgentLoading ? (
                             <LoadingTable />
@@ -196,10 +223,11 @@ export const FlowDashboardOverview = ({ flowId }: { flowId: string }) => {
 
             {!!toolcallsByFunction.length && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Tool Calls by Function</CardTitle>
-                        <CardDescription>Execution statistics per tool function in this flow</CardDescription>
-                    </CardHeader>
+                    <CardHead
+                        description="Execution statistics per tool function in this flow"
+                        query="toolcallsStatsByFunctionForFlow"
+                        title="Tool Calls by Function"
+                    />
                     <CardContent>
                         {toolcallsByFunctionLoading ? (
                             <LoadingTable />
@@ -217,25 +245,25 @@ export const FlowDashboardOverview = ({ flowId }: { flowId: string }) => {
                                 <TableBody>
                                     {toolcallsByFunction.map((item) => (
                                         <TableRow key={item.functionName}>
-                                            <TableCell className="font-medium">{item.functionName}</TableCell>
+                                            <TableCell className="font-mono font-medium">{item.functionName}</TableCell>
                                             <TableCell>
                                                 <span
-                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                    className={`inline-flex items-center rounded border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase ${
                                                         item.isAgent
-                                                            ? 'bg-primary/10 text-primary'
-                                                            : 'bg-muted text-muted-foreground'
+                                                            ? 'border-primary/30 bg-brand-tint text-primary'
+                                                            : 'border-border-strong bg-well text-muted-foreground'
                                                     }`}
                                                 >
                                                     {item.isAgent ? 'Agent' : 'Tool'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right font-mono tabular-nums">
                                                 {formatNumber(item.totalCount)}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right font-mono tabular-nums">
                                                 {formatDuration(item.totalDurationSeconds)}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right font-mono tabular-nums">
                                                 {formatDuration(item.avgDurationSeconds)}
                                             </TableCell>
                                         </TableRow>

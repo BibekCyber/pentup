@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     subtask: {
-        borderLeftColor: '#cbd5e1',
+        borderLeftColor: '#d6d3d1',
         borderLeftWidth: 2,
         marginBottom: 12,
         paddingLeft: 10,
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         marginBottom: 3,
     },
     subtaskTitle: {
-        color: '#334155',
+        color: '#44403c',
         flex: 1,
         fontFamily: 'Helvetica-Bold',
         fontSize: 10.5,
@@ -54,8 +54,15 @@ const SectionPdf = ({ section }: SectionPdfProps) => {
     const status = getStatusStyle(section.status);
 
     return (
-        <View id={section.id} minPresenceAhead={90} style={styles.section}>
-            <View style={styles.headingRow} wrap={false}>
+        <View
+            id={section.id}
+            minPresenceAhead={90}
+            style={styles.section}
+        >
+            <View
+                style={styles.headingRow}
+                wrap={false}
+            >
                 <Text style={reportPdfStyles.sectionHeading}>{section.title}</Text>
                 <Text style={[styles.statusPill, { backgroundColor: status.pdf.solid }]}>{status.label}</Text>
             </View>
@@ -65,17 +72,29 @@ const SectionPdf = ({ section }: SectionPdfProps) => {
 
             {section.subtasks.length > 0 && (
                 <View>
-                    <Text minPresenceAhead={140} style={[reportPdfStyles.subHeading, { marginTop: 8 }]}>
+                    <Text
+                        minPresenceAhead={140}
+                        style={[reportPdfStyles.subHeading, { marginTop: 8 }]}
+                    >
                         Subtasks
                     </Text>
                     {section.subtasks.map((subtask) => {
                         const subStatus = getStatusStyle(subtask.status);
 
                         return (
-                            <View key={subtask.id} minPresenceAhead={90} style={styles.subtask}>
-                                <View style={styles.subtaskHeader} wrap={false}>
+                            <View
+                                key={subtask.id}
+                                minPresenceAhead={90}
+                                style={styles.subtask}
+                            >
+                                <View
+                                    style={styles.subtaskHeader}
+                                    wrap={false}
+                                >
                                     <Text style={styles.subtaskTitle}>{subtask.title}</Text>
-                                    <Text style={[styles.statusPill, { backgroundColor: subStatus.pdf.solid }]}>{subStatus.label}</Text>
+                                    <Text style={[styles.statusPill, { backgroundColor: subStatus.pdf.solid }]}>
+                                        {subStatus.label}
+                                    </Text>
                                 </View>
                                 {subtask.resultMarkdown && <View>{renderMarkdownBlocks(subtask.resultMarkdown)}</View>}
                             </View>

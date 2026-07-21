@@ -34,7 +34,9 @@ const FlowReportToc = ({ entries }: FlowReportTocProps) => {
             { rootMargin: '-80px 0px -65% 0px', threshold: 0 },
         );
 
-        const observedElements = entries.map((entry) => document.getElementById(entry.id)).filter((element): element is HTMLElement => element !== null);
+        const observedElements = entries
+            .map((entry) => document.getElementById(entry.id))
+            .filter((element): element is HTMLElement => element !== null);
 
         observedElements.forEach((element) => observer.observe(element));
 
@@ -48,13 +50,17 @@ const FlowReportToc = ({ entries }: FlowReportTocProps) => {
 
     return (
         <nav className="space-y-0.5">
-            <p className="text-muted-foreground mb-2 px-2 text-xs font-semibold tracking-wide uppercase">Contents</p>
+            <p className="text-muted-foreground mb-2 px-2 font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
+                Contents
+            </p>
             {entries.map((entry) => (
                 <button
                     className={cn(
                         'block w-full truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors',
                         entry.level > 1 && 'pl-5 text-xs',
-                        activeId === entry.id ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        activeId === entry.id
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                     )}
                     key={entry.id}
                     onClick={() => handleJump(entry.id)}

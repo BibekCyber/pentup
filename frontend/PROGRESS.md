@@ -30,10 +30,15 @@ system-function check + a className/JSX-only `git diff`.
       `flow-subtask.tsx` (ring-card + border-strong rule), `index.css` (.terminal-scope bg nudge). command-panes /
       split-terminal / status-icon / dropdown already EMBER → untouched. _Gate: build ✓, lint baseline (0 new);
       R8 terminal-highlight + xterm/tokenizer + budget engine (1500/200/100/300) = EMPTY diff. border-red removed._
-- [ ] **P7 — Dashboard + Report + Templates** — dashboard {`dashboard,dashboard-analytics,dashboard-overview`}.tsx +
-      `flows/dashboard/{flow-dashboard,flow-dashboard-overview}.tsx`; report view + children + `finding-card.tsx` +
-      `lib/report-pdf/*`; templates {`templates,template`}.tsx. VERBATIM: `build-report-model.ts`, `report-model.ts`,
-      `report-pdf.tsx`, `format-utils.ts`. _Sanity: period refetch, PDF export, template create-vs-update, derived risk grade._
+- [x] **P7 — Dashboard + Report + Templates** — dashboard (kpi tiles + mono source-query chips; flow-dashboard.tsx
+      untouched), report web-view masthead (Target-led, derived risk grade via POSTURE_GRADE map, SeverityBar mix +
+      sev-pills, evidence panels) + PDF StyleSheet/hex reskin (teal/blue→ember, cool→warm graphite), NEW
+      `shared/severity-bar.tsx`, templates→EMBER card gallery + editor + target-type-picker. VERBATIM confirmed empty
+      diff: `build-report-model.ts`, `report-model.ts`, `report-pdf.tsx`, `report-document.tsx`, `format-utils.ts`,
+      `severity-palette.ts`, all `*.test`. _Gate: build ✓, lint baseline (0 new), **27/27 report+pdf tests green**._
+      _Built via workflow (3 parallel modules → gate → 4 adversarial verifiers); Report/Dashboard/Templates lenses
+      clean. Deferred: gallery drops DataTable title-search+sort (plan-sanctioned, restore in P10); dashboard
+      cost-share mini-bars omitted (optional)._
 - [ ] **P8 — Settings + Login + Auth** — settings {`settings-providers,settings-provider,settings-prompts,
       settings-prompt,settings-api-tokens,settings-users`}.tsx; `login.tsx`, `login-form.tsx`,
       `password-change-form.tsx`; shared `ui/data-table.tsx`. VERBATIM: `user-provider.tsx`, `passwordChangeSchema`.

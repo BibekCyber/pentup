@@ -30,7 +30,7 @@ const CopyButton = ({ value }: { value: string }) => {
             onClick={handleCopy}
             type="button"
         >
-            {copied ? <Check className="size-3.5 text-teal-600" /> : <Copy className="size-3.5" />}
+            {copied ? <Check className="text-st-finished size-3.5" /> : <Copy className="size-3.5" />}
         </button>
     );
 };
@@ -55,11 +55,15 @@ const ScreenshotView = ({ shot }: { shot: ReportScreenshot }) => (
                 />
             </div>
         )}
-        <figcaption className="bg-muted/50 text-muted-foreground border-border border-t px-3 py-1.5 text-xs">{shot.name}</figcaption>
+        <figcaption className="bg-muted/50 text-muted-foreground border-border border-t px-3 py-1.5 text-xs">
+            {shot.name}
+        </figcaption>
     </figure>
 );
 
-const SectionLabel = ({ children }: { children: ReactNode }) => <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{children}</p>;
+const SectionLabel = ({ children }: { children: ReactNode }) => (
+    <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.14em] uppercase">{children}</p>
+);
 
 const Section = ({ children, label }: { children: ReactNode; label: string }) => (
     <div className="space-y-1.5">
@@ -111,7 +115,9 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
                     <dt>
                         <SectionLabel>CVSS</SectionLabel>
                     </dt>
-                    <dd className="text-foreground text-sm font-medium tabular-nums">{typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}</dd>
+                    <dd className="text-foreground text-sm font-medium tabular-nums">
+                        {typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}
+                    </dd>
                 </div>
                 <div className="space-y-1">
                     <dt>
@@ -131,7 +137,9 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
                                         className="flex items-center gap-2"
                                         key={`${finding.id}-url-${i}`}
                                     >
-                                        <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-xs">{url}</span>
+                                        <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-xs">
+                                            {url}
+                                        </span>
                                         <CopyButton value={url} />
                                     </li>
                                 ))}
@@ -163,7 +171,9 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
                                     className="flex gap-2"
                                     key={`${finding.id}-step-${i}`}
                                 >
-                                    <span className="text-foreground/70 min-w-4 font-medium tabular-nums">{i + 1}.</span>
+                                    <span className="text-foreground/70 min-w-4 font-medium tabular-nums">
+                                        {i + 1}.
+                                    </span>
                                     <span className="min-w-0 flex-1">{step}</span>
                                 </li>
                             ))}
@@ -173,9 +183,9 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
 
                 {finding.evidence && (
                     <Section label="Evidence">
-                        <div className="border-border bg-muted/30 rounded-md border p-3">
+                        <div className="border-border bg-well overflow-x-auto rounded-md border p-3">
                             <Markdown
-                                className="text-muted-foreground"
+                                className="text-foreground/80 font-mono text-xs"
                                 disableHeadingIds
                             >
                                 {finding.evidence}
@@ -215,10 +225,10 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
 
                 {finding.recommendation && (
                     <Section label="Remediation">
-                        <div className="flex gap-2 rounded-md border border-teal-200 bg-teal-50 p-3 dark:border-teal-900 dark:bg-teal-950/30">
-                            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-teal-700 dark:text-teal-400" />
+                        <div className="border-st-finished/30 bg-st-finished/10 flex gap-2 rounded-md border p-3">
+                            <ShieldCheck className="text-st-finished mt-0.5 size-4 shrink-0" />
                             <Markdown
-                                className="text-teal-900 dark:text-teal-100"
+                                className="text-foreground/90"
                                 disableHeadingIds
                             >
                                 {finding.recommendation}

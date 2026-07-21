@@ -6,18 +6,18 @@ import { getStatusStyle } from '@/lib/severity-palette';
 
 import { PDF_FOOTER_TEXT } from './styles';
 
-const ACCENT = '#0f766e';
+const ACCENT = '#c2410c';
 
 const styles = StyleSheet.create({
     confidential: {
         bottom: 40,
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontSize: 9,
         left: 56,
         position: 'absolute',
     },
     kicker: {
-        color: '#64748b',
+        color: '#78716c',
         fontFamily: 'Helvetica-Bold',
         fontSize: 11,
         letterSpacing: 3,
@@ -25,14 +25,14 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     metaLabel: {
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
     metaValue: {
-        color: '#334155',
+        color: '#44403c',
         fontSize: 11,
         marginTop: 2,
     },
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
     },
     title: {
-        color: '#0f172a',
+        color: '#1c1917',
         fontFamily: 'Helvetica-Bold',
         fontSize: 30,
         lineHeight: 1.15,
@@ -89,10 +89,15 @@ interface CoverPageProps {
 const CoverPage = ({ model }: CoverPageProps) => {
     const status = getStatusStyle(model.flow.status);
     const issued = new Date(model.generatedAt);
-    const issuedLabel = Number.isNaN(issued.getTime()) ? '' : issued.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    const issuedLabel = Number.isNaN(issued.getTime())
+        ? ''
+        : issued.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
     return (
-        <Page size="A4" style={styles.page}>
+        <Page
+            size="A4"
+            style={styles.page}
+        >
             <View style={styles.topBar} />
 
             <View>

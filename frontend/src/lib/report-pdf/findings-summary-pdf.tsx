@@ -14,25 +14,25 @@ const styles = StyleSheet.create({
         width: 6,
     },
     headerCell: {
-        color: '#64748b',
+        color: '#78716c',
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         textTransform: 'uppercase',
     },
     headerRow: {
-        borderBottomColor: '#cbd5e1',
+        borderBottomColor: '#d6d3d1',
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingBottom: 5,
     },
     index: {
-        color: '#94a3b8',
+        color: '#a8a29e',
         fontSize: 9,
         width: '6%',
     },
     row: {
         alignItems: 'center',
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: '#e7e5e4',
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingVertical: 5,
@@ -43,12 +43,12 @@ const styles = StyleSheet.create({
         width: '34%',
     },
     severityLabel: {
-        color: '#475569',
+        color: '#57534e',
         fontFamily: 'Helvetica-Bold',
         fontSize: 9,
     },
     title: {
-        color: '#1d4ed8',
+        color: '#c2410c',
         fontSize: 9.5,
         paddingRight: 6,
         textDecoration: 'none',
@@ -80,9 +80,15 @@ const FindingsSummaryPdf = ({ findings }: FindingsSummaryPdfProps) => {
                 const style = getSeverityStyle(finding.severity);
 
                 return (
-                    <View key={finding.id} style={styles.row}>
+                    <View
+                        key={finding.id}
+                        style={styles.row}
+                    >
                         <Text style={styles.index}>{index + 1}</Text>
-                        <Link src={`#${finding.id}`} style={styles.title}>
+                        <Link
+                            src={`#${finding.id}`}
+                            style={styles.title}
+                        >
                             {finding.title}
                         </Link>
                         <View style={styles.severity}>
