@@ -10,7 +10,6 @@ import {
     Clock,
     Cloud,
     Cpu,
-    Download,
     Globe,
     MoreVertical,
     Network,
@@ -499,10 +498,6 @@ const Domain = () => {
     const totalFindings = findingsTotal(scanCounts);
     const flowCount = domain.flows.length;
 
-    // The scan's report is the report of its primary (first) child flow — same target
-    // the prototype's Report action points at. Undefined until a child flow exists.
-    const reportFlowId = domain.flows[0]?.id;
-
     // Client-side pagination over the scan's child flows.
     const pageCount = Math.max(1, Math.ceil(flowCount / PAGE_SIZE));
     const safePage = Math.min(page, pageCount - 1);
@@ -515,15 +510,6 @@ const Domain = () => {
             <CommandBar
                 actions={
                     <>
-                        <Button
-                            disabled={!reportFlowId}
-                            onClick={() => reportFlowId && navigate(`/flows/${reportFlowId}/report`)}
-                            size="sm"
-                            variant="outline"
-                        >
-                            <Download />
-                            Report
-                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button

@@ -1,9 +1,7 @@
 import { Activity, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import CommandBar from '@/components/layouts/command-bar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -90,23 +88,7 @@ const Dashboard = () => {
 
     return (
         <>
-            <header className="bg-background sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-                <div className="flex items-center gap-2 px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator
-                        className="h-4"
-                        orientation="vertical"
-                    />
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <LayoutDashboard className="size-4" />
-                                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                </div>
-            </header>
+            <CommandBar title="Dashboard" />
 
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-6 pt-8">
                 {/* muted context subtitle near the header */}

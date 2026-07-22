@@ -62,14 +62,16 @@ const FlowCentralTabs = () => {
 
             {isAssistantMode ? (
                 <TabsContent
-                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4 data-[state=inactive]:hidden"
+                    forceMount
                     value="assistant"
                 >
                     <FlowAssistantMessages />
                 </TabsContent>
             ) : (
                 <TabsContent
-                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4"
+                    className="mt-0 min-h-0 flex-1 overflow-auto py-4 pr-4 pl-4 data-[state=inactive]:hidden"
+                    forceMount
                     value="automation"
                 >
                     <FlowAutomationMessages />
