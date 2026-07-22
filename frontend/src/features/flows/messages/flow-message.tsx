@@ -142,14 +142,7 @@ const FlowMessage = ({ log, searchValue = '' }: FlowMessageProps) => {
 
     return (
         // EMBER `.msg` row: leading colour-tinted type tile (.mtype) + body column.
-        // `content-visibility: auto` lets the browser skip layout/paint for rows that are
-        // off-screen on first paint (hundreds of markdown messages otherwise render
-        // synchronously on flow open). `contain-intrinsic-size` reserves an estimated
-        // height so the scrollbar/geometry stays stable. Text remains find-in-page-able.
-        <div
-            className="flex gap-3 py-3"
-            style={{ containIntrinsicSize: 'auto 120px', contentVisibility: 'auto' }}
-        >
+        <div className="flex gap-3 py-3">
             <span
                 className={cn(
                     'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border',

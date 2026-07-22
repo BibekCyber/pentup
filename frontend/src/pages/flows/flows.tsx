@@ -13,7 +13,6 @@ import {
     Pause,
     Pencil,
     Plus,
-    Search,
     Star,
     Trash,
     X,
@@ -616,6 +615,7 @@ const Flows = () => {
                     </span>
                 </>
             }
+            search={{ onChange: handleSearchChange, placeholder: 'Search flows', value: searchTerm }}
             title="Flows"
         />
     );
@@ -664,18 +664,8 @@ const Flows = () => {
         <>
             {pageHeader}
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
-                {/* Toolbar — search + status filters + Grid/List segmented toggle. */}
+                {/* Toolbar — status filters + Grid/List segmented toggle (search lives in the top nav). */}
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
-                        <Search className="text-muted-foreground size-4 shrink-0" />
-                        <input
-                            className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
-                            onChange={(event) => handleSearchChange(event.target.value)}
-                            placeholder="Search flows"
-                            type="text"
-                            value={searchTerm}
-                        />
-                    </div>
                     <div className="flex flex-wrap gap-1.5">
                         {STATUS_FILTERS.map((filter) => (
                             <button

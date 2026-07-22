@@ -68,7 +68,7 @@ const SettingsTabs = () => {
     );
 
     return (
-        <div className="border-border text-muted-foreground mb-6 flex items-center gap-1 overflow-x-auto border-b">
+        <div className="border-border text-muted-foreground mb-6 flex flex-wrap items-center gap-1 border-b">
             {visibleMenuItems.map((item) => (
                 <NavLink
                     className={({ isActive }) =>

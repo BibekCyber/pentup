@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import debounce from 'lodash/debounce';
 import { Check, ChevronDown, ListFilter, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -276,13 +276,14 @@ const AssistantsDropdown = ({
 
 interface FlowAssistantMessagesProps {
     className?: string;
+    isActive?: boolean;
 }
 
 const searchFormSchema = z.object({
     search: z.string(),
 });
 
-const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
+const FlowAssistantMessages = ({ className, isActive = true }: FlowAssistantMessagesProps) => {
     const { providers } = useProviders();
 
     const {
@@ -318,6 +319,19 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
         selectedAssistantLogs,
         selectedAssistantId ?? null,
     );
+
+    // When returning to this conversation tab (e.g. from Dashboard), scroll to the
+    // latest message. The tab stays force-mounted, so useAutoScroll no longer re-fires
+    // on remount; fire only on the false->true transition so we never scroll while the
+    // user is reading with the tab already active.
+    const wasActiveRef = useRef(isActive);
+    useEffect(() => {
+        if (isActive && !wasActiveRef.current) {
+            scrollToEnd();
+        }
+
+        wasActiveRef.current = isActive;
+    }, [isActive, scrollToEnd]);
 
     // Get system settings
     const { settings } = useSystemSettings();

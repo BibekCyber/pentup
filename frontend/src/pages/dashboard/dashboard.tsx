@@ -6,10 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     UsageStatsPeriod,
-    useFlowsStatsTotalQuery,
-    useToolcallsStatsTotalQuery,
+    useFlowsStatsByPeriodQuery,
+    useToolcallsStatsByPeriodQuery,
     useUsageStatsByPeriodQuery,
-    useUsageStatsTotalQuery,
 } from '@/graphql/types';
 import { cn } from '@/lib/utils';
 import { DashboardAnalytics } from '@/pages/dashboard/dashboard-analytics';
@@ -65,22 +64,33 @@ const Dashboard = () => {
     const [activeTab, setActiveTab] = useState('analytics');
     const [period, setPeriod] = useState<UsageStatsPeriod>(UsageStatsPeriod.Week);
 
-    const { data: usageTotalData, loading: usageTotalLoading } = useUsageStatsTotalQuery();
-    const { data: toolcallsTotalData, loading: toolcallsTotalLoading } = useToolcallsStatsTotalQuery();
-    const { data: flowsTotalData, loading: flowsTotalLoading } = useFlowsStatsTotalQuery();
-    const { data: usageByPeriodData } = useUsageStatsByPeriodQuery({
+    const { data: usageByPeriodData, loading: usageByPeriodLoading } = useUsageStatsByPeriodQuery({
+        variables: { period },
+    });
+    const { data: toolcallsByPeriodData, loading: toolcallsByPeriodLoading } = useToolcallsStatsByPeriodQuery({
+        variables: { period },
+    });
+    const { data: flowsByPeriodData, loading: flowsByPeriodLoading } = useFlowsStatsByPeriodQuery({
         variables: { period },
     });
 
-    const usageTotal = usageTotalData?.usageStatsTotal;
-    const toolcallsTotal = toolcallsTotalData?.toolcallsStatsTotal;
-    const flowsTotal = flowsTotalData?.flowsStatsTotal;
+    const usageSeries = usageByPeriodData?.usageStatsByPeriod ?? [];
+    const toolcallsSeries = toolcallsByPeriodData?.toolcallsStatsByPeriod ?? [];
+    const flowsSeries = flowsByPeriodData?.flowsStatsByPeriod ?? [];
 
-    const totalCost = usageTotal ? usageTotal.totalUsageCostIn + usageTotal.totalUsageCostOut : 0;
-    const totalTokens = usageTotal ? usageTotal.totalUsageIn + usageTotal.totalUsageOut : 0;
+    // Period totals derived by summing the per-day series so the KPI strip tracks the selected period.
+    const periodTokens = usageSeries.reduce((sum, item) => sum + item.stats.totalUsageIn + item.stats.totalUsageOut, 0);
+    const periodCostIn = usageSeries.reduce((sum, item) => sum + item.stats.totalUsageCostIn, 0);
+    const periodCostOut = usageSeries.reduce((sum, item) => sum + item.stats.totalUsageCostOut, 0);
+    const periodCost = periodCostIn + periodCostOut;
+    const periodToolcalls = toolcallsSeries.reduce((sum, item) => sum + item.stats.totalCount, 0);
+    const periodToolcallsDuration = toolcallsSeries.reduce((sum, item) => sum + item.stats.totalDurationSeconds, 0);
+    const periodFlows = flowsSeries.reduce((sum, item) => sum + item.stats.totalFlowsCount, 0);
+    const periodTasks = flowsSeries.reduce((sum, item) => sum + item.stats.totalTasksCount, 0);
+    const periodSubtasks = flowsSeries.reduce((sum, item) => sum + item.stats.totalSubtasksCount, 0);
 
-    // Real 14-pt daily cost trend (oldest → newest) powering the Tool-calls sparkline.
-    const costTrend = [...(usageByPeriodData?.usageStatsByPeriod ?? [])]
+    // Real daily cost trend (oldest → newest) powering the Tool-calls sparkline.
+    const costTrend = [...usageSeries]
         .reverse()
         .map((item) => item.stats.totalUsageCostIn + item.stats.totalUsageCostOut);
 
@@ -91,40 +101,40 @@ const Dashboard = () => {
             <CommandBar title="Dashboard" />
 
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-6 pt-8">
-                {/* muted context subtitle near the header */}
+                {/* muted context subtitle near the header — reflects the selected period */}
                 <div className="-mb-2 flex items-center gap-2 overline">
-                    <span className="text-foreground">{periodLabel}</span>
+                    <span className="text-foreground">Past {periodLabel}</span>
                     <span className="sep text-muted-foreground/60">·</span>
                     <span>all engagements</span>
                 </div>
 
-                {/* ---- headline KPI strip — visible on BOTH tabs (all real totals) ---- */}
+                {/* ---- headline KPI strip — scoped to the selected period, visible on BOTH tabs ---- */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <KpiTile
-                        delta={`${formatNumber(flowsTotal?.totalTasksCount ?? 0)} tasks · ${formatNumber(flowsTotal?.totalSubtasksCount ?? 0)} subtasks`}
+                        delta={`${formatNumber(periodTasks)} tasks · ${formatNumber(periodSubtasks)} subtasks`}
                         hero
                         label="Flows"
-                        loading={flowsTotalLoading}
-                        value={flowsTotal ? formatNumber(flowsTotal.totalFlowsCount) : '0'}
+                        loading={flowsByPeriodLoading}
+                        value={formatNumber(periodFlows)}
                     />
                     <KpiTile
-                        delta={`${formatNumber(totalTokens)} · in + out`}
+                        delta={`${formatNumber(periodTokens)} · in + out`}
                         label="Total tokens"
-                        loading={usageTotalLoading}
-                        value={formatTokenCount(totalTokens)}
+                        loading={usageByPeriodLoading}
+                        value={formatTokenCount(periodTokens)}
                     />
                     <KpiTile
-                        delta={`in ${formatCost(usageTotal?.totalUsageCostIn ?? 0)} · out ${formatCost(usageTotal?.totalUsageCostOut ?? 0)}`}
+                        delta={`in ${formatCost(periodCostIn)} · out ${formatCost(periodCostOut)}`}
                         label="Agent spend"
-                        loading={usageTotalLoading}
-                        value={formatCost(totalCost)}
+                        loading={usageByPeriodLoading}
+                        value={formatCost(periodCost)}
                     />
                     <KpiTile
-                        delta={`total ${toolcallsTotal ? formatDuration(toolcallsTotal.totalDurationSeconds) : '—'}`}
+                        delta={`total ${periodToolcallsDuration ? formatDuration(periodToolcallsDuration) : '—'}`}
                         label="Tool calls"
-                        loading={toolcallsTotalLoading}
+                        loading={toolcallsByPeriodLoading}
                         spark={costTrend}
-                        value={toolcallsTotal ? formatNumber(toolcallsTotal.totalCount) : '0'}
+                        value={formatNumber(periodToolcalls)}
                     />
                 </div>
 
@@ -146,20 +156,19 @@ const Dashboard = () => {
                         </TabsList>
 
                         <div className="flex items-center gap-3 pb-2">
-                            {activeTab === 'analytics' && (
-                                <div className="seg">
-                                    {periodOptions.map(({ label, value }) => (
-                                        <button
-                                            className={cn('font-mono tracking-wide', period === value && 'active')}
-                                            key={value}
-                                            onClick={() => setPeriod(value)}
-                                            type="button"
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            {/* period control drives the KPI strip too, so keep it visible on every tab */}
+                            <div className="seg">
+                                {periodOptions.map(({ label, value }) => (
+                                    <button
+                                        className={cn('font-mono tracking-wide', period === value && 'active')}
+                                        key={value}
+                                        onClick={() => setPeriod(value)}
+                                        type="button"
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
 
                             <span className="fresh live">
                                 <span className="dot" />

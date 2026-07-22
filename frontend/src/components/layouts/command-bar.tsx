@@ -10,6 +10,7 @@ export interface CommandBarProps {
     actions?: ReactNode;
     className?: string;
     ctx?: ReactNode;
+    search?: { onChange: (value: string) => void; placeholder?: string; value: string };
     title: ReactNode;
 }
 
@@ -25,11 +26,11 @@ export interface CommandBarProps {
  * the command-bar trigger (and its adjacent separator) is hidden at `md` and up
  * while remaining available on mobile to open the sidebar Sheet.
  *
- * The search pill is a purely presentational affordance — there is no global
- * command palette wired yet, so it is harmless when clicked. Pages compose the
- * bar via the `title`/`ctx`/`actions` slots.
+ * The search pill is a real controlled text input when a page supplies the
+ * `search` prop, and is hidden entirely otherwise so only pages that support
+ * search show it. Pages compose the bar via the `title`/`ctx`/`actions` slots.
  */
-export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) => {
+export const CommandBar = ({ actions, className, ctx, search, title }: CommandBarProps) => {
     return (
         <header
             className={cn(
@@ -50,18 +51,19 @@ export const CommandBar = ({ actions, className, ctx, title }: CommandBarProps) 
             ) : null}
 
             <div className="ml-auto flex items-center gap-2.5">
-                {/* Search pill — visual affordance only (no palette wired yet). */}
-                <button
-                    aria-label="Search"
-                    className="bg-well border-border text-muted-foreground hover:border-border-strong hover:text-foreground hidden h-[34px] min-w-[220px] cursor-text items-center gap-2 rounded-md border pr-2.5 pl-3 text-[13px] transition-colors md:flex"
-                    type="button"
-                >
-                    <Search className="size-[15px] shrink-0" />
-                    <span className="truncate">Search targets, findings…</span>
-                    <kbd className="text-muted-foreground border-border ml-auto rounded-[5px] border bg-[var(--hover)] px-1.5 py-px font-mono text-[10px] leading-none">
-                        ⌘K
-                    </kbd>
-                </button>
+                {/* Search pill — a real controlled input when the page supplies `search`. */}
+                {search ? (
+                    <div className="bg-well border-border focus-within:border-border-strong hidden h-[34px] min-w-[220px] items-center gap-2 rounded-md border pr-2.5 pl-3 transition-colors md:flex">
+                        <Search className="text-muted-foreground size-[15px] shrink-0" />
+                        <input
+                            className="placeholder:text-muted-foreground w-full bg-transparent text-[13px] outline-none"
+                            onChange={(event) => search.onChange(event.target.value)}
+                            placeholder={search.placeholder}
+                            type="text"
+                            value={search.value}
+                        />
+                    </div>
+                ) : null}
 
                 {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
             </div>

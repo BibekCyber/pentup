@@ -13,7 +13,6 @@ import {
     Network,
     Pencil,
     Plus,
-    Search,
     Shield,
     Smartphone,
     Trash,
@@ -22,8 +21,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import TargetTypeChip from '@/components/forms/target-type-chip';
+import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import {
@@ -39,8 +38,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusCard } from '@/components/ui/status-card';
 import { TargetType } from '@/graphql/types';
 import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
@@ -262,36 +259,8 @@ const Templates = () => {
     );
 
     const pageHeader = (
-        <header className="bg-background sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                    className="h-4"
-                    orientation="vertical"
-                />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <FileText className="size-4" />
-                            <BreadcrumbPage>Templates</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-                {templates.length ? (
-                    <div className="text-muted-foreground hidden items-center gap-1.5 font-mono text-[11.5px] sm:flex">
-                        <Separator
-                            className="h-4"
-                            orientation="vertical"
-                        />
-                        <span className="text-foreground font-semibold">{templates.length}</span> playbooks
-                        <span className="text-muted-foreground/50">·</span>
-                        {systemCount} system
-                        <span className="text-muted-foreground/50">·</span>
-                        {customCount} custom
-                    </div>
-                ) : null}
-            </div>
-            <div className="ml-auto flex items-center gap-2 px-4">
+        <CommandBar
+            actions={
                 <Button
                     onClick={() => navigate('/templates/new')}
                     size="sm"
@@ -300,23 +269,27 @@ const Templates = () => {
                     <Plus />
                     <span className="hidden sm:inline">New Template</span>
                 </Button>
-            </div>
-        </header>
+            }
+            ctx={
+                templates.length ? (
+                    <>
+                        <span className="text-foreground font-semibold">{templates.length}</span> playbooks
+                        <span className="text-muted-foreground/50">·</span>
+                        {systemCount} system
+                        <span className="text-muted-foreground/50">·</span>
+                        {customCount} custom
+                    </>
+                ) : undefined
+            }
+            search={{ onChange: handleSearchChange, placeholder: 'Search templates', value: searchTerm }}
+            title="Templates"
+        />
     );
 
-    // Filter toolbar — search + target-type chips (client wants chips, not a dropdown) + view toggle.
+    // Filter toolbar — target-type chips (client wants chips, not a dropdown) + view toggle.
+    // Search lives in the top nav (CommandBar).
     const filterToolbar = (
         <div className="flex flex-wrap items-center gap-2">
-            <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
-                <Search className="text-muted-foreground size-4 shrink-0" />
-                <input
-                    className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
-                    onChange={(event) => handleSearchChange(event.target.value)}
-                    placeholder="Search templates"
-                    type="text"
-                    value={searchTerm}
-                />
-            </div>
             <div className="flex flex-wrap gap-1.5">
                 {TYPE_FILTERS.map((filter) => {
                     const Icon = filter.icon;

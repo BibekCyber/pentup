@@ -66,7 +66,7 @@ const FlowCentralTabs = () => {
                     forceMount
                     value="assistant"
                 >
-                    <FlowAssistantMessages />
+                    <FlowAssistantMessages isActive={resolvedTab === 'assistant'} />
                 </TabsContent>
             ) : (
                 <TabsContent
@@ -74,7 +74,7 @@ const FlowCentralTabs = () => {
                     forceMount
                     value="automation"
                 >
-                    <FlowAutomationMessages />
+                    <FlowAutomationMessages isActive={resolvedTab === 'automation'} />
                 </TabsContent>
             )}
             {canSeeDashboard && (

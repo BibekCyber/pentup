@@ -10,7 +10,6 @@ import {
     MoreHorizontal,
     Network,
     Plus,
-    Search,
     Smartphone,
     Trash2,
 } from 'lucide-react';
@@ -227,6 +226,7 @@ const Domains = () => {
                         <span className="text-[var(--st-running)]">{rollup.running} running</span>
                     </>
                 }
+                search={{ onChange: handleSearchChange, placeholder: 'Search scans', value: searchTerm }}
                 title="Scans"
             />
 
@@ -284,18 +284,8 @@ const Domains = () => {
                             />
                         </div>
 
-                        {/* Toolbar — search + type chips + view toggle. */}
+                        {/* Toolbar — type chips + view toggle (search lives in the top nav). */}
                         <div className="mb-4 flex flex-wrap items-center gap-2">
-                            <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
-                                <Search className="text-muted-foreground size-4 shrink-0" />
-                                <input
-                                    className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
-                                    onChange={(event) => handleSearchChange(event.target.value)}
-                                    placeholder="Search scans"
-                                    type="text"
-                                    value={searchTerm}
-                                />
-                            </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {TYPE_FILTERS.map((filter) => (
                                     <button

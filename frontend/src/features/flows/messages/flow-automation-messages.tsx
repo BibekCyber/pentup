@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import debounce from 'lodash/debounce';
 import { ChevronDown, Inbox, ListFilter, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -20,6 +20,7 @@ import FlowMessage from './flow-message';
 
 interface FlowAutomationMessagesProps {
     className?: string;
+    isActive?: boolean;
 }
 
 const searchFormSchema = z.object({
@@ -32,7 +33,7 @@ const searchFormSchema = z.object({
     search: z.string(),
 });
 
-const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
+const FlowAutomationMessages = ({ className, isActive = true }: FlowAutomationMessagesProps) => {
     const { flowData, flowId, flowStatus, stopAutomation, submitAutomationMessage } = useFlow();
 
     const logs = useMemo(() => flowData?.messageLogs ?? [], [flowData?.messageLogs]);
@@ -43,6 +44,19 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
     const [isCanceling, setIsCanceling] = useState(false);
 
     const { containerRef, endRef, hasNewMessages, isScrolledToBottom, scrollToEnd } = useAutoScroll(logs, flowId);
+
+    // When returning to this conversation tab (e.g. from Dashboard), scroll to the
+    // latest message. The tab stays force-mounted, so useAutoScroll no longer re-fires
+    // on remount; fire only on the false->true transition so we never scroll while the
+    // user is reading with the tab already active.
+    const wasActiveRef = useRef(isActive);
+    useEffect(() => {
+        if (isActive && !wasActiveRef.current) {
+            scrollToEnd();
+        }
+
+        wasActiveRef.current = isActive;
+    }, [isActive, scrollToEnd]);
 
     const form = useForm<z.infer<typeof searchFormSchema>>({
         defaultValues: {
