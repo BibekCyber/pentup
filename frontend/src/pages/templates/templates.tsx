@@ -290,6 +290,22 @@ const Templates = () => {
     // Search lives in the top nav (CommandBar).
     const filterToolbar = (
         <div className="flex flex-wrap items-center gap-2">
+            <div className="seg">
+                <button
+                    className={cn(view === 'grid' && 'active')}
+                    onClick={() => setView('grid')}
+                    type="button"
+                >
+                    Grid
+                </button>
+                <button
+                    className={cn(view === 'list' && 'active')}
+                    onClick={() => setView('list')}
+                    type="button"
+                >
+                    List
+                </button>
+            </div>
             <div className="flex flex-wrap gap-1.5">
                 {TYPE_FILTERS.map((filter) => {
                     const Icon = filter.icon;
@@ -306,22 +322,6 @@ const Templates = () => {
                         </button>
                     );
                 })}
-            </div>
-            <div className="seg">
-                <button
-                    className={cn(view === 'grid' && 'active')}
-                    onClick={() => setView('grid')}
-                    type="button"
-                >
-                    Grid
-                </button>
-                <button
-                    className={cn(view === 'list' && 'active')}
-                    onClick={() => setView('list')}
-                    type="button"
-                >
-                    List
-                </button>
             </div>
             <span className="ml-auto" />
         </div>

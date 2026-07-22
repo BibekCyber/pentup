@@ -666,18 +666,6 @@ const Flows = () => {
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
                 {/* Toolbar — status filters + Grid/List segmented toggle (search lives in the top nav). */}
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex flex-wrap gap-1.5">
-                        {STATUS_FILTERS.map((filter) => (
-                            <button
-                                className={cn('chip cursor-pointer', statusFilter === filter.value && 'chip-on')}
-                                key={filter.value}
-                                onClick={() => handleFilterChange(filter.value)}
-                                type="button"
-                            >
-                                {filter.label}
-                            </button>
-                        ))}
-                    </div>
                     <div className="seg">
                         <button
                             className={cn(view === 'grid' && 'active')}
@@ -693,6 +681,18 @@ const Flows = () => {
                         >
                             List
                         </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        {STATUS_FILTERS.map((filter) => (
+                            <button
+                                className={cn('chip cursor-pointer', statusFilter === filter.value && 'chip-on')}
+                                key={filter.value}
+                                onClick={() => handleFilterChange(filter.value)}
+                                type="button"
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
                     </div>
                     <span className="flex-1" />
                 </div>

@@ -286,18 +286,6 @@ const Domains = () => {
 
                         {/* Toolbar — type chips + view toggle (search lives in the top nav). */}
                         <div className="mb-4 flex flex-wrap items-center gap-2">
-                            <div className="flex flex-wrap gap-1.5">
-                                {TYPE_FILTERS.map((filter) => (
-                                    <button
-                                        className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
-                                        key={filter.value}
-                                        onClick={() => selectFilter(filter.value)}
-                                        type="button"
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
-                            </div>
                             <div className="seg">
                                 <button
                                     className={cn(view === 'grid' && 'active')}
@@ -313,6 +301,18 @@ const Domains = () => {
                                 >
                                     List
                                 </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {TYPE_FILTERS.map((filter) => (
+                                    <button
+                                        className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
+                                        key={filter.value}
+                                        onClick={() => selectFilter(filter.value)}
+                                        type="button"
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
                             </div>
                             <span className="ml-auto" />
                         </div>
