@@ -2,7 +2,7 @@ import { StyleSheet } from '@react-pdf/renderer';
 
 import { BRAND } from '@/lib/severity-palette';
 
-export const PDF_FOOTER_TEXT = 'Confidential — prepared by PentAGI';
+export const PDF_FOOTER_TEXT = 'Confidential — prepared by AI Pentest';
 
 export const reportPdfStyles = StyleSheet.create({
     chromeFooter: {

@@ -608,7 +608,7 @@ const NewEngagement = () => {
                                             <label className="field-label">Grey box or black box?</label>
                                             <div className="flex flex-col gap-3 sm:flex-row">
                                                 <ChoiceCard
-                                                    description="Partial access is given. PentAGI logs in with supplied credentials."
+                                                    description="Partial access is given. AI Pentest logs in with supplied credentials."
                                                     icon={ShieldCheck}
                                                     onClick={() => setBox(ScanBox.Grey)}
                                                     selected={box === ScanBox.Grey}
@@ -789,7 +789,7 @@ const NewEngagement = () => {
 
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Gcp ? (
                                             <Field
-                                                hint="Paste the JSON key for the service account PentAGI should act as."
+                                                hint="Paste the JSON key for the service account AI Pentest should act as."
                                                 label="Service-account key (JSON)"
                                             >
                                                 <Textarea

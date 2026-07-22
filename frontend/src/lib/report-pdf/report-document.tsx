@@ -16,10 +16,16 @@ interface ReportDocumentProps {
 }
 
 const ReportDocument = ({ model }: ReportDocumentProps) => (
-    <Document author="PentAGI" title={model.flow.title}>
+    <Document
+        author="AI Pentest"
+        title={model.flow.title}
+    >
         <CoverPage model={model} />
 
-        <Page size="A4" style={reportPdfStyles.page}>
+        <Page
+            size="A4"
+            style={reportPdfStyles.page}
+        >
             <PageChrome model={model} />
 
             <TocPdf model={model} />
@@ -37,14 +43,20 @@ const ReportDocument = ({ model }: ReportDocumentProps) => (
             <FindingsDetailPdf findings={model.findings} />
 
             {model.sectionsTitle && model.sections.length > 0 && (
-                <View break id="methodology">
+                <View
+                    break
+                    id="methodology"
+                >
                     <Text style={reportPdfStyles.sectionHeading}>{model.sectionsTitle}</Text>
                     <View style={reportPdfStyles.sectionDivider} />
                 </View>
             )}
 
             {model.sections.map((section) => (
-                <SectionPdf key={section.id} section={section} />
+                <SectionPdf
+                    key={section.id}
+                    section={section}
+                />
             ))}
         </Page>
     </Document>

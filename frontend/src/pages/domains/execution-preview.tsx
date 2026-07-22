@@ -1,7 +1,7 @@
 // UI-only PREVIEW of the proposed Phase-3 "split terminals" execution view
 // (see docs/requirements/new-engagement-flow-feasibility.md §12).
 //
-// The data below is REAL: it was pulled from the live PentAGI database
+// The data below is REAL: it was pulled from the live AI Pentest database
 // (flow 1 "Security Assessment" on Oracle host 152.67.11.136) — the subtask titles, statuses, and
 // terminal commands/output are verbatim (ANSI stripped, long output trimmed).
 // This page only visualises how that already-tagged data would split into

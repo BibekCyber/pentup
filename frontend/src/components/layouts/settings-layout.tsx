@@ -20,7 +20,7 @@ export interface MenuItem {
 const menuItems: readonly MenuItem[] = [
     { id: 'providers', path: '/settings/providers', title: 'Providers' },
     { id: 'prompts', path: '/settings/prompts', title: 'Prompts' },
-    { id: 'api-tokens', label: 'API Tokens', path: '/settings/api-tokens', title: 'PentAGI API' },
+    { id: 'api-tokens', label: 'API Tokens', path: '/settings/api-tokens', title: 'AI Pentest API' },
     { id: 'users', path: '/settings/users', permission: 'users.view', title: 'Users' },
 ] as const;
 
@@ -49,7 +49,7 @@ const useSettingsTitle = (): string => {
         }
 
         if (path === '/settings/api-tokens') {
-            return 'PentAGI API';
+            return 'AI Pentest API';
         }
 
         const activeItem = menuItems.find((item) => path.startsWith(item.path));

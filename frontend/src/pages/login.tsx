@@ -147,13 +147,6 @@ const AGENTS: Array<{ color: string; monogram: string }> = [
     { color: '#34D399', monogram: 'EX' },
 ];
 
-// ---- hero stat strip ----
-const STATS: Array<[string, string]> = [
-    ['12,400+', 'targets assessed'],
-    ['480k', 'findings surfaced'],
-    ['6', 'LLM providers'],
-];
-
 const Login = () => {
     const [searchParams] = useSearchParams();
     const location = useLocation();
@@ -203,7 +196,9 @@ const Login = () => {
                 <div className="relative z-10 flex items-center gap-3">
                     <Logo className="text-primary size-8" />
                     <div>
-                        <div className="text-foreground text-[22px] font-bold tracking-tight">PentAGI</div>
+                        <div className="text-foreground text-[22px] font-bold tracking-tight">
+                            <span className="text-primary">AI</span> Pentest
+                        </div>
                         <div className="mt-1 overline">Autonomous penetration testing</div>
                     </div>
                 </div>
@@ -240,30 +235,6 @@ const Login = () => {
                             Researcher · Developer · Executor working in parallel
                         </span>
                     </div>
-                </div>
-
-                {/* bottom — stat strip */}
-                <div
-                    className="relative z-10 flex items-center"
-                    style={{ borderTop: '1px solid var(--border)', paddingTop: 22 }}
-                >
-                    {STATS.map(([value, label], i) => (
-                        <div
-                            className="flex items-center"
-                            key={label}
-                        >
-                            {i > 0 && (
-                                <div
-                                    className="self-stretch"
-                                    style={{ background: 'var(--border)', margin: '2px 0', width: 1 }}
-                                />
-                            )}
-                            <div style={{ padding: i ? '0 26px' : '0 26px 0 0' }}>
-                                <div className="tnum text-foreground text-xl font-bold tracking-[-0.02em]">{value}</div>
-                                <div className="mt-[5px] overline">{label}</div>
-                            </div>
-                        </div>
-                    ))}
                 </div>
             </div>
 

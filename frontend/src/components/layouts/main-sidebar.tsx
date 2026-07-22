@@ -167,7 +167,7 @@ export const MainSidebar = () => {
                         </div>
                         <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                             <span className="truncate text-[15px] font-bold tracking-[0.02em]">
-                                Pent<span className="text-primary">AGI</span>
+                                <span className="text-primary">AI</span> Pentest
                             </span>
                             <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
                                 operator console

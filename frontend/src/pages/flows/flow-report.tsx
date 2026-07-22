@@ -160,7 +160,7 @@ const FlowReport = () => {
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="animate-logo-spin size-16" />
                 <p className="text-primary font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
-                    PentAGI · Penetration Test Report
+                    AI Pentest · Penetration Test Report
                 </p>
                 <h1 className="text-foreground text-2xl font-semibold">
                     {downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}
@@ -180,7 +180,7 @@ const FlowReport = () => {
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="size-16" />
                 <p className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
-                    PentAGI · Penetration Test Report
+                    AI Pentest · Penetration Test Report
                 </p>
                 <h1 className="text-destructive text-2xl font-semibold">Error Loading Report</h1>
                 <p className="text-muted-foreground max-w-md">

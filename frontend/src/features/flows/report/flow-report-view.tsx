@@ -44,7 +44,7 @@ const FlowReportView = ({
                     <div className="min-w-0 space-y-5">
                         <div className="flex items-center gap-3">
                             <span className="text-primary text-lg leading-none font-extrabold tracking-tight">
-                                PentAGI
+                                AI Pentest
                             </span>
                             <span className="bg-border-strong h-4 w-px shrink-0" />
                             <span className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.16em] uppercase">

@@ -101,7 +101,7 @@ const CoverPage = ({ model }: CoverPageProps) => {
             <View style={styles.topBar} />
 
             <View>
-                <Text style={styles.wordmark}>PentAGI</Text>
+                <Text style={styles.wordmark}>AI Pentest</Text>
                 <View style={styles.wordmarkRule} />
             </View>
 

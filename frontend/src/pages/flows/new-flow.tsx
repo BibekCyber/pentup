@@ -81,7 +81,7 @@ const NewFlow = () => {
                                 <div className="text-center">
                                     <h1 className="text-2xl font-semibold">Create a new flow</h1>
                                     <p className="text-muted-foreground mt-2">
-                                        Describe what you would like PentAGI to test
+                                        Describe what you would like AI Pentest to test
                                     </p>
                                 </div>
                                 <Tabs
@@ -102,7 +102,7 @@ const NewFlow = () => {
                                     onSubmit={handleSubmit}
                                     placeholder={
                                         flowType === 'automation'
-                                            ? 'Describe what you would like PentAGI to test...'
+                                            ? 'Describe what you would like AI Pentest to test...'
                                             : 'What would you like me to help you with?'
                                     }
                                     type={flowType}

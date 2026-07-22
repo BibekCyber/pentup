@@ -948,7 +948,7 @@ const SettingsAPITokens = () => {
                             Create Token
                         </Button>
                     }
-                    description="Create your first API token to access PentAGI programmatically"
+                    description="Create your first API token to access AI Pentest programmatically"
                     icon={<Key className="text-muted-foreground size-8" />}
                     title="No API tokens configured"
                 />
