@@ -7,13 +7,13 @@ import {
     ChevronRight,
     Cpu,
     Eye,
-    Filter,
     GitFork,
     Loader2,
     MoreHorizontal,
     Pause,
     Pencil,
     Plus,
+    Search,
     Star,
     Trash,
     X,
@@ -181,6 +181,7 @@ const Flows = () => {
     // Local presentation state: view mode, status filter, current page.
     const [view, setView] = useState<'grid' | 'list'>('grid');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(0);
 
     // Assistant-mode findings resolved lazily per rendered card (see
@@ -488,13 +489,20 @@ const Flows = () => {
     // Client-side filter → the full list is already loaded by the provider.
     const filteredFlows = useMemo(() => {
         const active = STATUS_FILTERS.find((filter) => filter.value === statusFilter);
+        const query = searchTerm.trim().toLowerCase();
 
-        if (!active?.status) {
-            return flows;
-        }
+        return flows.filter((flow) => {
+            if (active?.status && flow.status !== active.status) {
+                return false;
+            }
 
-        return flows.filter((flow) => flow.status === active.status);
-    }, [flows, statusFilter]);
+            if (query && !flow.title.toLowerCase().includes(query)) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [flows, statusFilter, searchTerm]);
 
     // Pre-compute severity aggregates once per flow.
     const findingsByFlow = useMemo(() => {
@@ -527,6 +535,11 @@ const Flows = () => {
 
     const handleFilterChange = useCallback((value: string) => {
         setStatusFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchTerm(value);
         setPage(0);
     }, []);
 
@@ -651,8 +664,30 @@ const Flows = () => {
         <>
             {pageHeader}
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
-                {/* Toolbar — Grid/List segmented toggle + status filters + sort. */}
-                <div className="flex flex-wrap items-center gap-2.5">
+                {/* Toolbar — search + status filters + Grid/List segmented toggle. */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
+                        <Search className="text-muted-foreground size-4 shrink-0" />
+                        <input
+                            className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
+                            onChange={(event) => handleSearchChange(event.target.value)}
+                            placeholder="Search flows"
+                            type="text"
+                            value={searchTerm}
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        {STATUS_FILTERS.map((filter) => (
+                            <button
+                                className={cn('chip cursor-pointer', statusFilter === filter.value && 'chip-on')}
+                                key={filter.value}
+                                onClick={() => handleFilterChange(filter.value)}
+                                type="button"
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
+                    </div>
                     <div className="seg">
                         <button
                             className={cn(view === 'grid' && 'active')}
@@ -669,27 +704,7 @@ const Flows = () => {
                             List
                         </button>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                        {STATUS_FILTERS.map((filter) => (
-                            <button
-                                className={cn('chip cursor-pointer', statusFilter === filter.value && 'chip-on')}
-                                key={filter.value}
-                                onClick={() => handleFilterChange(filter.value)}
-                                type="button"
-                            >
-                                {filter.label}
-                            </button>
-                        ))}
-                    </div>
                     <span className="flex-1" />
-                    <Button
-                        className="text-muted-foreground"
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Filter className="size-3.5" />
-                        Sort: Recent
-                    </Button>
                 </div>
 
                 {/* Lazily resolve each rendered flow's findings (automation OR assistant). */}

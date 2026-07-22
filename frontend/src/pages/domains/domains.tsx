@@ -7,10 +7,10 @@ import {
     ChevronRight,
     Cloud,
     Globe,
-    ListFilter,
     MoreHorizontal,
     Network,
     Plus,
+    Search,
     Smartphone,
     Trash2,
 } from 'lucide-react';
@@ -109,17 +109,26 @@ const Domains = () => {
     const navigate = useNavigate();
     const { deleteDomain, domains, isLoading } = useDomains();
     const [targetTypeFilter, setTargetTypeFilter] = useState<string>(ALL_FILTER);
+    const [searchTerm, setSearchTerm] = useState('');
     const [deletingDomain, setDeletingDomain] = useState<Domain | null>(null);
     const [view, setView] = useState<'grid' | 'list'>('grid');
     const [page, setPage] = useState(1);
 
     const filteredDomains = useMemo(() => {
-        if (targetTypeFilter === ALL_FILTER) {
-            return domains;
-        }
+        const query = searchTerm.trim().toLowerCase();
 
-        return domains.filter((domain) => domain.targetType === (targetTypeFilter as TargetType));
-    }, [domains, targetTypeFilter]);
+        return domains.filter((domain) => {
+            if (targetTypeFilter !== ALL_FILTER && domain.targetType !== (targetTypeFilter as TargetType)) {
+                return false;
+            }
+
+            if (query && !domain.name.toLowerCase().includes(query)) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [domains, targetTypeFilter, searchTerm]);
 
     // Cheap, derived-only status roll-up over the already-loaded domains list —
     // no extra query. Feeds both the command-bar context line and the KPI strip.
@@ -152,6 +161,11 @@ const Domains = () => {
 
     const selectFilter = (value: string) => {
         setTargetTypeFilter(value);
+        setPage(1);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
         setPage(1);
     };
 
@@ -270,8 +284,30 @@ const Domains = () => {
                             />
                         </div>
 
-                        {/* Toolbar — view toggle + type chips (moved down here) + sort. */}
+                        {/* Toolbar — search + type chips + view toggle. */}
                         <div className="mb-4 flex flex-wrap items-center gap-2">
+                            <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
+                                <Search className="text-muted-foreground size-4 shrink-0" />
+                                <input
+                                    className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
+                                    onChange={(event) => handleSearchChange(event.target.value)}
+                                    placeholder="Search scans"
+                                    type="text"
+                                    value={searchTerm}
+                                />
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {TYPE_FILTERS.map((filter) => (
+                                    <button
+                                        className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
+                                        key={filter.value}
+                                        onClick={() => selectFilter(filter.value)}
+                                        type="button"
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
+                            </div>
                             <div className="seg">
                                 <button
                                     className={cn(view === 'grid' && 'active')}
@@ -288,27 +324,7 @@ const Domains = () => {
                                     List
                                 </button>
                             </div>
-                            <div className="ml-1.5 flex flex-wrap gap-1.5">
-                                {TYPE_FILTERS.map((filter) => (
-                                    <button
-                                        className={cn('chip', targetTypeFilter === filter.value && 'chip-on')}
-                                        key={filter.value}
-                                        onClick={() => selectFilter(filter.value)}
-                                        type="button"
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
-                            </div>
                             <span className="ml-auto" />
-                            <Button
-                                className="text-muted-foreground"
-                                size="sm"
-                                variant="ghost"
-                            >
-                                <ListFilter />
-                                Sort: Recent
-                            </Button>
                         </div>
 
                         {view === 'grid' ? (

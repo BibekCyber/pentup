@@ -8,12 +8,12 @@ import {
     Cloud,
     FileText,
     Globe,
-    ListFilter,
     Loader2,
     MoreHorizontal,
     Network,
     Pencil,
     Plus,
+    Search,
     Shield,
     Smartphone,
     Trash,
@@ -87,6 +87,7 @@ const Templates = () => {
     const [deletingTemplate, setDeletingTemplate] = useState<null | Template>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [targetTypeFilter, setTargetTypeFilter] = useState<string>(ALL_FILTER);
+    const [searchTerm, setSearchTerm] = useState('');
     const [view, setView] = useState<'grid' | 'list'>('grid');
     const [page, setPage] = useState(1);
 
@@ -95,12 +96,20 @@ const Templates = () => {
     const customCount = templates.length - systemCount;
 
     const filteredTemplates = useMemo(() => {
-        if (targetTypeFilter === ALL_FILTER) {
-            return templates;
-        }
+        const query = searchTerm.trim().toLowerCase();
 
-        return templates.filter((template) => template.targetTypes.includes(targetTypeFilter as TargetType));
-    }, [templates, targetTypeFilter]);
+        return templates.filter((template) => {
+            if (targetTypeFilter !== ALL_FILTER && !template.targetTypes.includes(targetTypeFilter as TargetType)) {
+                return false;
+            }
+
+            if (query && !template.title.toLowerCase().includes(query)) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [templates, targetTypeFilter, searchTerm]);
 
     // Client-side pagination — the provider loads the whole list, we render only
     // the current page so the DOM stays light as the library scales.
@@ -113,6 +122,11 @@ const Templates = () => {
 
     const selectFilter = (value: string) => {
         setTargetTypeFilter(value);
+        setPage(1);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
         setPage(1);
     };
 
@@ -290,26 +304,20 @@ const Templates = () => {
         </header>
     );
 
-    // Filter toolbar — view toggle + target-type chips (client wants chips, not a dropdown) + Sort.
+    // Filter toolbar — search + target-type chips (client wants chips, not a dropdown) + view toggle.
     const filterToolbar = (
         <div className="flex flex-wrap items-center gap-2">
-            <div className="seg">
-                <button
-                    className={cn(view === 'grid' && 'active')}
-                    onClick={() => setView('grid')}
-                    type="button"
-                >
-                    Grid
-                </button>
-                <button
-                    className={cn(view === 'list' && 'active')}
-                    onClick={() => setView('list')}
-                    type="button"
-                >
-                    List
-                </button>
+            <div className="bg-well border-border focus-within:border-primary/50 flex h-[34px] items-center gap-2 rounded-md border px-2.5 transition-colors">
+                <Search className="text-muted-foreground size-4 shrink-0" />
+                <input
+                    className="placeholder:text-muted-foreground w-44 bg-transparent text-sm outline-none"
+                    onChange={(event) => handleSearchChange(event.target.value)}
+                    placeholder="Search templates"
+                    type="text"
+                    value={searchTerm}
+                />
             </div>
-            <div className="ml-1.5 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
                 {TYPE_FILTERS.map((filter) => {
                     const Icon = filter.icon;
 
@@ -326,20 +334,28 @@ const Templates = () => {
                     );
                 })}
             </div>
+            <div className="seg">
+                <button
+                    className={cn(view === 'grid' && 'active')}
+                    onClick={() => setView('grid')}
+                    type="button"
+                >
+                    Grid
+                </button>
+                <button
+                    className={cn(view === 'list' && 'active')}
+                    onClick={() => setView('list')}
+                    type="button"
+                >
+                    List
+                </button>
+            </div>
             <span className="ml-auto" />
-            <Button
-                className="text-muted-foreground"
-                size="sm"
-                variant="ghost"
-            >
-                <ListFilter />
-                Sort
-            </Button>
         </div>
     );
 
     const renderPager = () => (
-        <div className="pager">
+        <div className="pager mt-5">
             <span className="text-muted-foreground font-mono text-[11.5px]">
                 Showing {rangeStart}–{rangeEnd} of {filteredTemplates.length.toLocaleString()}
             </span>
