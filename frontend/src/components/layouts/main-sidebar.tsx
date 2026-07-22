@@ -68,7 +68,7 @@ const RailCollapse = () => {
     return (
         <button
             aria-label="Toggle Sidebar"
-            className="bg-card text-muted-foreground border-border-strong hover:border-primary hover:text-primary absolute top-[64px] -right-[11px] z-50 hidden size-[22px] place-items-center rounded-full border shadow-md transition-colors ease-linear sm:grid"
+            className="bg-card text-muted-foreground border-border-strong hover:border-primary hover:text-primary absolute top-[22px] -right-[11px] z-50 hidden size-[22px] place-items-center rounded-full border shadow-md transition-colors ease-linear sm:grid"
             onClick={toggleSidebar}
             title={state === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'}
             type="button"
