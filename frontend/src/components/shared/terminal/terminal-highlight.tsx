@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -152,6 +152,12 @@ const SUCCESS_RE = /(^|\s)(→|✓|✔|\[ok\]|success(ful)?|passed|completed|con
 const ERROR_RE =
     /(error|fail(ed|ure)?|denied|refus|invalid|unauthoriz|forbidden|fatal|traceback|exception|not found|no such|cannot|permission denied)/i;
 const WARN_RE = /(warn(ing)?|deprecat|timed? ?out|skipp|retry|retrying|not blocked)/i;
+// A zeroed / negated count is a healthy result, not a problem — "0 errors",
+// "no warnings", "none failed" must not paint the whole line red or amber. Checked
+// before ERROR/WARN so a clean summary line reads as success. One extra test only
+// on lines that aren't already classified, so this adds no meaningful cost.
+const NEGATED_COUNT_RE =
+    /(^|\s)(0|no|none|zero|without)\s+(errors?|failures?|faults?|warnings?|issues?|problems?|vulnerabilit(?:y|ies))\b/i;
 
 const textLineBase = (text: string): string | undefined => {
     if (/^\s*#/.test(text)) {
@@ -163,6 +169,10 @@ const textLineBase = (text: string): string | undefined => {
     }
 
     if (SUCCESS_RE.test(text)) {
+        return 'term-success';
+    }
+
+    if (NEGATED_COUNT_RE.test(text)) {
         return 'term-success';
     }
 
@@ -270,62 +280,72 @@ const HIGHLIGHT_ROOT_MARGIN = '400px';
  * deferral — the expensive part — is what stops a flow with many command panes from
  * stalling on load. If IntersectionObserver is unavailable (SSR / jsdom / very old
  * browsers) every line highlights eagerly, identical to the previous behaviour.
+ *
+ * Memoised on its (primitive) props: live output arrives via subscription, which
+ * re-renders the whole pane on every appended line. Without this, every already-
+ * rendered line re-runs the tokeniser each tick even though its text is unchanged;
+ * memo keeps highlighting proportional to *new* lines, not the whole visible buffer.
+ * This is what keeps accuracy improvements from costing anything at render time.
  */
-const TermLine = ({
-    base,
-    delay,
-    eager,
-    isErr,
-    text,
-}: {
-    base: string | undefined;
-    delay: string;
-    eager: boolean;
-    isErr: boolean;
-    text: string;
-}) => {
-    const [lit, setLit] = useState(eager || typeof IntersectionObserver === 'undefined');
-    const ref = useRef<HTMLDivElement>(null);
+const TermLine = memo(
+    ({
+        base,
+        delay,
+        eager,
+        isErr,
+        text,
+    }: {
+        base: string | undefined;
+        delay: string;
+        eager: boolean;
+        isErr: boolean;
+        text: string;
+    }) => {
+        const [lit, setLit] = useState(eager || typeof IntersectionObserver === 'undefined');
+        const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (lit) {
-            return;
-        }
+        useEffect(() => {
+            if (lit) {
+                return;
+            }
 
-        // IntersectionObserver-unavailable (SSR / jsdom / old browsers) is already handled
-        // by the initial `lit` state, so past the `if (lit)` guard IO is always defined and
-        // the committed ref is always set; `!el` is just a type guard.
-        const el = ref.current;
+            // IntersectionObserver-unavailable (SSR / jsdom / old browsers) is already handled
+            // by the initial `lit` state, so past the `if (lit)` guard IO is always defined and
+            // the committed ref is always set; `!el` is just a type guard.
+            const el = ref.current;
 
-        if (!el) {
-            return;
-        }
+            if (!el) {
+                return;
+            }
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries.some((entry) => entry.isIntersecting)) {
-                    setLit(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: HIGHLIGHT_ROOT_MARGIN },
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries.some((entry) => entry.isIntersecting)) {
+                        setLit(true);
+                        observer.disconnect();
+                    }
+                },
+                { rootMargin: HIGHLIGHT_ROOT_MARGIN },
+            );
+
+            observer.observe(el);
+
+            return () => observer.disconnect();
+        }, [lit]);
+
+        return (
+            <div
+                className={cn('term-line break-all whitespace-pre-wrap', base)}
+                ref={ref}
+                style={{ animationDelay: delay }}
+            >
+                {lit ? renderOutputLine(text, isErr) : text}
+            </div>
         );
+    },
+);
 
-        observer.observe(el);
-
-        return () => observer.disconnect();
-    }, [lit]);
-
-    return (
-        <div
-            className={cn('term-line break-all whitespace-pre-wrap', base)}
-            ref={ref}
-            style={{ animationDelay: delay }}
-        >
-            {lit ? renderOutputLine(text, isErr) : text}
-        </div>
-    );
-};
+TermLine.displayName = 'TermLine';
 
 /**
  * A command's output block: each line detected + coloured by content type, with a
@@ -339,7 +359,10 @@ const TermLine = ({
  * view (see TermLine) so a flow with many panes doesn't stall on load.
  */
 export const TermOutput = ({ lines, maxLines }: { lines: { isErr: boolean; text: string }[]; maxLines?: number }) => {
-    const flat = flattenLines(lines);
+    // Re-split the source logs only when they change, not on every parent re-render;
+    // callers pass a memoised `lines`, so streaming a new pane elsewhere no longer
+    // re-flattens this one's whole preview.
+    const flat = useMemo(() => flattenLines(lines), [lines]);
     const hidden = maxLines != null && flat.length > maxLines ? flat.length - maxLines : 0;
     const shown = hidden > 0 ? flat.slice(0, maxLines) : flat;
 

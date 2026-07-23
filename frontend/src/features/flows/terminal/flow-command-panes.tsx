@@ -66,12 +66,20 @@ export const groupCommands = (logs: TermLog[], keyPrefix: string): CommandGroup[
 // colour-coded by content (JSON / HTML / key: value / plain text). `maxLines` bounds
 // how much output is rendered (see StepPanes) — copy and the Raw tab carry it in full.
 const CommandPane = ({ group, maxLines }: { group: CommandGroup; maxLines?: number }) => {
-    const outputTexts = group.output.map((o) => o.text);
-    const blockType = group.output.length > 0 ? detectBlockType(outputTexts) : null;
-    const copyText = [group.command ? `$ ${group.command}` : '', ...outputTexts.map(stripAnsi)]
-        .filter(Boolean)
-        .join('\n');
-    const lines = group.output.map((o) => ({ isErr: o.type === TerminalLogType.Stderr, text: o.text }));
+    // Derived from the output only, so it is recomputed when the output changes, not
+    // on every parent re-render. detectBlockType samples up to 2000 lines; keeping it
+    // out of the render-hot path matters while live logs stream in via subscription.
+    const { blockType, copyText, lines } = useMemo(() => {
+        const outputTexts = group.output.map((o) => o.text);
+
+        return {
+            blockType: group.output.length > 0 ? detectBlockType(outputTexts) : null,
+            copyText: [group.command ? `$ ${group.command}` : '', ...outputTexts.map(stripAnsi)]
+                .filter(Boolean)
+                .join('\n'),
+            lines: group.output.map((o) => ({ isErr: o.type === TerminalLogType.Stderr, text: o.text })),
+        };
+    }, [group.output, group.command]);
 
     return (
         <div className="terminal-scope overflow-hidden rounded-lg border">
