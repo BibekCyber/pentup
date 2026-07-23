@@ -496,8 +496,15 @@ const NewEngagement = () => {
                             </span>
                         </div>
 
-                        {/* Two-column: step form (left) + summary dossier (right) */}
-                        <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
+                        {/* Two-column: step form (left) + summary dossier (right).
+                            On the final review step the dossier is hidden and the review
+                            card becomes a single, centred source of truth. */}
+                        <div
+                            className={cn(
+                                'grid items-start gap-6',
+                                isLast ? 'mx-auto max-w-2xl' : 'lg:grid-cols-[1fr_340px]',
+                            )}
+                        >
                             <div>
                                 {/* Step: target + kind */}
                                 {currentKey === 'target' ? (
@@ -988,16 +995,7 @@ const NewEngagement = () => {
                                         <ArrowLeft />
                                         {step === 0 ? 'Cancel' : 'Back'}
                                     </Button>
-                                    {isLast ? (
-                                        <Button
-                                            disabled={isLoading || selectedIds.length === 0}
-                                            onClick={onSubmit}
-                                            type="button"
-                                        >
-                                            {isLoading ? <Spinner variant="circle" /> : null}
-                                            Create scan
-                                        </Button>
-                                    ) : (
+                                    {isLast ? null : (
                                         <Button
                                             disabled={!canAdvance}
                                             onClick={() => setStep((v) => v + 1)}
@@ -1010,74 +1008,67 @@ const NewEngagement = () => {
                                 </div>
                             </div>
 
-                            {/* Summary dossier */}
-                            <aside className="summary-panel lg:sticky lg:top-[88px]">
-                                <div className="card-head">
-                                    <span className="tgt-glyph">{summaryGlyph}</span>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-[13.5px] font-bold">Engagement</div>
-                                        <div className="text-muted-foreground font-mono text-[10.5px]">
-                                            Scan summary
+                            {/* Summary dossier — a live draft of the engagement shown while
+                                building it. Hidden on the final review step, where the centred
+                                review card is the single review + single call to action. */}
+                            {!isLast && (
+                                <aside className="summary-panel lg:sticky lg:top-[88px]">
+                                    <div className="card-head">
+                                        <span className="tgt-glyph">{summaryGlyph}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-[13.5px] font-bold">Engagement</div>
+                                            <div className="text-muted-foreground font-mono text-[10.5px]">
+                                                Scan summary
+                                            </div>
                                         </div>
+                                        <span className="badge badge-outline">DRAFT</span>
                                     </div>
-                                    <span className="badge badge-outline">DRAFT</span>
-                                </div>
-                                <SpRow
-                                    label="Target"
-                                    value={name.trim() || '—'}
-                                />
-                                <SpRow
-                                    label="Type"
-                                    value={targetClass === 'cloud' ? 'Cloud' : targetClass === 'web' ? 'Web app' : '—'}
-                                />
-                                {targetClass === 'cloud' ? (
-                                    <>
-                                        <SpRow
-                                            label="Provider"
-                                            value={cloudProvider ? cloudProvider.toUpperCase() : '—'}
-                                        />
-                                        <SpRow
-                                            label="Scope"
-                                            value={scope ? cap(scope) : '—'}
-                                        />
-                                    </>
-                                ) : (
                                     <SpRow
-                                        label="Box"
+                                        label="Target"
+                                        value={name.trim() || '—'}
+                                    />
+                                    <SpRow
+                                        label="Type"
                                         value={
-                                            box === ScanBox.Grey
-                                                ? 'Grey box'
-                                                : box === ScanBox.Black
-                                                  ? 'Black box'
-                                                  : '—'
+                                            targetClass === 'cloud' ? 'Cloud' : targetClass === 'web' ? 'Web app' : '—'
                                         }
                                     />
-                                )}
-                                <SpRow
-                                    label="Templates"
-                                    value={selectedIds.length ? `${selectedIds.length} selected` : '—'}
-                                />
-                                <SpRow
-                                    label="Run mode"
-                                    value={runModeLabel}
-                                />
-                                <SpRow
-                                    label="Credentials"
-                                    value={needsCredentials ? (credComplete ? 'Provided' : 'Required') : 'None'}
-                                />
-                                <div className="p-[15px_15px_16px]">
-                                    {isLast ? (
-                                        <Button
-                                            className="w-full"
-                                            disabled={isLoading || selectedIds.length === 0}
-                                            onClick={onSubmit}
-                                            size="lg"
-                                            type="button"
-                                        >
-                                            {isLoading ? <Spinner variant="circle" /> : <Zap className="size-4" />}
-                                            Create scan
-                                        </Button>
+                                    {targetClass === 'cloud' ? (
+                                        <>
+                                            <SpRow
+                                                label="Provider"
+                                                value={cloudProvider ? cloudProvider.toUpperCase() : '—'}
+                                            />
+                                            <SpRow
+                                                label="Scope"
+                                                value={scope ? cap(scope) : '—'}
+                                            />
+                                        </>
                                     ) : (
+                                        <SpRow
+                                            label="Box"
+                                            value={
+                                                box === ScanBox.Grey
+                                                    ? 'Grey box'
+                                                    : box === ScanBox.Black
+                                                      ? 'Black box'
+                                                      : '—'
+                                            }
+                                        />
+                                    )}
+                                    <SpRow
+                                        label="Templates"
+                                        value={selectedIds.length ? `${selectedIds.length} selected` : '—'}
+                                    />
+                                    <SpRow
+                                        label="Run mode"
+                                        value={runModeLabel}
+                                    />
+                                    <SpRow
+                                        label="Credentials"
+                                        value={needsCredentials ? (credComplete ? 'Provided' : 'Required') : 'None'}
+                                    />
+                                    <div className="p-[15px_15px_16px]">
                                         <Button
                                             className="w-full"
                                             disabled={!fullValid}
@@ -1087,19 +1078,19 @@ const NewEngagement = () => {
                                         >
                                             <Zap className="size-4" />
                                             {selectedIds.length > 0
-                                                ? `Launch ${selectedIds.length} flow${
+                                                ? `Review ${selectedIds.length} flow${
                                                       selectedIds.length === 1 ? '' : 's'
                                                   }`
-                                                : 'Launch scan'}
+                                                : 'Review scan'}
                                         </Button>
-                                    )}
-                                    <p className="field-hint mt-3 text-center leading-relaxed">
-                                        {selectedIds.length > 0
-                                            ? 'Each template runs as its own isolated flow · billed per agent token · stop any flow anytime.'
-                                            : 'Select at least one template to launch.'}
-                                    </p>
-                                </div>
-                            </aside>
+                                        <p className="field-hint mt-3 text-center leading-relaxed">
+                                            {selectedIds.length > 0
+                                                ? 'Each template runs as its own isolated flow · billed per agent token · stop any flow anytime.'
+                                                : 'Select at least one template to launch.'}
+                                        </p>
+                                    </div>
+                                </aside>
+                            )}
                         </div>
                     </div>
                 )}
