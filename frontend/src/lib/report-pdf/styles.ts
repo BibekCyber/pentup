@@ -1,8 +1,10 @@
 import { StyleSheet } from '@react-pdf/renderer';
 
-import { BRAND } from '@/lib/severity-palette';
+import { CF_PDF } from './cf-brand';
 
-export const PDF_FOOTER_TEXT = 'Confidential — prepared by AI Pentest';
+// The generated PDF is white-labelled for CyberFortify (the delivering firm).
+export const PDF_FOOTER_TEXT = 'Confidential — prepared by CyberFortify';
+export const PDF_BRAND_NAME = 'CyberFortify';
 
 export const reportPdfStyles = StyleSheet.create({
     chromeFooter: {
@@ -12,11 +14,11 @@ export const reportPdfStyles = StyleSheet.create({
         right: 44,
     },
     chromeFooterText: {
-        color: '#a8a29e',
+        color: CF_PDF.muted,
         fontSize: 8,
     },
     chromeHairline: {
-        backgroundColor: '#e7e5e4',
+        backgroundColor: CF_PDF.hairline,
         height: 1,
     },
     chromeHeader: {
@@ -26,11 +28,11 @@ export const reportPdfStyles = StyleSheet.create({
         top: 24,
     },
     chromeHeaderDate: {
-        color: '#a8a29e',
+        color: CF_PDF.muted,
         fontSize: 8.5,
     },
     chromeHeaderTitle: {
-        color: '#57534e',
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         maxWidth: 360,
@@ -41,8 +43,8 @@ export const reportPdfStyles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     page: {
-        backgroundColor: '#ffffff',
-        color: '#44403c',
+        backgroundColor: CF_PDF.white,
+        color: CF_PDF.body,
         fontFamily: 'Helvetica',
         fontSize: 10.5,
         lineHeight: 1.5,
@@ -50,19 +52,24 @@ export const reportPdfStyles = StyleSheet.create({
         paddingHorizontal: 44,
         paddingTop: 64,
     },
+    // Each top-level report section renders inside this so every heading starts
+    // on a fresh page, matching the CyberFortify template.
+    sectionBreak: {
+        marginTop: 0,
+    },
     sectionDivider: {
-        borderBottomColor: BRAND.solid,
+        borderBottomColor: CF_PDF.accent,
         borderBottomWidth: 2,
         marginBottom: 10,
     },
     sectionHeading: {
-        color: '#1c1917',
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 15,
+        fontSize: 16,
         marginBottom: 8,
     },
     subHeading: {
-        color: '#44403c',
+        color: CF_PDF.navyDeep,
         fontFamily: 'Helvetica-Bold',
         fontSize: 11,
         letterSpacing: 0.5,

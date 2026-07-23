@@ -1,4 +1,9 @@
-import type { AssistantFragmentFragment, AssistantLogFragmentFragment, FlowFragmentFragment } from '@/graphql/types';
+import type {
+    AssistantFragmentFragment,
+    AssistantLogFragmentFragment,
+    FlowFragmentFragment,
+    TargetType,
+} from '@/graphql/types';
 
 import { MessageLogType, StatusType } from '@/graphql/types';
 
@@ -23,7 +28,8 @@ const cleanInput = (text: string): string =>
 
 // Short, purely transitional narration ("Let me check…", "Found it!", "Now I'll…")
 // reads as a chat log, not a report. Substantive answers/reports are longer and kept.
-const TRANSITIONAL = /^(let me|let's|lets|now (?:let me|i)|next|then|first|i'll|i will|i'm going to|found it|great|excellent|perfect|good|ok|okay|alright|sure)\b/i;
+const TRANSITIONAL =
+    /^(let me|let's|lets|now (?:let me|i)|next|then|first|i'll|i will|i'm going to|found it|great|excellent|perfect|good|ok|okay|alright|sure)\b/i;
 
 const isTransitional = (text: string): boolean => {
     const flat = text.replace(/\s+/g, ' ').trim();
@@ -50,7 +56,13 @@ interface OpenSection {
     title: string;
 }
 
-const newSection = (title: string, prompt?: string): OpenSection => ({ actions: [], advice: [], narrative: [], prompt, title });
+const newSection = (title: string, prompt?: string): OpenSection => ({
+    actions: [],
+    advice: [],
+    narrative: [],
+    prompt,
+    title,
+});
 
 const actionLine = (log: AssistantLogFragmentFragment): null | string => {
     const subject = log.message?.trim() ?? '';
@@ -110,6 +122,7 @@ const flushSection = (open: null | OpenSection, sections: ReportSection[]): void
 interface BuildAssistantReportModelOptions {
     findings?: readonly Finding[];
     generatedAt?: string;
+    targetType?: TargetType;
 }
 
 export const buildAssistantReportModel = (
@@ -225,16 +238,28 @@ export const buildAssistantReportModel = (
 
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
-        ...(hasFindings ? ([{ id: 'findings-summary', level: 1, title: 'Findings Summary' }, { id: 'detailed-findings', level: 1, title: 'Detailed Findings' }] as ReportTocEntry[]) : []),
+        ...(hasFindings
+            ? ([
+                  { id: 'findings-summary', level: 1, title: 'Findings Summary' },
+                  { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
+              ] as ReportTocEntry[])
+            : []),
         ...(sectionsTitle ? ([{ id: 'methodology', level: 1, title: sectionsTitle }] as ReportTocEntry[]) : []),
         ...sections.map((section) => ({ id: section.id, level: sectionsTitle ? 2 : 1, title: section.title })),
     ];
 
     const summaryTarget = assistant?.title ? `with the ${assistant.title}` : 'session';
     const toolClause = toolCalls > 0 ? ` and ran ${toolCalls} tool ${pluralize(toolCalls, 'action')}` : '';
-    const findingsClause = hasFindings ? ` and identified ${reportFindings.length} ${pluralize(reportFindings.length, 'finding')}` : '';
+    const findingsClause = hasFindings
+        ? ` and identified ${reportFindings.length} ${pluralize(reportFindings.length, 'finding')}`
+        : '';
     const executiveSummary =
-        sections.length > 0 ? { content: `This assistant ${summaryTarget} worked through ${sections.length} conversation ${pluralize(sections.length, 'topic')}${toolClause}${findingsClause}.`, generatedAt } : undefined;
+        sections.length > 0
+            ? {
+                  content: `This assistant ${summaryTarget} worked through ${sections.length} conversation ${pluralize(sections.length, 'topic')}${toolClause}${findingsClause}.`,
+                  generatedAt,
+              }
+            : undefined;
 
     return {
         executiveSummary,
@@ -245,6 +270,7 @@ export const buildAssistantReportModel = (
             startedAt: flow?.createdAt ? new Date(flow.createdAt).toISOString() : undefined,
             status: flow?.status ?? StatusType.Created,
             target: assistant?.title || undefined,
+            targetType: options.targetType,
             title: flow?.title ?? 'Assistant Session',
         },
         generatedAt,

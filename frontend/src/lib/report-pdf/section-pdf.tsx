@@ -4,6 +4,7 @@ import type { ReportSection } from '@/lib/report-model';
 
 import { getStatusStyle } from '@/lib/severity-palette';
 
+import { CF_PDF } from './cf-brand';
 import { renderMarkdownBlocks } from './markdown-pdf';
 import { reportPdfStyles } from './styles';
 
@@ -26,7 +27,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     subtask: {
-        borderLeftColor: '#d6d3d1',
+        borderLeftColor: CF_PDF.accentBorder,
         borderLeftWidth: 2,
         marginBottom: 12,
         paddingLeft: 10,
@@ -38,7 +39,7 @@ const styles = StyleSheet.create({
         marginBottom: 3,
     },
     subtaskTitle: {
-        color: '#44403c',
+        color: CF_PDF.body,
         flex: 1,
         fontFamily: 'Helvetica-Bold',
         fontSize: 10.5,

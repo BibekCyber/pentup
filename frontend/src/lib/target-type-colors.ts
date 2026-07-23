@@ -61,3 +61,34 @@ export const getTargetTypeMeta = (type: TargetType): TargetTypeMeta =>
 
 /** Convenience label lookup. */
 export const getTargetTypeLabel = (type: TargetType): string => getTargetTypeMeta(type).label;
+
+/**
+ * Report-facing engagement descriptor. Scans collapse to two engagement classes
+ * — Web and Cloud — so a report simply states which one it is rather than the raw
+ * flow title. Returns an empty string when the type is unknown, so callers can
+ * fall back to the previous behaviour without breaking older reports.
+ */
+export const getEngagementLabel = (type?: null | TargetType): string => {
+    if (type === TargetType.Cloud) {
+        return 'Cloud Infrastructure';
+    }
+
+    if (type === TargetType.WebApp || type === TargetType.Api) {
+        return 'Web Application';
+    }
+
+    return type ? getTargetTypeLabel(type) : '';
+};
+
+/** Short engagement kind — "Web" or "Cloud" — for chips and footers. */
+export const getEngagementKind = (type?: null | TargetType): string => {
+    if (type === TargetType.Cloud) {
+        return 'Cloud';
+    }
+
+    if (type === TargetType.WebApp || type === TargetType.Api) {
+        return 'Web';
+    }
+
+    return type ? getTargetTypeLabel(type) : '';
+};

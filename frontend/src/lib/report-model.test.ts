@@ -82,7 +82,13 @@ describe('buildReportModel', () => {
 describe('sample report fixture', () => {
     it('reflects the reference report severity distribution', () => {
         expect(sampleReportModel.findings).toHaveLength(12);
-        expect(sampleReportModel.summary.findingsBySeverity).toEqual({ critical: 0, high: 3, informational: 0, low: 3, medium: 6 });
+        expect(sampleReportModel.summary.findingsBySeverity).toEqual({
+            critical: 0,
+            high: 3,
+            informational: 0,
+            low: 3,
+            medium: 6,
+        });
         expect(sampleReportModel.sections).toHaveLength(3);
         expect(sampleReportModel.flow.target).toBe('abc.xyz.com');
     });
@@ -97,7 +103,10 @@ describe('buildReportMarkdown', () => {
     it('renders the executive summary, risk table and every finding title', () => {
         const md = buildReportMarkdown(sampleReportModel);
 
-        expect(md).toContain('# Web Application Penetration Test');
+        // Reports state the engagement class (Web / Cloud) and are white-labelled
+        // for CyberFortify rather than titled by the raw flow name.
+        expect(md).toContain('# Web Application — Penetration Test Report');
+        expect(md).toContain('_By CyberFortify_');
         expect(md).toContain('## Executive Summary');
         expect(md).toContain('| Severity | Findings | CVSS Range |');
         expect(md).toContain('## Findings Summary');
@@ -137,14 +146,40 @@ describe('palette defaults', () => {
 
 describe('mapFindings + buildReportModel (backend findings drive a coherent report)', () => {
     const gqlFindings: FindingFragmentFragment[] = [
-        { cvss: 9.1, description: 'Logout keeps tokens valid', recommendation: 'Add a Redis token denylist', references: ['https://owasp.org/Top10/'], severity: Severity.Critical, taskId: '9', title: 'Token Revocation Failure' },
+        {
+            cvss: 9.1,
+            description: 'Logout keeps tokens valid',
+            recommendation: 'Add a Redis token denylist',
+            references: ['https://owasp.org/Top10/'],
+            severity: Severity.Critical,
+            taskId: '9',
+            title: 'Token Revocation Failure',
+        },
         { cvss: 9, severity: Severity.Critical, taskId: '9', title: 'Missing Rate Limiting' },
         { cvss: 6.1, severity: Severity.Medium, taskId: '9', title: 'CORS Misconfiguration' },
         { cvss: 5.3, severity: Severity.Medium, taskId: '9', title: 'Missing Security Headers' },
     ];
 
-    const flow = { createdAt: '2026-06-28T10:00:00Z', id: '15', status: StatusType.Finished, title: 'Audit API Auth Flows', updatedAt: '2026-06-28T23:00:00Z' };
-    const tasks = [{ createdAt: '2026-06-28T10:05:00Z', flowId: '15', id: '9', input: 'internal prompt', result: 'done', status: StatusType.Finished, subtasks: [], title: 'Assess API Auth & Session', updatedAt: '2026-06-28T11:42:00Z' }] as unknown as TaskFragmentFragment[];
+    const flow = {
+        createdAt: '2026-06-28T10:00:00Z',
+        id: '15',
+        status: StatusType.Finished,
+        title: 'Audit API Auth Flows',
+        updatedAt: '2026-06-28T23:00:00Z',
+    };
+    const tasks = [
+        {
+            createdAt: '2026-06-28T10:05:00Z',
+            flowId: '15',
+            id: '9',
+            input: 'internal prompt',
+            result: 'done',
+            status: StatusType.Finished,
+            subtasks: [],
+            title: 'Assess API Auth & Session',
+            updatedAt: '2026-06-28T11:42:00Z',
+        },
+    ] as unknown as TaskFragmentFragment[];
 
     it('maps GraphQL findings into renderable findings with stable ids', () => {
         const findings = mapFindings(gqlFindings);

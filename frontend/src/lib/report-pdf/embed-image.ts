@@ -5,7 +5,10 @@ interface EmbedOptions {
     quality?: number;
 }
 
-export const embedImage = async (url: string, { maxWidth = 800, quality = 0.8 }: EmbedOptions = {}): Promise<string | undefined> => {
+export const embedImage = async (
+    url: string,
+    { maxWidth = 800, quality = 0.8 }: EmbedOptions = {},
+): Promise<string | undefined> => {
     try {
         const response = await fetch(url, { credentials: 'include' });
 
@@ -77,8 +80,12 @@ export const embedReportScreenshots = async (model: ReportModel): Promise<Report
         return model;
     }
 
-    const patch = (shot: ReportScreenshot): ReportScreenshot => (resolved.has(shot.id) ? { ...shot, dataUrl: resolved.get(shot.id) } : shot);
-    const patchFinding = (finding: (typeof model.findings)[number]) => ({ ...finding, screenshots: finding.screenshots?.map(patch) });
+    const patch = (shot: ReportScreenshot): ReportScreenshot =>
+        resolved.has(shot.id) ? { ...shot, dataUrl: resolved.get(shot.id) } : shot;
+    const patchFinding = (finding: (typeof model.findings)[number]) => ({
+        ...finding,
+        screenshots: finding.screenshots?.map(patch),
+    });
 
     return {
         ...model,

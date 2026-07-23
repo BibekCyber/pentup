@@ -2,6 +2,7 @@ import { Link, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { ReportModel } from '@/lib/report-model';
 
+import { CF_PDF } from './cf-brand';
 import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
@@ -11,19 +12,19 @@ const styles = StyleSheet.create({
         marginBottom: 7,
     },
     leader: {
-        backgroundColor: '#e7e5e4',
+        backgroundColor: CF_PDF.hairline,
         flex: 1,
         height: 1,
         marginBottom: 3,
         marginHorizontal: 6,
     },
     link: {
-        color: '#c2410c',
+        color: CF_PDF.accentText,
         fontSize: 10.5,
         textDecoration: 'none',
     },
     marker: {
-        color: '#a8a29e',
+        color: CF_PDF.muted,
         fontSize: 9,
     },
 });

@@ -135,7 +135,8 @@ const glyphMap: Record<string, string> = {
 // Intentionally strips emoji building blocks (regional indicators, variation selectors,
 // ZWJ) one codepoint at a time — that is exactly the misleading-class the rule warns about.
 // eslint-disable-next-line no-misleading-character-class
-const glyphStrip = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2500}-\u{259F}\u{FE00}-\u{FE0F}\u{200D}]/gu;
+const glyphStrip =
+    /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2500}-\u{259F}\u{FE00}-\u{FE0F}\u{200D}]/gu;
 
 // stripGlyphs is safe for code (keeps markdown markers); sanitizeProse additionally
 // removes leftover bold markers that marked could not pair (e.g. "** text **"), so they
@@ -179,7 +180,9 @@ const parseInlineTokens = (text: string): InlineToken[] => {
 
     if (firstToken && firstToken.type === 'paragraph' && 'tokens' in firstToken) {
         const paragraphTokens =
-            (firstToken as { tokens?: unknown[] }).tokens?.filter((token): token is Record<string, unknown> => typeof token === 'object' && token !== null) || [];
+            (firstToken as { tokens?: unknown[] }).tokens?.filter(
+                (token): token is Record<string, unknown> => typeof token === 'object' && token !== null,
+            ) || [];
 
         paragraphTokens.forEach((token) => {
             switch (token.type) {
@@ -229,7 +232,11 @@ const parseMarkdownTokens = (markdown: string): ParsedContent[] => {
             }
 
             case 'heading': {
-                result.push({ inlineTokens: parseInlineTokens(String(token.text || '')), level: Number(token.depth || 1), type: 'heading' });
+                result.push({
+                    inlineTokens: parseInlineTokens(String(token.text || '')),
+                    level: Number(token.depth || 1),
+                    type: 'heading',
+                });
                 break;
             }
 
@@ -358,7 +365,9 @@ const renderPDFContent = (parsed: ParsedContent[]) =>
                 }
 
                 case 'list': {
-                    const listItems = (item.items ?? []).filter((listItem) => listItem.inlineTokens.some((tk) => tk.text.trim() !== ''));
+                    const listItems = (item.items ?? []).filter((listItem) =>
+                        listItem.inlineTokens.some((tk) => tk.text.trim() !== ''),
+                    );
 
                     if (listItems.length === 0) {
                         return null;
@@ -375,8 +384,12 @@ const renderPDFContent = (parsed: ParsedContent[]) =>
                                     style={markdownPdfStyles.listItem}
                                     wrap={false}
                                 >
-                                    <Text style={markdownPdfStyles.listBullet}>{item.ordered ? `${li + 1}.` : '•'}</Text>
-                                    <Text style={markdownPdfStyles.listContent}>{renderInlineTokens(listItem.inlineTokens, `li-${index}-${li}`)}</Text>
+                                    <Text style={markdownPdfStyles.listBullet}>
+                                        {item.ordered ? `${li + 1}.` : '•'}
+                                    </Text>
+                                    <Text style={markdownPdfStyles.listContent}>
+                                        {renderInlineTokens(listItem.inlineTokens, `li-${index}-${li}`)}
+                                    </Text>
                                 </View>
                             ))}
                         </View>

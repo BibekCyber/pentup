@@ -1,8 +1,23 @@
-import type { FindingFragmentFragment, FlowFragmentFragment, SubtaskFragmentFragment, TaskFragmentFragment } from '@/graphql/types';
+import type {
+    FindingFragmentFragment,
+    FlowFragmentFragment,
+    SubtaskFragmentFragment,
+    TargetType,
+    TaskFragmentFragment,
+} from '@/graphql/types';
 
 import { Severity as GqlSeverity, StatusType } from '@/graphql/types';
 
-import type { Finding, ReportModel, ReportScreenshot, ReportSection, ReportSubItem, ReportTocEntry, Severity, SeverityCounts } from './report-model';
+import type {
+    Finding,
+    ReportModel,
+    ReportScreenshot,
+    ReportSection,
+    ReportSubItem,
+    ReportTocEntry,
+    Severity,
+    SeverityCounts,
+} from './report-model';
 
 import { emptySeverityCounts, SEVERITY_ORDER } from './report-model';
 import { getSeverityStyle } from './severity-palette';
@@ -35,12 +50,15 @@ export const mapFindings = (findings: null | readonly FindingFragmentFragment[] 
         title: finding.title,
     }));
 
-export const pluralize = (count: number, singular: string, plural = `${singular}s`): string => (count === 1 ? singular : plural);
+export const pluralize = (count: number, singular: string, plural = `${singular}s`): string =>
+    count === 1 ? singular : plural;
 
 export const deriveSummaryNarrative = (model: ReportModel): string => {
     const { summary } = model;
     const target = model.flow.target ?? model.flow.title;
-    const severityParts = SEVERITY_ORDER.filter((severity) => summary.findingsBySeverity[severity] > 0).map((severity) => `${summary.findingsBySeverity[severity]} ${getSeverityStyle(severity).label.toLowerCase()}`);
+    const severityParts = SEVERITY_ORDER.filter((severity) => summary.findingsBySeverity[severity] > 0).map(
+        (severity) => `${summary.findingsBySeverity[severity]} ${getSeverityStyle(severity).label.toLowerCase()}`,
+    );
 
     const findingsClause =
         summary.findingsTotal > 0
@@ -53,6 +71,7 @@ export const deriveSummaryNarrative = (model: ReportModel): string => {
 interface BuildReportModelOptions {
     executiveSummary?: { content: string; generatedAt: string };
     generatedAt?: string;
+    targetType?: TargetType;
 }
 
 const compareFindings = (a: Finding, b: Finding): number => {
@@ -175,8 +194,13 @@ export const buildReportModel = (
         findingsBySeverity[finding.severity] += 1;
     }
 
-    const sectionScreenshots = (section: ReportSection): ReportScreenshot[] => [...section.screenshots, ...section.findings.flatMap((finding) => finding.screenshots ?? [])];
-    const screenshotCount = sections.reduce((total, section) => total + sectionScreenshots(section).length, 0) + orphanFindings.flatMap((finding) => finding.screenshots ?? []).length;
+    const sectionScreenshots = (section: ReportSection): ReportScreenshot[] => [
+        ...section.screenshots,
+        ...section.findings.flatMap((finding) => finding.screenshots ?? []),
+    ];
+    const screenshotCount =
+        sections.reduce((total, section) => total + sectionScreenshots(section).length, 0) +
+        orphanFindings.flatMap((finding) => finding.screenshots ?? []).length;
 
     // End time is the last real task/subtask activity, not flow.updatedAt — the flow
     // row gets touched by status polling and report views, which otherwise inflates
@@ -187,14 +211,24 @@ export const buildReportModel = (
         .filter((ms) => Number.isFinite(ms));
 
     const startMs = flow?.createdAt ? new Date(flow.createdAt).getTime() : Number.NaN;
-    const endMs = activityMs.length > 0 ? Math.max(...activityMs) : flow?.updatedAt ? new Date(flow.updatedAt).getTime() : Number.NaN;
+    const endMs =
+        activityMs.length > 0
+            ? Math.max(...activityMs)
+            : flow?.updatedAt
+              ? new Date(flow.updatedAt).getTime()
+              : Number.NaN;
 
     const hasFindings = allFindings.length > 0;
     const hasMethodology = hasFindings && sections.length > 0;
 
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
-        ...(hasFindings ? ([{ id: 'findings-summary', level: 1, title: 'Findings Summary' }, { id: 'detailed-findings', level: 1, title: 'Detailed Findings' }] as ReportTocEntry[]) : []),
+        ...(hasFindings
+            ? ([
+                  { id: 'findings-summary', level: 1, title: 'Findings Summary' },
+                  { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
+              ] as ReportTocEntry[])
+            : []),
         ...(hasMethodology ? ([{ id: 'methodology', level: 1, title: 'Methodology' }] as ReportTocEntry[]) : []),
         ...sections.map((section) => ({ id: section.id, level: hasMethodology ? 2 : 1, title: section.title })),
     ];
@@ -208,6 +242,7 @@ export const buildReportModel = (
             startedAt: flow?.createdAt ? new Date(flow.createdAt).toISOString() : undefined,
             status: flow?.status ?? StatusType.Created,
             target: deriveTarget(allFindings),
+            targetType: options.targetType,
             title: flow?.title ?? 'Untitled Flow',
         },
         generatedAt,

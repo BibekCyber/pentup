@@ -6,7 +6,7 @@ import type { ReportModel } from '@/lib/report-model';
 
 import Logo from '@/components/icons/logo';
 import FlowReportView from '@/features/flows/report/flow-report-view';
-import { useAssistantLogsQuery, useAssistantsQuery, useFlowReportQuery } from '@/graphql/types';
+import { useAssistantLogsQuery, useAssistantsQuery, useDomainsQuery, useFlowReportQuery } from '@/graphql/types';
 import { assistantSampleReportModel } from '@/lib/assistant-report-sample';
 import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
@@ -37,6 +37,15 @@ const FlowReport = () => {
 
     const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
     const isAutomation = tasks.length > 0;
+
+    // A flow does not carry its own target type — it lives on the parent scan
+    // (domain). Resolve it client-side from the cached domains list so the report
+    // can state the engagement class (Web / Cloud); undefined is a safe fallback.
+    const { data: domainsData } = useDomainsQuery({ errorPolicy: 'all', skip: !flowId || sample });
+    const targetType = useMemo(
+        () => domainsData?.domains.find((domain) => domain.flows.some((flow) => flow.id === flowId))?.targetType,
+        [domainsData?.domains, flowId],
+    );
 
     const { data: assistantsData, loading: assistantsLoading } = useAssistantsQuery({
         errorPolicy: 'all',
@@ -69,7 +78,7 @@ const FlowReport = () => {
         const findings = mapFindings(data.flow.findings);
 
         if (isAutomation) {
-            return buildReportModel(data.flow, tasks, findings);
+            return buildReportModel(data.flow, tasks, findings, { targetType });
         }
 
         if (assistantsLoading) {
@@ -81,11 +90,23 @@ const FlowReport = () => {
                 ? null
                 : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], {
                       findings: mapFindings(assistants[0]?.findings),
+                      targetType,
                   });
         }
 
-        return buildReportModel(data.flow, [], findings);
-    }, [assistantSample, sample, data, isAutomation, tasks, assistantsLoading, assistants, logsLoading, logsData]);
+        return buildReportModel(data.flow, [], findings, { targetType });
+    }, [
+        assistantSample,
+        sample,
+        data,
+        isAutomation,
+        tasks,
+        assistantsLoading,
+        assistants,
+        logsLoading,
+        logsData,
+        targetType,
+    ]);
 
     const fileBaseName = useMemo(
         () =>
@@ -160,7 +181,7 @@ const FlowReport = () => {
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="animate-logo-spin size-16" />
                 <p className="text-primary font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
-                    AI Pentest · Penetration Test Report
+                    CyberFortify · Penetration Test Report
                 </p>
                 <h1 className="text-foreground text-2xl font-semibold">
                     {downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}
@@ -180,7 +201,7 @@ const FlowReport = () => {
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="size-16" />
                 <p className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
-                    AI Pentest · Penetration Test Report
+                    CyberFortify · Penetration Test Report
                 </p>
                 <h1 className="text-destructive text-2xl font-semibold">Error Loading Report</h1>
                 <p className="text-muted-foreground max-w-md">

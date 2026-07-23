@@ -2,7 +2,6 @@ import { ChevronDown, Clipboard, Download, FileText, Loader2 } from 'lucide-reac
 
 import type { ReportModel } from '@/lib/report-model';
 
-import { StatusBadge } from '@/components/shared/severity-badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -10,6 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getEngagementLabel } from '@/lib/target-type-colors';
 
 import FlowReportExecutiveSummary from './flow-report-executive-summary';
 import FlowReportFindingsDetail from './flow-report-findings-detail';
@@ -36,6 +36,10 @@ const FlowReportView = ({
     pdfGenerating,
 }: FlowReportViewProps) => {
     const isEmpty = model.sections.length === 0 && model.findings.length === 0;
+    // Report states the engagement class (Web / Cloud) rather than the raw flow
+    // name; falls back to the target host or flow title for older reports.
+    const engagement = getEngagementLabel(model.flow.targetType);
+    const heading = engagement || model.flow.target || model.flow.title;
 
     return (
         <div className="bg-background min-h-screen">
@@ -44,7 +48,7 @@ const FlowReportView = ({
                     <div className="min-w-0 space-y-5">
                         <div className="flex items-center gap-3">
                             <span className="text-primary text-lg leading-none font-extrabold tracking-tight">
-                                AI Pentest
+                                CyberFortify
                             </span>
                             <span className="bg-border-strong h-4 w-px shrink-0" />
                             <span className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.16em] uppercase">
@@ -54,26 +58,17 @@ const FlowReportView = ({
 
                         <div className="min-w-0">
                             <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
-                                Target
+                                Engagement
                             </p>
                             <h1 className="text-foreground mt-1.5 truncate font-mono text-2xl leading-tight font-semibold tracking-tight">
-                                {model.flow.target || model.flow.title}
+                                {heading}
                             </h1>
-                            {model.flow.target && (
-                                <p className="text-muted-foreground mt-1 truncate text-sm">{model.flow.title}</p>
+                            {engagement && model.flow.target && (
+                                <p className="text-muted-foreground mt-1 truncate text-sm">{model.flow.target}</p>
                             )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-                            <div>
-                                <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
-                                    Status
-                                </p>
-                                <StatusBadge
-                                    className="mt-1.5"
-                                    status={model.flow.status}
-                                />
-                            </div>
                             <div>
                                 <p className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase">
                                     Findings

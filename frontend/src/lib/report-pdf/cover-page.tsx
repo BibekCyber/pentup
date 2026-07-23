@@ -1,84 +1,99 @@
-import { Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { ReportModel } from '@/lib/report-model';
 
-import { getStatusStyle } from '@/lib/severity-palette';
+import { getEngagementLabel } from '@/lib/target-type-colors';
 
-import { PDF_FOOTER_TEXT } from './styles';
+import { CF_LOGO_DATA_URI, CF_PDF } from './cf-brand';
 
-const ACCENT = '#c2410c';
+// The CyberFortify cover gradient (navy -> mint), rebuilt as stacked colour bands.
+// react-pdf always paints <Image> above sibling text, so a background image can't
+// sit behind the cover copy — bands are plain Views and honour normal paint order.
+const PAGE_H = 840;
+const BANDS = 90;
+const FROM = [15, 48, 74]; // #0f304a navy
+const TO = [168, 216, 200]; // ~#a8d8c8 mint
+const GRADIENT_BANDS = Array.from({ length: BANDS }, (_, i) => {
+    const t = i / (BANDS - 1);
+    const rgb = FROM.map((c, k) => Math.round(c + (TO[k] - c) * t));
+
+    return { color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`, top: (PAGE_H / BANDS) * i };
+});
+const BAND_H = PAGE_H / BANDS + 1.5;
 
 const styles = StyleSheet.create({
-    confidential: {
-        bottom: 40,
-        color: '#a8a29e',
-        fontSize: 9,
-        left: 56,
+    band: {
+        height: BAND_H,
+        left: 0,
         position: 'absolute',
+        right: 0,
+    },
+    byline: {
+        color: CF_PDF.navy,
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 12,
+        letterSpacing: 0.4,
+    },
+    confidential: {
+        color: CF_PDF.navyDeep,
+        fontSize: 8.5,
+        lineHeight: 1.5,
+        marginTop: 6,
+        maxWidth: 380,
+        opacity: 0.8,
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'space-between',
+        paddingHorizontal: 56,
+        paddingVertical: 56,
     },
     kicker: {
-        color: '#78716c',
+        color: CF_PDF.accent,
         fontFamily: 'Helvetica-Bold',
         fontSize: 11,
         letterSpacing: 3,
-        marginBottom: 10,
+        marginBottom: 12,
         textTransform: 'uppercase',
     },
+    logo: {
+        height: 52,
+        width: 74,
+    },
+    logoPanel: {
+        alignSelf: 'flex-start',
+        backgroundColor: CF_PDF.white,
+        borderRadius: 8,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+    },
     metaLabel: {
-        color: '#a8a29e',
+        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         letterSpacing: 0.5,
+        opacity: 0.8,
         textTransform: 'uppercase',
     },
     metaValue: {
-        color: '#44403c',
+        color: CF_PDF.white,
         fontSize: 11,
         marginTop: 2,
     },
     page: {
-        backgroundColor: '#ffffff',
         flexDirection: 'column',
-        justifyContent: 'center',
-        paddingHorizontal: 56,
-        paddingVertical: 72,
     },
-    statusPill: {
-        alignSelf: 'flex-start',
-        borderRadius: 3,
-        color: '#ffffff',
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 9,
-        marginTop: 2,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+    rule: {
+        backgroundColor: CF_PDF.accent,
+        height: 3,
+        marginTop: 14,
+        width: 54,
     },
     title: {
-        color: '#1c1917',
+        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 30,
-        lineHeight: 1.15,
-        marginBottom: 18,
-    },
-    topBar: {
-        backgroundColor: ACCENT,
-        height: 10,
-        left: 0,
-        position: 'absolute',
-        right: 0,
-        top: 0,
-    },
-    wordmark: {
-        color: ACCENT,
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 18,
-        letterSpacing: 1,
-    },
-    wordmarkRule: {
-        backgroundColor: ACCENT,
-        height: 3,
-        marginTop: 8,
-        width: 48,
+        fontSize: 32,
+        lineHeight: 1.12,
     },
 });
 
@@ -87,7 +102,8 @@ interface CoverPageProps {
 }
 
 const CoverPage = ({ model }: CoverPageProps) => {
-    const status = getStatusStyle(model.flow.status);
+    const engagement = getEngagementLabel(model.flow.targetType);
+    const title = engagement || model.flow.target || model.flow.title;
     const issued = new Date(model.generatedAt);
     const issuedLabel = Number.isNaN(issued.getTime())
         ? ''
@@ -98,36 +114,52 @@ const CoverPage = ({ model }: CoverPageProps) => {
             size="A4"
             style={styles.page}
         >
-            <View style={styles.topBar} />
+            {GRADIENT_BANDS.map((band) => (
+                <View
+                    key={band.top}
+                    style={[styles.band, { backgroundColor: band.color, top: band.top }]}
+                />
+            ))}
 
-            <View>
-                <Text style={styles.wordmark}>AI Pentest</Text>
-                <View style={styles.wordmarkRule} />
-            </View>
-
-            <View style={{ marginTop: 90 }}>
-                <Text style={styles.kicker}>Penetration Testing Report</Text>
-                <Text style={styles.title}>{model.flow.title}</Text>
-
-                <View style={{ flexDirection: 'row', gap: 40, marginTop: 12 }}>
-                    {model.flow.target && (
-                        <View>
-                            <Text style={styles.metaLabel}>Target</Text>
-                            <Text style={styles.metaValue}>{model.flow.target}</Text>
-                        </View>
-                    )}
-                    <View>
-                        <Text style={styles.metaLabel}>Date Issued</Text>
-                        <Text style={styles.metaValue}>{issuedLabel}</Text>
+            <View style={styles.content}>
+                {/* Top block — white text over the dark navy end of the gradient. */}
+                <View>
+                    <View style={styles.logoPanel}>
+                        <Image
+                            src={CF_LOGO_DATA_URI}
+                            style={styles.logo}
+                        />
                     </View>
-                    <View>
-                        <Text style={styles.metaLabel}>Status</Text>
-                        <Text style={[styles.statusPill, { backgroundColor: status.pdf.solid }]}>{status.label}</Text>
+
+                    <View style={{ marginTop: 46 }}>
+                        <Text style={styles.kicker}>Penetration Testing Report</Text>
+                        <Text style={styles.title}>{title}</Text>
+                        <View style={styles.rule} />
+
+                        <View style={{ flexDirection: 'row', gap: 40, marginTop: 22 }}>
+                            {model.flow.target && (
+                                <View>
+                                    <Text style={styles.metaLabel}>Target</Text>
+                                    <Text style={styles.metaValue}>{model.flow.target}</Text>
+                                </View>
+                            )}
+                            <View>
+                                <Text style={styles.metaLabel}>Date Issued</Text>
+                                <Text style={styles.metaValue}>{issuedLabel}</Text>
+                            </View>
+                        </View>
                     </View>
                 </View>
-            </View>
 
-            <Text style={styles.confidential}>{PDF_FOOTER_TEXT}</Text>
+                {/* Bottom block — dark text over the light mint end of the gradient. */}
+                <View>
+                    <Text style={styles.byline}>By CyberFortify</Text>
+                    <Text style={styles.confidential}>
+                        Confidential. This report and its contents are intended solely for the named recipient.
+                        Unauthorized disclosure, distribution, or reproduction is strictly prohibited.
+                    </Text>
+                </View>
+            </View>
         </Page>
     );
 };

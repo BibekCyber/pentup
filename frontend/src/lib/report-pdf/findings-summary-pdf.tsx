@@ -2,11 +2,37 @@ import { Link, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { Finding } from '@/lib/report-model';
 
+import { SEVERITY_ORDER } from '@/lib/report-model';
 import { getSeverityStyle } from '@/lib/severity-palette';
 
+import { CF_PDF } from './cf-brand';
 import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
+    countCell: {
+        alignItems: 'center',
+        borderColor: CF_PDF.white,
+        borderWidth: 1,
+        flex: 1,
+        paddingVertical: 7,
+    },
+    countLabel: {
+        color: '#ffffff',
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 6.5,
+        letterSpacing: 0.5,
+        marginTop: 2,
+    },
+    countRow: {
+        flexDirection: 'row',
+        gap: 4,
+        marginBottom: 16,
+    },
+    countValue: {
+        color: '#ffffff',
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 15,
+    },
     dot: {
         borderRadius: 3,
         height: 6,
@@ -14,25 +40,26 @@ const styles = StyleSheet.create({
         width: 6,
     },
     headerCell: {
-        color: '#78716c',
+        color: CF_PDF.muted,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         textTransform: 'uppercase',
     },
     headerRow: {
-        borderBottomColor: '#d6d3d1',
+        borderBottomColor: CF_PDF.navy,
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingBottom: 5,
     },
-    index: {
-        color: '#a8a29e',
-        fontSize: 9,
-        width: '6%',
+    idCell: {
+        color: CF_PDF.muted,
+        fontFamily: 'Courier',
+        fontSize: 8.5,
+        width: '12%',
     },
     row: {
         alignItems: 'center',
-        borderBottomColor: '#e7e5e4',
+        borderBottomColor: CF_PDF.hairline,
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingVertical: 5,
@@ -40,15 +67,15 @@ const styles = StyleSheet.create({
     severity: {
         alignItems: 'center',
         flexDirection: 'row',
-        width: '34%',
+        width: '28%',
     },
     severityLabel: {
-        color: '#57534e',
+        color: CF_PDF.body,
         fontFamily: 'Helvetica-Bold',
         fontSize: 9,
     },
     title: {
-        color: '#c2410c',
+        color: CF_PDF.accentText,
         fontSize: 9.5,
         paddingRight: 6,
         textDecoration: 'none',
@@ -65,15 +92,37 @@ const FindingsSummaryPdf = ({ findings }: FindingsSummaryPdfProps) => {
         return null;
     }
 
+    const counts = SEVERITY_ORDER.map((severity) => ({
+        count: findings.filter((finding) => finding.severity === severity).length,
+        style: getSeverityStyle(severity),
+    }));
+
     return (
         <View id="findings-summary">
             <Text style={reportPdfStyles.sectionHeading}>Findings Summary</Text>
             <View style={reportPdfStyles.sectionDivider} />
 
+            {/* Finding counts */}
+            <View style={styles.countRow}>
+                {counts.map(({ count, style }) => (
+                    <View
+                        key={style.label}
+                        style={[styles.countCell, { backgroundColor: style.pdf.solid }]}
+                    >
+                        <Text style={styles.countValue}>{count}</Text>
+                        <Text style={styles.countLabel}>{style.label.toUpperCase()}</Text>
+                    </View>
+                ))}
+                <View style={[styles.countCell, { backgroundColor: CF_PDF.navy }]}>
+                    <Text style={styles.countValue}>{findings.length}</Text>
+                    <Text style={styles.countLabel}>TOTAL</Text>
+                </View>
+            </View>
+
             <View style={styles.headerRow}>
-                <Text style={[styles.headerCell, { width: '6%' }]}>#</Text>
+                <Text style={[styles.headerCell, { width: '12%' }]}>ID</Text>
                 <Text style={[styles.headerCell, { width: '60%' }]}>Finding</Text>
-                <Text style={[styles.headerCell, { width: '34%' }]}>Severity</Text>
+                <Text style={[styles.headerCell, { width: '28%' }]}>Severity</Text>
             </View>
 
             {findings.map((finding, index) => {
@@ -84,7 +133,7 @@ const FindingsSummaryPdf = ({ findings }: FindingsSummaryPdfProps) => {
                         key={finding.id}
                         style={styles.row}
                     >
-                        <Text style={styles.index}>{index + 1}</Text>
+                        <Text style={styles.idCell}>CF-{index + 1}</Text>
                         <Link
                             src={`#${finding.id}`}
                             style={styles.title}

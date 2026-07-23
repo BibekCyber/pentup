@@ -6,11 +6,12 @@ import { deriveSummaryNarrative, pluralize } from '@/lib/build-report-model';
 import { SEVERITY_ORDER } from '@/lib/report-model';
 import { getSeverityStyle } from '@/lib/severity-palette';
 
+import { CF_PDF } from './cf-brand';
 import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
     countCell: {
-        color: '#1c1917',
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
         fontSize: 10,
         textAlign: 'center',
@@ -23,25 +24,25 @@ const styles = StyleSheet.create({
         width: 7,
     },
     paragraph: {
-        color: '#44403c',
+        color: CF_PDF.body,
         fontSize: 10,
         lineHeight: 1.55,
         marginBottom: 4,
     },
     posture: {
-        color: '#57534e',
+        color: CF_PDF.muted,
         fontSize: 9,
         marginTop: 8,
     },
     rangeCell: {
-        color: '#78716c',
+        color: CF_PDF.muted,
         fontFamily: 'Courier',
         fontSize: 9,
         width: '30%',
     },
     row: {
         alignItems: 'center',
-        borderBottomColor: '#e7e5e4',
+        borderBottomColor: CF_PDF.hairline,
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingHorizontal: 6,
@@ -53,30 +54,30 @@ const styles = StyleSheet.create({
         width: '50%',
     },
     sevLabel: {
-        color: '#44403c',
+        color: CF_PDF.body,
         fontFamily: 'Helvetica-Bold',
         fontSize: 10,
     },
     tableHeader: {
-        borderBottomColor: '#d6d3d1',
+        borderBottomColor: CF_PDF.navy,
         borderBottomWidth: 1,
         flexDirection: 'row',
         paddingBottom: 5,
     },
     tableHeaderCell: {
-        color: '#78716c',
+        color: CF_PDF.muted,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         textTransform: 'uppercase',
     },
     tile: {
-        backgroundColor: '#faf7f4',
+        backgroundColor: CF_PDF.navyTint,
         flex: 1,
         paddingHorizontal: 10,
         paddingVertical: 8,
     },
     tileLabel: {
-        color: '#78716c',
+        color: CF_PDF.muted,
         fontSize: 8,
         marginTop: 2,
     },
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     tileValue: {
-        color: '#1c1917',
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
         fontSize: 15,
     },

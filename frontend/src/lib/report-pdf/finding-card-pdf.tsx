@@ -2,7 +2,9 @@ import { Image, Link, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { Finding } from '@/lib/report-model';
 
-import { BRAND, getSeverityStyle } from '@/lib/severity-palette';
+import { getSeverityStyle } from '@/lib/severity-palette';
+
+import { CF_PDF } from './cf-brand';
 
 const styles = StyleSheet.create({
     badge: {
@@ -25,7 +27,7 @@ const styles = StyleSheet.create({
     },
     chip: {
         backgroundColor: '#ffffff',
-        color: '#57534e',
+        color: CF_PDF.navy,
         fontFamily: 'Courier',
         fontSize: 8,
         paddingHorizontal: 5,
@@ -35,7 +37,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     factLabel: {
-        color: '#a8a29e',
+        color: CF_PDF.muted,
         fontFamily: 'Helvetica-Bold',
         fontSize: 7,
         letterSpacing: 0.5,
@@ -43,19 +45,19 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     facts: {
-        backgroundColor: '#faf7f4',
+        backgroundColor: CF_PDF.navyTint,
         flexDirection: 'row',
         paddingHorizontal: 10,
         paddingVertical: 7,
     },
     factUrl: {
-        color: '#57534e',
+        color: CF_PDF.body,
         fontFamily: 'Courier',
         fontSize: 8,
         marginBottom: 1,
     },
     factValue: {
-        color: '#44403c',
+        color: CF_PDF.ink,
         fontSize: 9,
     },
     headerBar: {
@@ -74,40 +76,40 @@ const styles = StyleSheet.create({
         marginBottom: 2.5,
     },
     listMarker: {
-        color: '#78716c',
+        color: CF_PDF.muted,
         fontSize: 9,
         minWidth: 16,
     },
     listText: {
-        color: '#44403c',
+        color: CF_PDF.body,
         flex: 1,
         fontSize: 9.5,
         lineHeight: 1.45,
     },
     paragraph: {
-        color: '#44403c',
+        color: CF_PDF.body,
         fontSize: 9.5,
         lineHeight: 1.5,
     },
     placeholder: {
-        backgroundColor: '#f5f3f0',
-        color: '#a8a29e',
+        backgroundColor: '#f1f5f8',
+        color: CF_PDF.muted,
         fontSize: 8,
         marginTop: 4,
         padding: 10,
         textAlign: 'center',
     },
     reference: {
-        color: '#c2410c',
+        color: CF_PDF.accentText,
         fontSize: 8.5,
         marginBottom: 1,
         textDecoration: 'none',
     },
     remediation: {
-        backgroundColor: BRAND.tint,
-        borderLeftColor: BRAND.solid,
+        backgroundColor: CF_PDF.accentTint,
+        borderLeftColor: CF_PDF.accent,
         borderLeftWidth: 2,
-        color: '#7c3a06',
+        color: CF_PDF.ink,
         fontSize: 9.5,
         lineHeight: 1.5,
         padding: 7,
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     sectionLabel: {
-        color: '#57534e',
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         letterSpacing: 0.4,
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     title: {
-        color: '#1c1917',
+        color: CF_PDF.ink,
         fontFamily: 'Helvetica-Bold',
         fontSize: 12,
     },
@@ -154,6 +156,7 @@ interface FindingCardPdfProps {
 
 const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
     const style = getSeverityStyle(finding.severity);
+    const findingId = `CF-${index}`;
 
     return (
         <View style={[styles.card, { borderLeftColor: style.pdf.solid }]}>
@@ -163,6 +166,7 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
                         <Text style={[styles.badge, { backgroundColor: style.pdf.solid }]}>
                             {style.label.toUpperCase()}
                         </Text>
+                        <Text style={styles.chip}>{findingId}</Text>
                         {typeof finding.cvss === 'number' && (
                             <Text style={styles.chip}>CVSS {finding.cvss.toFixed(1)}</Text>
                         )}
@@ -174,21 +178,25 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
                 </View>
 
                 <View style={styles.facts}>
+                    <View style={[styles.factCol, { width: '20%' }]}>
+                        <Text style={styles.factLabel}>Finding ID</Text>
+                        <Text style={styles.factValue}>{findingId}</Text>
+                    </View>
                     <View style={[styles.factCol, { width: '18%' }]}>
-                        <Text style={styles.factLabel}>CVSS</Text>
+                        <Text style={styles.factLabel}>CVSS Score</Text>
                         <Text style={styles.factValue}>
                             {typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}
                         </Text>
                     </View>
                     <View style={[styles.factCol, { width: '22%' }]}>
-                        <Text style={styles.factLabel}>Risk Rating</Text>
+                        <Text style={styles.factLabel}>Severity</Text>
                         <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold' }]}>
                             {style.label}
                         </Text>
                     </View>
-                    <View style={[styles.factCol, { width: '60%' }]}>
+                    <View style={[styles.factCol, { width: '40%' }]}>
                         <Text style={styles.factLabel}>
-                            Affected URL{(finding.affectedUrls?.length ?? 0) > 1 ? 's' : ''}
+                            Affected System{(finding.affectedUrls?.length ?? 0) > 1 ? 's' : ''}
                         </Text>
                         {(finding.affectedUrls ?? ['—']).map((url) => (
                             <Text
@@ -205,8 +213,15 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
             <View style={styles.body}>
                 {finding.description && (
                     <View>
-                        <Text style={styles.sectionLabel}>Details of Vulnerability</Text>
+                        <Text style={styles.sectionLabel}>Description</Text>
                         <Text style={styles.paragraph}>{finding.description}</Text>
+                    </View>
+                )}
+
+                {finding.impact && finding.impact.length > 0 && (
+                    <View>
+                        <Text style={styles.sectionLabel}>Business Impact</Text>
+                        <BulletList items={finding.impact} />
                     </View>
                 )}
 
@@ -241,16 +256,9 @@ const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
                     </View>
                 )}
 
-                {finding.impact && finding.impact.length > 0 && (
-                    <View>
-                        <Text style={styles.sectionLabel}>Impact</Text>
-                        <BulletList items={finding.impact} />
-                    </View>
-                )}
-
                 {finding.recommendation && (
                     <View>
-                        <Text style={styles.sectionLabel}>Remediation</Text>
+                        <Text style={styles.sectionLabel}>Recommendation</Text>
                         <Text style={styles.remediation}>{finding.recommendation}</Text>
                     </View>
                 )}

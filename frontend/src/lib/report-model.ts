@@ -1,4 +1,4 @@
-import { StatusType } from '@/graphql/types';
+import { StatusType, TargetType } from '@/graphql/types';
 
 export type Severity = 'critical' | 'high' | 'informational' | 'low' | 'medium';
 
@@ -33,6 +33,10 @@ export interface ReportModel {
         startedAt?: string;
         status: StatusType;
         target?: string;
+        // Engagement class of the parent scan (Web / Cloud). Reports state the
+        // engagement type rather than the raw flow title; optional so older
+        // reports built without it still render.
+        targetType?: TargetType;
         title: string;
     };
     generatedAt: string;
