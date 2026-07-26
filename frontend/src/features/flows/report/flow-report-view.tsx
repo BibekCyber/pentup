@@ -9,6 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { getEngagementLabel } from '@/lib/target-type-colors';
 
 import FlowReportExecutiveSummary from './flow-report-executive-summary';
@@ -25,11 +26,15 @@ export interface FlowReportActions {
 }
 
 interface FlowReportViewProps extends FlowReportActions {
+    clientName?: string;
     model: ReportModel;
+    onClientNameChange?: (value: string) => void;
 }
 
 const FlowReportView = ({
+    clientName,
     model,
+    onClientNameChange,
     onCopyMarkdown,
     onDownloadMarkdown,
     onDownloadPdf,
@@ -98,44 +103,63 @@ const FlowReportView = ({
                         </div>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                            >
-                                Export
-                                <ChevronDown className="size-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {onCopyMarkdown && (
-                                <DropdownMenuItem onClick={onCopyMarkdown}>
-                                    <Clipboard className="size-4" />
-                                    Copy Report
-                                </DropdownMenuItem>
-                            )}
-                            {onDownloadMarkdown && (
-                                <DropdownMenuItem onClick={onDownloadMarkdown}>
-                                    <FileText className="size-4" />
-                                    Download Markdown
-                                </DropdownMenuItem>
-                            )}
-                            {onDownloadPdf && (
-                                <DropdownMenuItem
-                                    disabled={pdfGenerating}
-                                    onClick={onDownloadPdf}
+                    <div className="flex shrink-0 flex-col gap-2 sm:w-56">
+                        {onClientNameChange && (
+                            <div>
+                                <label
+                                    className="text-muted-foreground font-mono text-[10px] font-medium tracking-[0.16em] uppercase"
+                                    htmlFor="report-client-name"
                                 >
-                                    {pdfGenerating ? (
-                                        <Loader2 className="size-4 animate-spin" />
-                                    ) : (
-                                        <Download className="size-4" />
-                                    )}
-                                    Download PDF
-                                </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                    Client name
+                                </label>
+                                <Input
+                                    className="mt-1 h-8"
+                                    id="report-client-name"
+                                    onChange={(event) => onClientNameChange(event.target.value)}
+                                    placeholder="e.g. Healthnix"
+                                    value={clientName ?? ''}
+                                />
+                            </div>
+                        )}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                >
+                                    Export
+                                    <ChevronDown className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {onCopyMarkdown && (
+                                    <DropdownMenuItem onClick={onCopyMarkdown}>
+                                        <Clipboard className="size-4" />
+                                        Copy Report
+                                    </DropdownMenuItem>
+                                )}
+                                {onDownloadMarkdown && (
+                                    <DropdownMenuItem onClick={onDownloadMarkdown}>
+                                        <FileText className="size-4" />
+                                        Download Markdown
+                                    </DropdownMenuItem>
+                                )}
+                                {onDownloadPdf && (
+                                    <DropdownMenuItem
+                                        disabled={pdfGenerating}
+                                        onClick={onDownloadPdf}
+                                    >
+                                        {pdfGenerating ? (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        ) : (
+                                            <Download className="size-4" />
+                                        )}
+                                        Download PDF
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
             </header>
 

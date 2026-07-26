@@ -28,6 +28,9 @@ const FlowReport = () => {
 
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
+    // Client the report is prepared for — typed in the report view, flows into the
+    // header, confidentiality copy and cover of the exported PDF/markdown.
+    const [clientName, setClientName] = useState('');
 
     const { data, error: queryError } = useFlowReportQuery({
         errorPolicy: 'all',
@@ -62,7 +65,7 @@ const FlowReport = () => {
         variables: { assistantId: primaryAssistantId ?? '', flowId: flowId! },
     });
 
-    const model: null | ReportModel = useMemo(() => {
+    const baseModel: null | ReportModel = useMemo(() => {
         if (assistantSample) {
             return assistantSampleReportModel;
         }
@@ -107,6 +110,13 @@ const FlowReport = () => {
         logsData,
         targetType,
     ]);
+
+    // The typed client name is authoritative everywhere (view + exports); fall back
+    // to any name already baked into the model (e.g. the sample report).
+    const model = useMemo(
+        () => (baseModel ? { ...baseModel, clientName: clientName.trim() || baseModel.clientName } : null),
+        [baseModel, clientName],
+    );
 
     const fileBaseName = useMemo(
         () =>
@@ -220,7 +230,9 @@ const FlowReport = () => {
 
     return (
         <FlowReportView
+            clientName={clientName}
             model={model}
+            onClientNameChange={setClientName}
             onCopyMarkdown={handleCopyMarkdown}
             onDownloadMarkdown={handleDownloadMarkdown}
             onDownloadPdf={handleDownloadPdf}

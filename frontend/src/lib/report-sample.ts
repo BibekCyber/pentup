@@ -38,12 +38,6 @@ export const sampleFindings: Finding[] = [
             'Increased risk of data scraping and mass enumeration.',
             'Potential compliance and data-protection violations.',
         ],
-        stepsToReproduce: [
-            'Authenticate with a low-privileged account and proxy traffic through Burp Suite.',
-            'Locate a `GET /nova/resources/users/{id}` request in the proxy history and send it to Repeater.',
-            'Modify the `{id}` parameter to a different value and resend — the response returns another user’s profile data and token associations.',
-            'Send the request to Intruder, mark `{id}` as a numeric payload, and run — multiple 200 OK responses confirm enumeration of other users’ PII.',
-        ],
         recommendation:
             'Enforce server-side, object-level authorization on every resource request; verify the requested object belongs to the authenticated principal. Replace predictable numeric IDs with non-guessable identifiers (UUIDs) and add rate limiting plus monitoring to detect enumeration.',
         references: [
@@ -53,6 +47,12 @@ export const sampleFindings: Finding[] = [
         ],
         screenshots: [{ id: 's-idor', name: 'Burp Repeater — 200 OK returned for an arbitrary user ID', url: '' }],
         severity: 'high',
+        stepsToReproduce: [
+            'Authenticate with a low-privileged account and proxy traffic through Burp Suite.',
+            'Locate a `GET /nova/resources/users/{id}` request in the proxy history and send it to Repeater.',
+            'Modify the `{id}` parameter to a different value and resend — the response returns another user’s profile data and token associations.',
+            'Send the request to Intruder, mark `{id}` as a numeric payload, and run — multiple 200 OK responses confirm enumeration of other users’ PII.',
+        ],
         taskId: '3',
         title: 'Insecure Direct Object Reference (IDOR) via Predictable User ID',
     },
@@ -77,11 +77,6 @@ export const sampleFindings: Finding[] = [
             'Potential exposure of authentication-related data (tokens, metadata).',
             'Increased risk of large-scale enumeration and data scraping.',
         ],
-        stepsToReproduce: [
-            'Authenticate with a low-privileged account and intercept traffic in Burp Suite.',
-            'Send any authenticated request to Repeater.',
-            'Change the path to `/nova/dashboards/usa-dashboard` and resend — the server returns admin-only data (confirmed via Burp’s render view).',
-        ],
         recommendation:
             'Enforce strict server-side RBAC on every endpoint and validate the authenticated user’s role and privileges before serving administrative routes. Add regression access-control tests.',
         references: [
@@ -89,6 +84,11 @@ export const sampleFindings: Finding[] = [
             'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html',
         ],
         severity: 'high',
+        stepsToReproduce: [
+            'Authenticate with a low-privileged account and intercept traffic in Burp Suite.',
+            'Send any authenticated request to Repeater.',
+            'Change the path to `/nova/dashboards/usa-dashboard` and resend — the server returns admin-only data (confirmed via Burp’s render view).',
+        ],
         taskId: '3',
         title: 'Broken Access Control via Admin Endpoint Access',
     },
@@ -106,12 +106,6 @@ export const sampleFindings: Finding[] = [
             'Potential abuse of partner-level privileges and system resources.',
             'Data-integrity issues from inconsistent state management.',
         ],
-        stepsToReproduce: [
-            'Authenticate as an administrator and open the profile section.',
-            'Intercept the partner-creation request and forward it to Repeater.',
-            'Create a tab group, duplicate the request 4–5 times, and use “Send group (parallel)”.',
-            'Return to the browser — multiple partner entities now exist, bypassing the single-partner limit.',
-        ],
         recommendation:
             'Enforce the limit server-side using atomic database transactions or row-level locking. Apply request locking/rate limiting to sensitive endpoints and add concurrency tests.',
         references: [
@@ -119,6 +113,12 @@ export const sampleFindings: Finding[] = [
             'https://portswigger.net/web-security/race-conditions',
         ],
         severity: 'high',
+        stepsToReproduce: [
+            'Authenticate as an administrator and open the profile section.',
+            'Intercept the partner-creation request and forward it to Repeater.',
+            'Create a tab group, duplicate the request 4–5 times, and use “Send group (parallel)”.',
+            'Return to the browser — multiple partner entities now exist, bypassing the single-partner limit.',
+        ],
         taskId: '3',
         title: 'Race Condition Bypass of Partner Creation Limit',
     },
@@ -136,10 +136,6 @@ export const sampleFindings: Finding[] = [
             'Potential remote code execution / command injection (Lodash).',
             'Denial of service via ReDoS (Moment.js).',
         ],
-        stepsToReproduce: [
-            'Browse to the application with the Wappalyzer extension active.',
-            'Review the detected technologies — Lodash 4.17.19 and Moment.js 2.29.0 are flagged with known CVEs.',
-        ],
         recommendation:
             'Upgrade Lodash to 4.17.21 or later and Moment.js to its latest secure release (or migrate to a maintained alternative). Add automated SCA dependency scanning to CI.',
         references: [
@@ -147,6 +143,10 @@ export const sampleFindings: Finding[] = [
             'https://nvd.nist.gov/vuln/detail/CVE-2022-31129',
         ],
         severity: 'medium',
+        stepsToReproduce: [
+            'Browse to the application with the Wappalyzer extension active.',
+            'Review the detected technologies — Lodash 4.17.19 and Moment.js 2.29.0 are flagged with known CVEs.',
+        ],
         taskId: '1',
         title: 'Use of Vulnerable Third-Party JavaScript Libraries with Known CVEs',
     },
@@ -164,14 +164,14 @@ export const sampleFindings: Finding[] = [
             'Facilitates brute-force / credential-stuffing against the SSH service.',
             'Assists reconnaissance for chaining with other findings.',
         ],
-        stepsToReproduce: [
-            'Run `nmap -sV -p 22,80,443 abc.xyz.com` from a Linux terminal.',
-            'Confirm ports 22/80/443 are open and SSH discloses OpenSSH 9.6p1 (Ubuntu).',
-        ],
         recommendation:
             'Restrict unnecessary exposure, suppress version/banner disclosure, enforce key-based SSH auth with IP allow-listing, and keep services patched.',
         references: ['https://www.openssh.com/security.html', 'https://owasp.org/www-project-top-ten/'],
         severity: 'medium',
+        stepsToReproduce: [
+            'Run `nmap -sV -p 22,80,443 abc.xyz.com` from a Linux terminal.',
+            'Confirm ports 22/80/443 are open and SSH discloses OpenSSH 9.6p1 (Ubuntu).',
+        ],
         taskId: '1',
         title: 'Exposed Network Services and Open Ports Identified',
     },
@@ -187,10 +187,6 @@ export const sampleFindings: Finding[] = [
             'No automated traffic filtering or protection at the perimeter.',
             'Potential non-conformity for SOC 2 / ISO 27001.',
         ],
-        stepsToReproduce: [
-            'Run `wafw00f https://abc.xyz.com/` from a Linux terminal.',
-            'Confirm the output reports that no WAF is present.',
-        ],
         recommendation:
             'Deploy and tune a WAF to filter and monitor traffic, enable logging of malicious requests, and keep rulesets current with threat and compliance standards.',
         references: [
@@ -198,6 +194,10 @@ export const sampleFindings: Finding[] = [
             'https://www.iso.org/isoiec-27001-information-security.html',
         ],
         severity: 'medium',
+        stepsToReproduce: [
+            'Run `wafw00f https://abc.xyz.com/` from a Linux terminal.',
+            'Confirm the output reports that no WAF is present.',
+        ],
         taskId: '1',
         title: 'Missing Web Application Firewall (WAF) Security Layer',
     },
@@ -215,14 +215,14 @@ export const sampleFindings: Finding[] = [
             'Permanent, irreversible loss of user data and access.',
             'Weak protection for sensitive account-level operations.',
         ],
-        stepsToReproduce: [
-            'Authenticate and open the profile section.',
-            'Click the delete control and confirm — the account is deleted with no password or MFA challenge.',
-        ],
         recommendation:
             'Require password re-authentication or MFA before destructive actions like account deletion, add a secure confirmation step, and log/monitor deletions.',
         references: [OWASP_AUTH_CHEATSHEET, 'https://cwe.mitre.org/data/definitions/522.html'],
         severity: 'medium',
+        stepsToReproduce: [
+            'Authenticate and open the profile section.',
+            'Click the delete control and confirm — the account is deleted with no password or MFA challenge.',
+        ],
         taskId: '2',
         title: 'No Password Verification for Account Deletion',
     },
@@ -240,11 +240,6 @@ export const sampleFindings: Finding[] = [
             'Increased risk where a session is leaked or hijacked.',
             'Potential compromise of sensitive user data and actions.',
         ],
-        stepsToReproduce: [
-            'Log in to the same account in two separate browsers.',
-            'Change the password in Browser A.',
-            'Confirm Browser B’s session remains active without re-authentication.',
-        ],
         recommendation:
             'Invalidate all active sessions immediately on password change, implement server-side session tracking/revocation, and force re-authentication across devices.',
         references: [
@@ -252,6 +247,11 @@ export const sampleFindings: Finding[] = [
             'https://cwe.mitre.org/data/definitions/613.html',
         ],
         severity: 'medium',
+        stepsToReproduce: [
+            'Log in to the same account in two separate browsers.',
+            'Change the password in Browser A.',
+            'Confirm Browser B’s session remains active without re-authentication.',
+        ],
         taskId: '2',
         title: 'Session Not Invalidated After Password Change',
     },
@@ -269,11 +269,6 @@ export const sampleFindings: Finding[] = [
             'Exposure of backend framework and file paths aiding targeted attacks.',
             'Information leakage that can facilitate privilege escalation or lateral movement.',
         ],
-        stepsToReproduce: [
-            'Authenticate as an administrator and open the “Create File” form.',
-            'Populate every field with a crafted payload, submit, and intercept the request in Burp.',
-            'Resend the request in Repeater — the server returns a verbose SQL/Laravel error disclosing schema and paths.',
-        ],
         recommendation:
             'Return generic error responses, disable verbose error reporting in production, validate/sanitize all input, and centralize error logging without exposing internals to clients.',
         references: [
@@ -281,6 +276,11 @@ export const sampleFindings: Finding[] = [
             'https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html',
         ],
         severity: 'medium',
+        stepsToReproduce: [
+            'Authenticate as an administrator and open the “Create File” form.',
+            'Populate every field with a crafted payload, submit, and intercept the request in Burp.',
+            'Resend the request in Repeater — the server returns a verbose SQL/Laravel error disclosing schema and paths.',
+        ],
         taskId: '3',
         title: 'Verbose SQL Error Disclosure Vulnerability',
     },
@@ -297,10 +297,6 @@ export const sampleFindings: Finding[] = [
             'Higher likelihood of password-reuse exploitation across services.',
             'Potential exposure of sensitive user and organisational data.',
         ],
-        stepsToReproduce: [
-            'Open the registration page and enter the password `12345678`.',
-            'Submit the form — the account is created with no strength enforcement.',
-        ],
         recommendation:
             'Enforce a strong password policy (minimum length and complexity) on both client and server, block common/breached passwords, and add lockout plus MFA.',
         references: [
@@ -308,6 +304,10 @@ export const sampleFindings: Finding[] = [
             'https://pages.nist.gov/800-63-3/sp800-63b.html',
         ],
         severity: 'low',
+        stepsToReproduce: [
+            'Open the registration page and enter the password `12345678`.',
+            'Submit the form — the account is created with no strength enforcement.',
+        ],
         taskId: '2',
         title: 'Weak Password Policy Enforcement Allows Use of Weak Credentials',
     },
@@ -325,14 +325,14 @@ export const sampleFindings: Finding[] = [
             'Potential user impersonation and lack of accountability.',
             'Degradation of platform trust and data integrity.',
         ],
-        stepsToReproduce: [
-            'Open the registration page and submit with an arbitrary email address.',
-            'Confirm the account is created and usable without any email verification.',
-        ],
         recommendation:
             'Require mandatory email verification with secure, time-limited tokens before activating accounts; restrict features until verified and rate-limit registrations.',
         references: ['https://owasp.org/www-community/controls/Email_verification', OWASP_AUTH_CHEATSHEET],
         severity: 'low',
+        stepsToReproduce: [
+            'Open the registration page and submit with an arbitrary email address.',
+            'Confirm the account is created and usable without any email verification.',
+        ],
         taskId: '2',
         title: 'Missing Email Verification During User Registration Process',
     },
@@ -350,10 +350,6 @@ export const sampleFindings: Finding[] = [
             'Reduced enforcement of secure HTTPS connections.',
             'Higher overall client-side attack surface.',
         ],
-        stepsToReproduce: [
-            'Scan the domain on securityheaders.com.',
-            'Confirm Strict-Transport-Security, Content-Security-Policy, Referrer-Policy and Permissions-Policy are absent.',
-        ],
         recommendation:
             'Configure HSTS, a restrictive Content-Security-Policy, Referrer-Policy and Permissions-Policy, and set X-Content-Type-Options and X-Frame-Options.',
         references: [
@@ -361,6 +357,10 @@ export const sampleFindings: Finding[] = [
             'https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html',
         ],
         severity: 'low',
+        stepsToReproduce: [
+            'Scan the domain on securityheaders.com.',
+            'Confirm Strict-Transport-Security, Content-Security-Policy, Referrer-Policy and Permissions-Policy are absent.',
+        ],
         taskId: '1',
         title: 'Missing HTTP Security Headers Leading to Increased Attack Surface',
     },
@@ -527,6 +527,7 @@ const sampleExecutiveSummary = {
 
 export const buildSampleReport = () =>
     buildReportModel(sampleFlow, sampleTasks, sampleFindings, {
+        clientName: 'Healthnix',
         executiveSummary: sampleExecutiveSummary,
         generatedAt: '2026-03-31T15:00:00.000Z',
         targetType: TargetType.WebApp,

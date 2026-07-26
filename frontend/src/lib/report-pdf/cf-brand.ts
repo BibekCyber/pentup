@@ -21,9 +21,13 @@ export const CF_PDF = {
     accentText: '#177a4f', // legible green on white
     accentTint: '#e9f8f0', // pale green panel fill
     amber: '#ffbd2e', // pending / warning
+    // Header/footer running bands — a clear gray, distinctly darker than the white body.
+    band: '#dfe4ea',
     body: '#33424e',
     // Reserved brand tokens (used sparingly).
     electric: '#00c7ff', // AI-specific callouts only
+    // Deep green for filled title bars / table header rows with white text.
+    greenBar: '#178a4e',
     hairline: '#dbe3ea',
     // Neutrals for body text on white pages.
     ink: '#0b1b28', // near-black, navy-tinted

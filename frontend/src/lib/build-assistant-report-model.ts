@@ -9,7 +9,7 @@ import { MessageLogType, StatusType } from '@/graphql/types';
 
 import type { Finding, ReportModel, ReportSection, ReportTocEntry } from './report-model';
 
-import { formatDuration, pluralize } from './build-report-model';
+import { deriveInitialRecommendations, derivePositiveFindings, formatDuration, pluralize } from './build-report-model';
 import { emptySeverityCounts } from './report-model';
 
 const oneLine = (text: string, max = 140): string => {
@@ -120,6 +120,7 @@ const flushSection = (open: null | OpenSection, sections: ReportSection[]): void
 };
 
 interface BuildAssistantReportModelOptions {
+    clientName?: string;
     findings?: readonly Finding[];
     generatedAt?: string;
     targetType?: TargetType;
@@ -232,20 +233,18 @@ export const buildAssistantReportModel = (
         findingsBySeverity[finding.severity] += 1;
     }
 
-    // When findings exist the conversation topics become the "Conversation" methodology
-    // below the finding cards; otherwise they are the report body directly.
-    const sectionsTitle = hasFindings && sections.length > 0 ? 'Conversation' : undefined;
-
+    // The assistant "Conversation" log was dropped from the deliverable; the report
+    // is now the fixed section set only.
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
+        { id: 'scope', level: 1, title: 'Scope & Methodology' },
         ...(hasFindings
             ? ([
-                  { id: 'findings-summary', level: 1, title: 'Findings Summary' },
+                  { id: 'findings-summary', level: 1, title: 'Finding Summary' },
                   { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
               ] as ReportTocEntry[])
             : []),
-        ...(sectionsTitle ? ([{ id: 'methodology', level: 1, title: sectionsTitle }] as ReportTocEntry[]) : []),
-        ...sections.map((section) => ({ id: section.id, level: sectionsTitle ? 2 : 1, title: section.title })),
+        { id: 'appendix', level: 1, title: 'Appendix' },
     ];
 
     const summaryTarget = assistant?.title ? `with the ${assistant.title}` : 'session';
@@ -262,6 +261,7 @@ export const buildAssistantReportModel = (
             : undefined;
 
     return {
+        clientName: options.clientName,
         executiveSummary,
         findings: reportFindings,
         flow: {
@@ -274,8 +274,10 @@ export const buildAssistantReportModel = (
             title: flow?.title ?? 'Assistant Session',
         },
         generatedAt,
+        initialRecommendations: deriveInitialRecommendations(reportFindings),
+        positiveFindings: derivePositiveFindings(reportFindings, findingsBySeverity),
         sections,
-        sectionsTitle,
+        sectionsTitle: undefined,
         summary: {
             duration: formatDuration(startMs, endMs),
             findingsBySeverity,

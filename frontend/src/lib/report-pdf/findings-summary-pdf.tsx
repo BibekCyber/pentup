@@ -11,10 +11,8 @@ import { reportPdfStyles } from './styles';
 const styles = StyleSheet.create({
     countCell: {
         alignItems: 'center',
-        borderColor: CF_PDF.white,
-        borderWidth: 1,
         flex: 1,
-        paddingVertical: 7,
+        paddingVertical: 8,
     },
     countLabel: {
         color: '#ffffff',
@@ -25,7 +23,7 @@ const styles = StyleSheet.create({
     },
     countRow: {
         flexDirection: 'row',
-        gap: 4,
+        gap: 3,
         marginBottom: 16,
     },
     countValue: {
@@ -33,53 +31,42 @@ const styles = StyleSheet.create({
         fontFamily: 'Helvetica-Bold',
         fontSize: 15,
     },
-    dot: {
-        borderRadius: 3,
-        height: 6,
-        marginRight: 5,
-        width: 6,
-    },
-    headerCell: {
-        color: CF_PDF.muted,
+    // Borderless table: green header, zebra body, severity-coloured Risk cell.
+    headCell: {
+        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 8,
+        fontSize: 8.5,
+        letterSpacing: 0.4,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
         textTransform: 'uppercase',
     },
-    headerRow: {
-        borderBottomColor: CF_PDF.navy,
-        borderBottomWidth: 1,
+    headRow: {
+        backgroundColor: CF_PDF.greenBar,
         flexDirection: 'row',
-        paddingBottom: 5,
     },
-    idCell: {
-        color: CF_PDF.muted,
-        fontFamily: 'Courier',
+    riskCell: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 7,
+        width: '22%',
+    },
+    riskText: {
+        color: '#ffffff',
+        fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
-        width: '12%',
     },
     row: {
-        alignItems: 'center',
-        borderBottomColor: CF_PDF.hairline,
-        borderBottomWidth: 1,
+        alignItems: 'stretch',
         flexDirection: 'row',
-        paddingVertical: 5,
     },
-    severity: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        width: '28%',
-    },
-    severityLabel: {
-        color: CF_PDF.body,
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 9,
-    },
-    title: {
-        color: CF_PDF.accentText,
+    titleCell: {
+        color: CF_PDF.ink,
         fontSize: 9.5,
-        paddingRight: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
         textDecoration: 'none',
-        width: '60%',
+        width: '78%',
     },
 });
 
@@ -99,10 +86,10 @@ const FindingsSummaryPdf = ({ findings }: FindingsSummaryPdfProps) => {
 
     return (
         <View id="findings-summary">
-            <Text style={reportPdfStyles.sectionHeading}>Findings Summary</Text>
+            <Text style={reportPdfStyles.sectionHeading}>Finding Summary</Text>
             <View style={reportPdfStyles.sectionDivider} />
 
-            {/* Finding counts */}
+            {/* Finding counts — borderless coloured cells */}
             <View style={styles.countRow}>
                 {counts.map(({ count, style }) => (
                     <View
@@ -113,36 +100,34 @@ const FindingsSummaryPdf = ({ findings }: FindingsSummaryPdfProps) => {
                         <Text style={styles.countLabel}>{style.label.toUpperCase()}</Text>
                     </View>
                 ))}
-                <View style={[styles.countCell, { backgroundColor: CF_PDF.navy }]}>
+                <View style={[styles.countCell, { backgroundColor: CF_PDF.greenBar }]}>
                     <Text style={styles.countValue}>{findings.length}</Text>
                     <Text style={styles.countLabel}>TOTAL</Text>
                 </View>
             </View>
 
-            <View style={styles.headerRow}>
-                <Text style={[styles.headerCell, { width: '12%' }]}>ID</Text>
-                <Text style={[styles.headerCell, { width: '60%' }]}>Finding</Text>
-                <Text style={[styles.headerCell, { width: '28%' }]}>Severity</Text>
+            <View style={styles.headRow}>
+                <Text style={[styles.headCell, { width: '78%' }]}>Title</Text>
+                <Text style={[styles.headCell, { textAlign: 'center', width: '22%' }]}>Risk</Text>
             </View>
 
             {findings.map((finding, index) => {
                 const style = getSeverityStyle(finding.severity);
+                const zebra = index % 2 === 1;
 
                 return (
                     <View
                         key={finding.id}
                         style={styles.row}
                     >
-                        <Text style={styles.idCell}>CF-{index + 1}</Text>
                         <Link
                             src={`#${finding.id}`}
-                            style={styles.title}
+                            style={[styles.titleCell, zebra ? { backgroundColor: '#f4f7f9' } : {}]}
                         >
                             {finding.title}
                         </Link>
-                        <View style={styles.severity}>
-                            <View style={[styles.dot, { backgroundColor: style.pdf.solid }]} />
-                            <Text style={styles.severityLabel}>{style.label}</Text>
+                        <View style={[styles.riskCell, { backgroundColor: style.pdf.solid }]}>
+                            <Text style={styles.riskText}>{style.label}</Text>
                         </View>
                     </View>
                 );

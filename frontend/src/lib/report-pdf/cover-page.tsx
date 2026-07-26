@@ -137,6 +137,12 @@ const CoverPage = ({ model }: CoverPageProps) => {
                         <View style={styles.rule} />
 
                         <View style={{ flexDirection: 'row', gap: 40, marginTop: 22 }}>
+                            {model.clientName?.trim() && (
+                                <View>
+                                    <Text style={styles.metaLabel}>Prepared For</Text>
+                                    <Text style={styles.metaValue}>{model.clientName.trim()}</Text>
+                                </View>
+                            )}
                             {model.flow.target && (
                                 <View>
                                     <Text style={styles.metaLabel}>Target</Text>

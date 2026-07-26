@@ -39,7 +39,8 @@ describe('buildReportModel', () => {
         expect(model.findings).toHaveLength(0);
         expect(model.summary.tasksTotal).toBe(0);
         expect(model.summary.findingsTotal).toBe(0);
-        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary']);
+        // Scope & Methodology and the Appendix are fixed sections that always render.
+        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary', 'scope', 'appendix']);
     });
 
     it('handles a missing flow gracefully', () => {
@@ -116,12 +117,11 @@ describe('buildReportMarkdown', () => {
         }
     });
 
-    it('uses the finding-centric structure (Detailed Findings + Methodology, no findings nested in tasks)', () => {
+    it('uses the finding-centric structure (Detailed Findings, no dynamic methodology)', () => {
         const md = buildReportMarkdown(sampleReportModel);
 
-        // Findings are a dedicated top-level section, methodology follows.
+        // Findings are a dedicated top-level section.
         expect(md).toContain('## Detailed Findings');
-        expect(md).toContain('## Methodology');
         expect(md).toContain('### 1. Insecure Direct Object Reference (IDOR) via Predictable User ID');
 
         // Reference sub-section order is present.
@@ -130,9 +130,9 @@ describe('buildReportMarkdown', () => {
         expect(md).toContain('**Impact**');
         expect(md).toContain('**Remediation**');
 
-        // Findings live only under Detailed Findings, not nested under task sections.
-        expect(md).not.toContain('### Findings');
-        expect(md.indexOf('## Detailed Findings')).toBeLessThan(md.indexOf('## Methodology'));
+        // The dynamic per-task methodology log is no longer part of the deliverable.
+        expect(md).not.toContain('## Methodology');
+        expect(md).not.toContain('### Subtasks');
     });
 });
 

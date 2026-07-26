@@ -1,95 +1,38 @@
-import { Image, Link, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Image, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { Finding } from '@/lib/report-model';
 
 import { getSeverityStyle } from '@/lib/severity-palette';
 
 import { CF_PDF } from './cf-brand';
+import { Bullets } from './pdf-primitives';
 
 const styles = StyleSheet.create({
-    badge: {
-        borderRadius: 2,
-        color: '#ffffff',
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 7.5,
-        letterSpacing: 0.5,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-    },
-    body: {
-        paddingHorizontal: 10,
-        paddingTop: 8,
-    },
-    card: {
-        borderLeftWidth: 3,
-        marginBottom: 18,
-        paddingLeft: 0,
-    },
-    chip: {
-        backgroundColor: '#ffffff',
-        color: CF_PDF.navy,
-        fontFamily: 'Courier',
-        fontSize: 8,
-        paddingHorizontal: 5,
-        paddingVertical: 2,
-    },
-    factCol: {
-        flexDirection: 'column',
-    },
+    // Facts table — borderless, green label cells, white value cells.
     factLabel: {
-        color: CF_PDF.muted,
+        backgroundColor: CF_PDF.greenBar,
+        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 7,
-        letterSpacing: 0.5,
-        marginBottom: 1,
-        textTransform: 'uppercase',
-    },
-    facts: {
-        backgroundColor: CF_PDF.navyTint,
-        flexDirection: 'row',
+        fontSize: 8.5,
         paddingHorizontal: 10,
         paddingVertical: 7,
     },
-    factUrl: {
-        color: CF_PDF.body,
-        fontFamily: 'Courier',
-        fontSize: 8,
+    factRow: {
+        flexDirection: 'row',
         marginBottom: 1,
     },
     factValue: {
+        backgroundColor: '#f4f7f9',
         color: CF_PDF.ink,
-        fontSize: 9,
-    },
-    headerBar: {
+        fontFamily: 'Courier',
+        fontSize: 8.5,
         paddingHorizontal: 10,
-        paddingVertical: 8,
-    },
-    headerRow: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 5,
-    },
-    listItem: {
-        flexDirection: 'row',
-        marginBottom: 2.5,
-    },
-    listMarker: {
-        color: CF_PDF.muted,
-        fontSize: 9,
-        minWidth: 16,
-    },
-    listText: {
-        color: CF_PDF.body,
-        flex: 1,
-        fontSize: 9.5,
-        lineHeight: 1.45,
+        paddingVertical: 7,
     },
     paragraph: {
         color: CF_PDF.body,
         fontSize: 9.5,
-        lineHeight: 1.5,
+        lineHeight: 1.6,
     },
     placeholder: {
         backgroundColor: '#f1f5f8',
@@ -99,185 +42,147 @@ const styles = StyleSheet.create({
         padding: 10,
         textAlign: 'center',
     },
-    reference: {
-        color: CF_PDF.accentText,
-        fontSize: 8.5,
-        marginBottom: 1,
-        textDecoration: 'none',
-    },
-    remediation: {
-        backgroundColor: CF_PDF.accentTint,
-        borderLeftColor: CF_PDF.accent,
-        borderLeftWidth: 2,
-        color: CF_PDF.ink,
-        fontSize: 9.5,
-        lineHeight: 1.5,
-        padding: 7,
-    },
     screenshot: {
-        marginTop: 4,
+        marginTop: 6,
         objectFit: 'contain',
         width: '100%',
     },
     sectionLabel: {
-        color: CF_PDF.navy,
+        color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 8.5,
+        fontSize: 9,
         letterSpacing: 0.4,
-        marginBottom: 3,
-        marginTop: 9,
+        marginBottom: 4,
+        marginTop: 12,
         textTransform: 'uppercase',
     },
-    title: {
-        color: CF_PDF.ink,
+    titleBar: {
+        backgroundColor: CF_PDF.greenBar,
+        marginBottom: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    titleText: {
+        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
         fontSize: 12,
+        textAlign: 'center',
     },
 });
 
-const BulletList = ({ items, ordered }: { items: string[]; ordered?: boolean }) => (
-    <View>
-        {items.map((item, i) => (
-            <View
-                key={i}
-                style={styles.listItem}
-            >
-                <Text style={styles.listMarker}>{ordered ? `${i + 1}.` : '•'}</Text>
-                <Text style={styles.listText}>{item}</Text>
-            </View>
-        ))}
-    </View>
-);
+// Turn a free-text recommendation into bullets: split on line breaks, and if it is
+// a single block, split into sentences so it still reads as a professional list.
+const toBullets = (text: string): string[] => {
+    const lines = text
+        .split('\n')
+        .map((line) => line.replace(/^[-•*]\s*/, '').trim())
+        .filter(Boolean);
+
+    if (lines.length > 1) {
+        return lines;
+    }
+
+    return (lines[0] ?? text)
+        .split(/(?<=\.)\s+(?=[A-Z])/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+};
 
 interface FindingCardPdfProps {
     finding: Finding;
-    index: number;
 }
 
-const FindingCardPdf = ({ finding, index }: FindingCardPdfProps) => {
+const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
     const style = getSeverityStyle(finding.severity);
-    const findingId = `CF-${index}`;
+    const targets = finding.affectedUrls?.length ? finding.affectedUrls : ['—'];
 
     return (
-        <View style={[styles.card, { borderLeftColor: style.pdf.solid }]}>
-            <View wrap={false}>
-                <View style={[styles.headerBar, { backgroundColor: style.pdf.tint }]}>
-                    <View style={styles.headerRow}>
-                        <Text style={[styles.badge, { backgroundColor: style.pdf.solid }]}>
-                            {style.label.toUpperCase()}
-                        </Text>
-                        <Text style={styles.chip}>{findingId}</Text>
-                        {typeof finding.cvss === 'number' && (
-                            <Text style={styles.chip}>CVSS {finding.cvss.toFixed(1)}</Text>
-                        )}
-                        {finding.cve && <Text style={styles.chip}>{finding.cve}</Text>}
-                    </View>
-                    <Text style={styles.title}>
-                        {index}. {finding.title}
-                    </Text>
-                </View>
+        <View>
+            <View style={styles.titleBar}>
+                <Text style={styles.titleText}>{finding.title}</Text>
+            </View>
 
-                <View style={styles.facts}>
-                    <View style={[styles.factCol, { width: '20%' }]}>
-                        <Text style={styles.factLabel}>Finding ID</Text>
-                        <Text style={styles.factValue}>{findingId}</Text>
-                    </View>
-                    <View style={[styles.factCol, { width: '18%' }]}>
-                        <Text style={styles.factLabel}>CVSS Score</Text>
-                        <Text style={styles.factValue}>
-                            {typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}
-                        </Text>
-                    </View>
-                    <View style={[styles.factCol, { width: '22%' }]}>
-                        <Text style={styles.factLabel}>Severity</Text>
-                        <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold' }]}>
-                            {style.label}
-                        </Text>
-                    </View>
-                    <View style={[styles.factCol, { width: '40%' }]}>
-                        <Text style={styles.factLabel}>
-                            Affected System{(finding.affectedUrls?.length ?? 0) > 1 ? 's' : ''}
-                        </Text>
-                        {(finding.affectedUrls ?? ['—']).map((url) => (
+            {/* Facts — CVSS + Severity on one row, Targets below. No Finding ID. */}
+            <View style={styles.factRow}>
+                <Text style={[styles.factLabel, { width: '18%' }]}>CVSS Score</Text>
+                <Text style={[styles.factValue, { width: '24%' }]}>
+                    {typeof finding.cvss === 'number' ? finding.cvss.toFixed(1) : '—'}
+                </Text>
+                <Text style={[styles.factLabel, { width: '18%' }]}>Severity</Text>
+                <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold', width: '40%' }]}>
+                    {style.label}
+                </Text>
+            </View>
+            <View style={styles.factRow}>
+                <Text style={[styles.factLabel, { width: '18%' }]}>Targets</Text>
+                <View style={[styles.factValue, { width: '82%' }]}>
+                    {targets.map((url) => (
+                        <Text key={url}>{url}</Text>
+                    ))}
+                </View>
+            </View>
+
+            {finding.description && (
+                <View>
+                    <Text style={styles.sectionLabel}>Description</Text>
+                    <Text style={styles.paragraph}>{finding.description}</Text>
+                </View>
+            )}
+
+            {finding.impact && finding.impact.length > 0 && (
+                <View>
+                    <Text style={styles.sectionLabel}>Business Impact</Text>
+                    <Bullets items={finding.impact} />
+                </View>
+            )}
+
+            {finding.stepsToReproduce && finding.stepsToReproduce.length > 0 && (
+                <View>
+                    <Text style={styles.sectionLabel}>Steps to Reproduce</Text>
+                    <Bullets
+                        items={finding.stepsToReproduce}
+                        ordered
+                    />
+                </View>
+            )}
+
+            {finding.screenshots && finding.screenshots.length > 0 && (
+                <View>
+                    {finding.screenshots.map((shot) =>
+                        shot.dataUrl ? (
+                            <Image
+                                key={shot.id}
+                                src={shot.dataUrl}
+                                style={styles.screenshot}
+                            />
+                        ) : (
                             <Text
-                                key={url}
-                                style={styles.factUrl}
+                                key={shot.id}
+                                style={styles.placeholder}
                             >
-                                {url}
+                                {shot.name}
                             </Text>
-                        ))}
-                    </View>
+                        ),
+                    )}
                 </View>
-            </View>
+            )}
 
-            <View style={styles.body}>
-                {finding.description && (
-                    <View>
-                        <Text style={styles.sectionLabel}>Description</Text>
-                        <Text style={styles.paragraph}>{finding.description}</Text>
-                    </View>
-                )}
+            {finding.recommendation && (
+                <View>
+                    <Text style={styles.sectionLabel}>Recommendation</Text>
+                    <Bullets items={toBullets(finding.recommendation)} />
+                </View>
+            )}
 
-                {finding.impact && finding.impact.length > 0 && (
-                    <View>
-                        <Text style={styles.sectionLabel}>Business Impact</Text>
-                        <BulletList items={finding.impact} />
-                    </View>
-                )}
-
-                {finding.stepsToReproduce && finding.stepsToReproduce.length > 0 && (
-                    <View>
-                        <Text style={styles.sectionLabel}>Steps to Reproduce</Text>
-                        <BulletList
-                            items={finding.stepsToReproduce}
-                            ordered
-                        />
-                    </View>
-                )}
-
-                {finding.screenshots && finding.screenshots.length > 0 && (
-                    <View>
-                        {finding.screenshots.map((shot) =>
-                            shot.dataUrl ? (
-                                <Image
-                                    key={shot.id}
-                                    src={shot.dataUrl}
-                                    style={styles.screenshot}
-                                />
-                            ) : (
-                                <Text
-                                    key={shot.id}
-                                    style={styles.placeholder}
-                                >
-                                    {shot.name}
-                                </Text>
-                            ),
-                        )}
-                    </View>
-                )}
-
-                {finding.recommendation && (
-                    <View>
-                        <Text style={styles.sectionLabel}>Recommendation</Text>
-                        <Text style={styles.remediation}>{finding.recommendation}</Text>
-                    </View>
-                )}
-
-                {finding.references && finding.references.length > 0 && (
-                    <View>
-                        <Text style={styles.sectionLabel}>References</Text>
-                        {finding.references.map((ref) => (
-                            <Link
-                                key={ref}
-                                src={ref}
-                                style={styles.reference}
-                            >
-                                {ref}
-                            </Link>
-                        ))}
-                    </View>
-                )}
-            </View>
+            {finding.references && finding.references.length > 0 && (
+                <View>
+                    <Text style={styles.sectionLabel}>References</Text>
+                    <Bullets
+                        items={finding.references}
+                        link
+                    />
+                </View>
+            )}
         </View>
     );
 };

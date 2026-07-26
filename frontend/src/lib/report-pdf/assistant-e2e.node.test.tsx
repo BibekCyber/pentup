@@ -111,8 +111,8 @@ describe('assistant e2e render (flow-9 shape, with extracted findings)', () => {
 
         expect(model.summary.findingsTotal).toBe(3);
         expect(model.summary.findingsBySeverity.critical).toBe(1);
-        expect(model.sectionsTitle).toBe('Conversation');
-        expect(model.sections[0]?.title).not.toContain('engagement_auth');
+        // The assistant "Conversation" log was dropped from the deliverable.
+        expect(model.sectionsTitle).toBeUndefined();
 
         const buf = await renderToBuffer(<ReportDocument model={model} />);
         expect(buf.length).toBeGreaterThan(5000);

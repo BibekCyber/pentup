@@ -68,7 +68,50 @@ export const deriveSummaryNarrative = (model: ReportModel): string => {
     return `This automated assessment of ${target} completed ${summary.tasksDone} of ${summary.tasksTotal} ${pluralize(summary.tasksTotal, 'task')} and ${findingsClause}.`;
 };
 
+// Auto-derived executive-summary bullets. Kept factual and conservative — they are
+// generated, not analyst-reviewed, so they only state what the finding data supports
+// and never assert unverified security properties of the target.
+export const derivePositiveFindings = (findings: readonly Finding[], counts: SeverityCounts): string[] => {
+    const bullets: string[] = [];
+
+    if (counts.critical === 0 && counts.high === 0) {
+        bullets.push('No critical or high-severity vulnerabilities were identified during the assessment.');
+    } else if (counts.critical === 0) {
+        bullets.push('No critical-severity vulnerabilities were identified during the assessment.');
+    }
+
+    bullets.push(
+        'The in-scope assets were assessed using a combination of automated tooling and manual validation aligned to industry testing standards.',
+    );
+
+    if (findings.length > 0) {
+        bullets.push(
+            'Every confirmed finding is reproducible and documented with step-by-step evidence and a clear risk rating.',
+        );
+        bullets.push('Each finding is accompanied by prioritised, actionable remediation guidance.');
+    }
+
+    return bullets;
+};
+
+export const deriveInitialRecommendations = (findings: readonly Finding[]): string[] => {
+    const bullets: string[] = [];
+
+    // Findings are already ordered by severity; surface the most urgent by name.
+    for (const finding of findings.slice(0, 3)) {
+        bullets.push(
+            `Prioritise remediation of "${finding.title}" (${getSeverityStyle(finding.severity).label} risk).`,
+        );
+    }
+
+    bullets.push('Remediate findings in order of severity, beginning with the highest-rated issues.');
+    bullets.push('Re-test each remediated item to confirm closure before the next assessment cycle.');
+
+    return bullets;
+};
+
 interface BuildReportModelOptions {
+    clientName?: string;
     executiveSummary?: { content: string; generatedAt: string };
     generatedAt?: string;
     targetType?: TargetType;
@@ -219,21 +262,23 @@ export const buildReportModel = (
               : Number.NaN;
 
     const hasFindings = allFindings.length > 0;
-    const hasMethodology = hasFindings && sections.length > 0;
 
+    // The dynamic per-task "Methodology" section was dropped from the report, so the
+    // TOC lists only the fixed deliverable sections that actually render.
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
+        { id: 'scope', level: 1, title: 'Scope & Methodology' },
         ...(hasFindings
             ? ([
-                  { id: 'findings-summary', level: 1, title: 'Findings Summary' },
+                  { id: 'findings-summary', level: 1, title: 'Finding Summary' },
                   { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
               ] as ReportTocEntry[])
             : []),
-        ...(hasMethodology ? ([{ id: 'methodology', level: 1, title: 'Methodology' }] as ReportTocEntry[]) : []),
-        ...sections.map((section) => ({ id: section.id, level: hasMethodology ? 2 : 1, title: section.title })),
+        { id: 'appendix', level: 1, title: 'Appendix' },
     ];
 
     return {
+        clientName: options.clientName,
         executiveSummary: options.executiveSummary,
         findings: allFindings,
         flow: {
@@ -246,8 +291,10 @@ export const buildReportModel = (
             title: flow?.title ?? 'Untitled Flow',
         },
         generatedAt,
+        initialRecommendations: deriveInitialRecommendations(allFindings),
+        positiveFindings: derivePositiveFindings(allFindings, findingsBySeverity),
         sections,
-        sectionsTitle: hasMethodology ? 'Methodology' : undefined,
+        sectionsTitle: undefined,
         summary: {
             duration: formatDuration(startMs, endMs),
             findingsBySeverity,

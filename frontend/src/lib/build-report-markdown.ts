@@ -1,7 +1,7 @@
-import type { Finding, ReportModel, ReportSection } from './report-model';
+import type { Finding, ReportModel } from './report-model';
 
 import { SEVERITY_ORDER } from './report-model';
-import { getSeverityStyle, getStatusStyle } from './severity-palette';
+import { getSeverityStyle } from './severity-palette';
 import { getEngagementLabel } from './target-type-colors';
 
 const findingHeading = (finding: Finding, index: number): string => {
@@ -64,29 +64,6 @@ const renderFinding = (finding: Finding, index: number): string => {
         lines.push('**References**', '');
         finding.references.forEach((ref) => lines.push(`- ${ref}`));
         lines.push('');
-    }
-
-    return lines.join('\n');
-};
-
-const renderSection = (section: ReportSection): string => {
-    const status = getStatusStyle(section.status);
-    const lines: string[] = [`## ${section.title} — ${status.label}`, ''];
-
-    if (section.resultMarkdown) {
-        lines.push(section.resultMarkdown.trim(), '');
-    }
-
-    if (section.subtasks.length > 0) {
-        lines.push('### Subtasks', '');
-        section.subtasks.forEach((subtask) => {
-            const subStatus = getStatusStyle(subtask.status);
-            lines.push(`#### ${subtask.title} — ${subStatus.label}`, '');
-
-            if (subtask.resultMarkdown) {
-                lines.push(subtask.resultMarkdown.trim(), '');
-            }
-        });
     }
 
     return lines.join('\n');
@@ -160,11 +137,8 @@ export const buildReportMarkdown = (model: ReportModel): string => {
         model.findings.forEach((finding, idx) => lines.push(renderFinding(finding, idx + 1)));
     }
 
-    if (model.sectionsTitle && model.sections.length > 0) {
-        lines.push(`## ${model.sectionsTitle}`, '');
-    }
-
-    model.sections.forEach((section) => lines.push(renderSection(section)));
+    // The dynamic per-task methodology / assistant conversation log is intentionally
+    // omitted from the deliverable (PDF, web view and markdown alike).
 
     return lines.join('\n').trim();
 };

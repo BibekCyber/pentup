@@ -115,7 +115,8 @@ describe('assistant report hardening', () => {
         expect(model.summary.findingsTotal).toBe(2);
         expect(model.summary.findingsBySeverity.critical).toBe(1);
         expect(model.summary.findingsBySeverity.high).toBe(1);
-        expect(model.sectionsTitle).toBe('Conversation');
+        // The conversation log is still built on the model but no longer titled/rendered.
+        expect(model.sectionsTitle).toBeUndefined();
         expect(model.executiveSummary?.content).toContain('identified 2 findings');
     });
 

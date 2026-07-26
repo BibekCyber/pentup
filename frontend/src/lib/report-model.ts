@@ -22,6 +22,9 @@ export interface Finding {
 }
 
 export interface ReportModel {
+    // Client the report is prepared for (drives the header + confidentiality copy).
+    // Optional so a report renders before a name is entered.
+    clientName?: string;
     executiveSummary?: {
         content: string;
         generatedAt: string;
@@ -40,6 +43,9 @@ export interface ReportModel {
         title: string;
     };
     generatedAt: string;
+    // Auto-derived executive-summary bullet lists (no manual edit yet).
+    initialRecommendations: string[];
+    positiveFindings: string[];
     sections: ReportSection[];
     sectionsTitle?: string;
     summary: ReportSummary;
