@@ -139,10 +139,7 @@ const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
             {finding.stepsToReproduce && finding.stepsToReproduce.length > 0 && (
                 <View>
                     <Text style={styles.sectionLabel}>Steps to Reproduce</Text>
-                    <Bullets
-                        items={finding.stepsToReproduce}
-                        ordered
-                    />
+                    <Bullets items={finding.stepsToReproduce} />
                 </View>
             )}
 

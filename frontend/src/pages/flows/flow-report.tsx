@@ -31,36 +31,28 @@ const FlowReport = () => {
     const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
 
     // Client the report is prepared for — typed in the report view, flows into the
-    // header, confidentiality copy and cover of the exported PDF/markdown. Persisted
-    // per flow in localStorage (with a "last used" fallback) so it survives reloads
-    // and pre-fills new reports.
+    // header, confidentiality copy and cover of the exported PDF/markdown. Stored
+    // strictly PER FLOW in localStorage so each flow keeps its own client name and
+    // one flow never pre-fills another's.
     const clientStorageKey = flowId ? `report:clientName:${flowId}` : null;
     const [clientName, setClientName] = useState<string>(() => {
-        if (typeof localStorage === 'undefined') {
+        if (typeof localStorage === 'undefined' || !clientStorageKey) {
             return '';
         }
 
-        return (
-            (clientStorageKey ? localStorage.getItem(clientStorageKey) : null) ??
-            localStorage.getItem('report:clientName:last') ??
-            ''
-        );
+        return localStorage.getItem(clientStorageKey) ?? '';
     });
 
     useEffect(() => {
-        if (typeof localStorage === 'undefined') {
+        if (typeof localStorage === 'undefined' || !clientStorageKey) {
             return;
         }
 
         const value = clientName.trim();
 
         if (value) {
-            localStorage.setItem('report:clientName:last', value);
-
-            if (clientStorageKey) {
-                localStorage.setItem(clientStorageKey, value);
-            }
-        } else if (clientStorageKey) {
+            localStorage.setItem(clientStorageKey, value);
+        } else {
             localStorage.removeItem(clientStorageKey);
         }
     }, [clientName, clientStorageKey]);

@@ -17,17 +17,19 @@ const styles = StyleSheet.create({
     },
     chip: {
         alignItems: 'center',
+        borderRadius: 3,
         color: CF_PDF.white,
+        flex: 1,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8,
         justifyContent: 'center',
-        paddingVertical: 7,
+        paddingVertical: 8,
     },
     chipRow: {
         flexDirection: 'row',
-        gap: 3,
-        marginBottom: 6,
-        marginTop: 4,
+        gap: 5,
+        marginBottom: 8,
+        marginTop: 6,
     },
     footnote: {
         color: CF_PDF.muted,

@@ -32,17 +32,20 @@ const styles = StyleSheet.create({
 interface BulletsProps {
     items: string[];
     link?: boolean;
-    ordered?: boolean;
 }
 
-export const Bullets = ({ items, link, ordered }: BulletsProps) => (
+// Strip any leading list marker the content already carries ("1. ", "2) ", "- ",
+// "• ") so a bullet never renders on top of the item's own numbering.
+const stripMarker = (text: string): string => text.replace(/^\s*(?:\d+[.)]|[-•*])\s+/, '').trim();
+
+export const Bullets = ({ items, link }: BulletsProps) => (
     <View>
         {items.map((item, i) => (
             <View
                 key={i}
                 style={styles.item}
             >
-                <Text style={styles.marker}>{ordered ? `${i + 1}.` : '•'}</Text>
+                <Text style={styles.marker}>•</Text>
                 {link ? (
                     <Link
                         src={item}
@@ -51,7 +54,7 @@ export const Bullets = ({ items, link, ordered }: BulletsProps) => (
                         {item}
                     </Link>
                 ) : (
-                    <Text style={styles.text}>{item}</Text>
+                    <Text style={styles.text}>{stripMarker(item)}</Text>
                 )}
             </View>
         ))}
