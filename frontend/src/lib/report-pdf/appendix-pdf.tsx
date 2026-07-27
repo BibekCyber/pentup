@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
         fontSize: 8,
         justifyContent: 'center',
         paddingVertical: 8,
+        textAlign: 'center',
     },
     chipRow: {
         flexDirection: 'row',
