@@ -1,4 +1,4 @@
-import { ChevronDown, Clipboard, Download, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Clipboard, Download, FileText, Loader2 } from 'lucide-react';
 
 import type { ReportModel } from '@/lib/report-model';
 
@@ -28,12 +28,14 @@ export interface FlowReportActions {
 interface FlowReportViewProps extends FlowReportActions {
     clientName?: string;
     model: ReportModel;
+    onBackToFlow?: () => void;
     onClientNameChange?: (value: string) => void;
 }
 
 const FlowReportView = ({
     clientName,
     model,
+    onBackToFlow,
     onClientNameChange,
     onCopyMarkdown,
     onDownloadMarkdown,
@@ -51,6 +53,17 @@ const FlowReportView = ({
             <header className="border-border bg-card border-b">
                 <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-7 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 space-y-5">
+                        {onBackToFlow && (
+                            <Button
+                                className="-ml-2 h-7 gap-1.5 px-2"
+                                onClick={onBackToFlow}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <ArrowLeft className="size-4" />
+                                Back to flow
+                            </Button>
+                        )}
                         <div className="flex items-center gap-3">
                             <span className="text-primary text-lg leading-none font-extrabold tracking-tight">
                                 CyberFortify

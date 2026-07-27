@@ -1068,27 +1068,11 @@ const NewEngagement = () => {
                                         label="Credentials"
                                         value={needsCredentials ? (credComplete ? 'Provided' : 'Required') : 'None'}
                                     />
-                                    <div className="p-[15px_15px_16px]">
-                                        <Button
-                                            className="w-full"
-                                            disabled={!fullValid}
-                                            onClick={() => setStep(stepKeys.length - 1)}
-                                            size="lg"
-                                            type="button"
-                                        >
-                                            <Zap className="size-4" />
-                                            {selectedIds.length > 0
-                                                ? `Review ${selectedIds.length} flow${
-                                                      selectedIds.length === 1 ? '' : 's'
-                                                  }`
-                                                : 'Review scan'}
-                                        </Button>
-                                        <p className="field-hint mt-3 text-center leading-relaxed">
-                                            {selectedIds.length > 0
-                                                ? 'Each template runs as its own isolated flow · billed per agent token · stop any flow anytime.'
-                                                : 'Select at least one template to launch.'}
-                                        </p>
-                                    </div>
+                                    <p className="field-hint p-[15px_15px_16px] leading-relaxed">
+                                        {selectedIds.length > 0
+                                            ? 'Each template runs as its own isolated flow · billed per agent token · stop any flow anytime. Use Next to review and launch.'
+                                            : 'Select at least one template to launch.'}
+                                    </p>
                                 </aside>
                             )}
                         </div>

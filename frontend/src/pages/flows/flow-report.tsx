@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import type { ReportModel } from '@/lib/report-model';
@@ -20,6 +20,7 @@ type ReportState = 'content' | 'error' | 'generating' | 'loading';
 
 const FlowReport = () => {
     const { flowId } = useParams<{ flowId: string }>();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const download = searchParams.has('download');
     const silent = searchParams.has('silent');
@@ -28,9 +29,41 @@ const FlowReport = () => {
 
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
+
     // Client the report is prepared for — typed in the report view, flows into the
-    // header, confidentiality copy and cover of the exported PDF/markdown.
-    const [clientName, setClientName] = useState('');
+    // header, confidentiality copy and cover of the exported PDF/markdown. Persisted
+    // per flow in localStorage (with a "last used" fallback) so it survives reloads
+    // and pre-fills new reports.
+    const clientStorageKey = flowId ? `report:clientName:${flowId}` : null;
+    const [clientName, setClientName] = useState<string>(() => {
+        if (typeof localStorage === 'undefined') {
+            return '';
+        }
+
+        return (
+            (clientStorageKey ? localStorage.getItem(clientStorageKey) : null) ??
+            localStorage.getItem('report:clientName:last') ??
+            ''
+        );
+    });
+
+    useEffect(() => {
+        if (typeof localStorage === 'undefined') {
+            return;
+        }
+
+        const value = clientName.trim();
+
+        if (value) {
+            localStorage.setItem('report:clientName:last', value);
+
+            if (clientStorageKey) {
+                localStorage.setItem(clientStorageKey, value);
+            }
+        } else if (clientStorageKey) {
+            localStorage.removeItem(clientStorageKey);
+        }
+    }, [clientName, clientStorageKey]);
 
     const { data, error: queryError } = useFlowReportQuery({
         errorPolicy: 'all',
@@ -232,6 +265,7 @@ const FlowReport = () => {
         <FlowReportView
             clientName={clientName}
             model={model}
+            onBackToFlow={!sample && flowId ? () => navigate(`/flows/${flowId}`) : undefined}
             onClientNameChange={setClientName}
             onCopyMarkdown={handleCopyMarkdown}
             onDownloadMarkdown={handleDownloadMarkdown}

@@ -14,11 +14,13 @@ export const CF_LOGO_DATA_URI =
  * rules, key-fact panels and links, per the CyberFortify brand guide.
  */
 export const CF_PDF = {
-    // Fortify green — primary accent, section rules, links, remediation.
-    accent: '#2ACC77',
+    // Fortify green — brand primary accent (rules, highlights, success).
+    accent: '#2acc77',
     accentBorder: '#bfe8d3',
-    accentDeep: '#209868', // turquoise, secondary accent
-    accentText: '#177a4f', // legible green on white
+    accentDeep: '#209868', // turquoise, secondary/neon accent (brand)
+    // Green TEXT on white — the brand turquoise reads clearly; the bright Fortify
+    // green (#2acc77) is too light for legible text on white.
+    accentText: '#209868',
     accentTint: '#e9f8f0', // pale green panel fill
     amber: '#ffbd2e', // pending / warning
     // Header/footer running bands — a clear gray, distinctly darker than the white body.
@@ -26,8 +28,10 @@ export const CF_PDF = {
     body: '#33424e',
     // Reserved brand tokens (used sparingly).
     electric: '#00c7ff', // AI-specific callouts only
-    // Deep green for filled title bars / table header rows with white text.
-    greenBar: '#178a4e',
+    // Brand turquoise (#209868) for filled title bars / table header rows with white
+    // text — it's a palette colour and dark enough for legible white text (the bright
+    // Fortify green #2acc77 is not).
+    greenBar: '#209868',
     hairline: '#dbe3ea',
     // Neutrals for body text on white pages.
     ink: '#0b1b28', // near-black, navy-tinted

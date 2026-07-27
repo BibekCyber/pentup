@@ -15,6 +15,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 7,
     },
+    chip: {
+        alignItems: 'center',
+        color: CF_PDF.white,
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 8,
+        justifyContent: 'center',
+        paddingVertical: 7,
+    },
+    chipRow: {
+        flexDirection: 'row',
+        gap: 3,
+        marginBottom: 6,
+        marginTop: 4,
+    },
+    footnote: {
+        color: CF_PDF.muted,
+        fontSize: 8.5,
+        lineHeight: 1.5,
+        marginBottom: 8,
+    },
     headCell: {
         color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
@@ -82,6 +102,13 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         marginTop: 14,
     },
+    subSubHeading: {
+        color: CF_PDF.navy,
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 10,
+        marginBottom: 4,
+        marginTop: 10,
+    },
 });
 
 // 3x3 risk matrix (impact rows x probability columns) -> resulting severity.
@@ -93,35 +120,35 @@ const MATRIX: Severity[][] = [
 const IMPACT_ROWS = ['Low', 'Medium', 'High'];
 const PROB_COLS = ['Low', 'Medium', 'High'];
 
-const CRITERIA: { description: string; range: string; severity: Severity; sla: string }[] = [
-    {
-        description: 'Full compromise possible. Immediate exploitation risk.',
-        range: '9.0 – 10.0',
-        severity: 'critical',
-        sla: '24 – 48 hrs',
-    },
-    {
-        description: 'Significant risk. Likely exploitation in the wild.',
-        range: '7.0 – 8.9',
-        severity: 'high',
-        sla: '7 days',
-    },
-    { description: 'Exploitable under certain conditions.', range: '4.0 – 6.9', severity: 'medium', sla: '30 days' },
-    { description: 'Minimal direct impact, may assist chaining.', range: '0.1 – 3.9', severity: 'low', sla: '90 days' },
-    {
-        description: 'Best-practice observation. No direct exploitability.',
-        range: '0.0',
-        severity: 'informational',
-        sla: 'Next cycle',
-    },
+// Risk-level chip row, in ascending order per the template.
+const CHIP_LEVELS: { label: string; severity: Severity }[] = [
+    { label: 'Informational*', severity: 'informational' },
+    { label: 'Low', severity: 'low' },
+    { label: 'Medium', severity: 'medium' },
+    { label: 'High', severity: 'high' },
+    { label: 'Critical', severity: 'critical' },
+];
+
+const IMPACT_LEVELS = [
+    'Low — minimal or no significant effect.',
+    'Medium — noticeable impact with moderate consequences.',
+    'High — severe impact affecting critical systems or sensitive data.',
 ];
 
 const RISK_DEFINITIONS = [
-    'Informational — no immediate security risk; highlights areas for improvement or deviations from best practice.',
-    'Low — minimal impact and unlikely to be exploited; addressing improves overall security hygiene.',
-    'Medium — moderate impact or a reasonable likelihood of exploitation; should be addressed in a timely manner.',
-    'High — strong likelihood of exploitation or significant damage such as unauthorized access; requires prompt remediation.',
-    'Critical — severe issues that can lead to data breaches or complete system compromise; immediate action is strongly recommended.',
+    'Informational — these findings do not pose an immediate security risk but highlight areas for improvement. They may include deviations from best practices, minor misconfigurations, or observations that could contribute to security weaknesses over time if left unaddressed.',
+    'Low Risk — low-risk issues generally have minimal impact and are unlikely to be exploited. While they do not pose a significant threat, addressing them can help improve overall security hygiene.',
+    'Medium Risk — medium-risk vulnerabilities may lead to moderate impact if exploited or have a reasonable likelihood of exploitation. These should be addressed in a timely manner to prevent escalation.',
+    'High Risk — high-risk vulnerabilities have a strong likelihood of exploitation or can result in significant damage, such as unauthorized access or disruption of services. These require prompt remediation.',
+    'Critical Risk — critical vulnerabilities represent severe security issues that can lead to major consequences, including data breaches, complete system compromise, or significant business impact. Immediate action is strongly recommended.',
+];
+
+const CRITERIA: { description: string; range: string; severity: Severity; sla: string }[] = [
+    { description: 'Full compromise possible. Immediate exploitation risk.', range: '9.0 – 10.0', severity: 'critical', sla: '24 – 48 hrs' },
+    { description: 'Significant risk. Likely exploitation in the wild.', range: '7.0 – 8.9', severity: 'high', sla: '7 days' },
+    { description: 'Exploitable under certain conditions.', range: '4.0 – 6.9', severity: 'medium', sla: '30 days' },
+    { description: 'Minimal direct impact, may assist chaining.', range: '0.1 – 3.9', severity: 'low', sla: '90 days' },
+    { description: 'Best-practice observation. No direct exploitability.', range: '0.0', severity: 'informational', sla: 'Next cycle' },
 ];
 
 const AppendixPdf = () => (
@@ -131,9 +158,10 @@ const AppendixPdf = () => (
 
         <Text style={styles.subHeading}>A. Risk Rating Matrix</Text>
         <Text style={styles.intro}>
-            For each identified vulnerability the risk level is determined using a structured matrix based on two
-            factors: the severity of the potential impact, and the likelihood (probability) of exploitation. The
-            intersection of these two values provides the overall risk rating.
+            For each identified vulnerability, the risk level is determined using a structured matrix based on two key
+            factors. Impact — the severity of the potential impact — selects the appropriate row, and Likelihood
+            (Probability) — the likelihood of exploitation — selects the appropriate column. The intersection of these
+            two values provides the overall risk rating.
         </Text>
 
         {/* Header row: corner + probability columns */}
@@ -166,18 +194,55 @@ const AppendixPdf = () => (
         ))}
 
         <Text style={[styles.intro, { marginTop: 10 }]}>
-            This matrix is a simplified visual model to help classify and prioritise vulnerabilities by their potential
-            business impact and likelihood of exploitation. Risk perception varies across organisations, so the model
-            can be tailored to specific business requirements. Informational findings are not considered direct risks but
-            highlight observations that may improve security posture.
+            This matrix serves as a simplified visual model to help classify and prioritise vulnerabilities based on
+            their potential business impact and likelihood of exploitation. Risk perception varies across organisations;
+            therefore, this model can be tailored to align with specific business requirements. For this assessment, the
+            following risk levels are used:
+        </Text>
+
+        <View style={styles.chipRow}>
+            {CHIP_LEVELS.map((chip) => (
+                <Text
+                    key={chip.label}
+                    style={[styles.chip, { backgroundColor: getSeverityStyle(chip.severity).pdf.solid }]}
+                >
+                    {chip.label}
+                </Text>
+            ))}
+        </View>
+        <Text style={styles.footnote}>
+            * Informational findings are not considered direct risks but highlight observations that may be useful for
+            improving security posture.
         </Text>
 
         <Text style={styles.subHeading}>Risk Evaluation Methodology</Text>
         <Text style={styles.intro}>
-            The overall risk rating combines the assessed impact (the extent of damage a vulnerability could cause if
-            exploited) with the likelihood (the probability that it will be successfully exploited under real-world
-            conditions). These two factors are assessed independently and mapped to the matrix above to determine the
-            final risk level. The risk levels used in this report are defined as follows:
+            The overall risk rating is derived from the combination of Impact — the extent of damage a vulnerability
+            could cause if exploited — and Likelihood — the probability that the vulnerability will be successfully
+            exploited. These two factors are assessed independently and then mapped to the matrix above to determine the
+            final risk level.
+        </Text>
+
+        <Text style={styles.subSubHeading}>Impact</Text>
+        <Text style={styles.intro}>
+            Impact reflects the potential consequences of a successful attack. This may range from negligible effects to
+            severe outcomes such as data breaches or full system compromise. Impact levels are categorised as:
+        </Text>
+        <Bullets items={IMPACT_LEVELS} />
+
+        <Text style={styles.subSubHeading}>Likelihood (Probability)</Text>
+        <Text style={styles.intro}>
+            Likelihood represents the probability that a vulnerability will be exploited under real-world conditions.
+            This assessment considers factors such as how easy the vulnerability is to exploit, how accessible the
+            affected component is, the business importance of the impacted asset, and the overall complexity of the
+            system and network environment. Based on this evaluation, likelihood is classified as Low, Medium, or High.
+        </Text>
+
+        <Text style={styles.subSubHeading}>Overall Risk</Text>
+        <Text style={styles.intro}>
+            The overall risk rating is determined by combining the assessed impact and likelihood values and mapping them
+            to the defined risk rating matrix. This provides a consistent method for prioritising vulnerabilities based
+            on their potential effect on the organisation. The risk levels used in this report are defined as follows:
         </Text>
         <Bullets items={RISK_DEFINITIONS} />
 

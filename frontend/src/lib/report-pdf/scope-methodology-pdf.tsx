@@ -53,6 +53,10 @@ const styles = StyleSheet.create({
         backgroundColor: CF_PDF.white,
         flexDirection: 'row',
     },
+    tRowAlt: {
+        backgroundColor: '#f4f7f9',
+        flexDirection: 'row',
+    },
 });
 
 const WEB_ACTIVITIES = [
@@ -69,6 +73,29 @@ interface ScopeMethodologyPdfProps {
 const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
     const isCloud = model.flow.targetType === TargetType.Cloud;
     const engagementLabel = getEngagementLabel(model.flow.targetType) || 'Web Application';
+
+    // In-scope assets: the distinct hosts across the findings (a multi-host engagement
+    // lists several rows; a single-host one lists just that host). Falls back to the
+    // derived flow target when no finding URLs are available.
+    const targets = (() => {
+        const hosts = new Set<string>();
+
+        for (const finding of model.findings) {
+            for (const url of finding.affectedUrls ?? []) {
+                try {
+                    hosts.add(new URL(url).hostname);
+                } catch {
+                    if (url.trim()) {
+                        hosts.add(url.trim());
+                    }
+                }
+            }
+        }
+
+        const list = [...hosts];
+
+        return list.length > 0 ? list : [model.flow.target || 'In-scope assets'];
+    })();
 
     return (
         <View id="scope">
@@ -98,10 +125,15 @@ const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
                     <Text style={[styles.tHeadCell, { width: '60%' }]}>Asset / Target</Text>
                     <Text style={[styles.tHeadCell, { width: '40%' }]}>Type</Text>
                 </View>
-                <View style={styles.tRow}>
-                    <Text style={[styles.tCell, { width: '60%' }]}>{model.flow.target || 'In-scope assets'}</Text>
-                    <Text style={[styles.tCell, { width: '40%' }]}>{engagementLabel}</Text>
-                </View>
+                {targets.map((target, i) => (
+                    <View
+                        key={target}
+                        style={i % 2 === 1 ? styles.tRowAlt : styles.tRow}
+                    >
+                        <Text style={[styles.tCell, { width: '60%' }]}>{target}</Text>
+                        <Text style={[styles.tCell, { width: '40%' }]}>{engagementLabel}</Text>
+                    </View>
+                ))}
             </View>
         </View>
     );

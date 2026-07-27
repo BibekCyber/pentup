@@ -53,8 +53,8 @@ export const reportPdfStyles = StyleSheet.create({
         top: 0,
     },
     chromeHeaderLogo: {
-        height: 26,
-        width: 37,
+        height: 34,
+        width: 49,
     },
     chromeHeaderTitle: {
         color: CF_PDF.accentText,
