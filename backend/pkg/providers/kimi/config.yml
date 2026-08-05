@@ -9,6 +9,25 @@ simple:
     input: 1.15
     output: 8.0
 
+# The reporter emits the entire structured findings array in ONE response — the largest
+# payload any agent produces. It used to share the "simple" profile, whose 8192 ceiling
+# truncated it: the same input yielded 8 findings at 8192 but 11 at a higher ceiling, so
+# real findings were dropped, and a squeezed model also rations detail across the findings
+# it does emit. Its own profile keeps that ceiling off the other "simple" callers (flow
+# title, language detection, image chooser). 32768 matches the generator type below, which
+# already runs this ceiling on these models. A ceiling is not a target — short reports
+# still cost only the tokens they actually use.
+reporter:
+  model: "kimi-k2-turbo-preview"
+  temperature: 0.3
+  n: 1
+  max_tokens: 32768
+  extra_body:
+    tool_choice: "auto"
+  price:
+    input: 1.15
+    output: 8.0
+
 simple_json:
   model: "kimi-k2-turbo-preview"
   temperature: 0.3

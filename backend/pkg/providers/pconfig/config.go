@@ -150,6 +150,7 @@ const (
 	OptionsTypeInstaller    ProviderOptionsType = "installer"
 	OptionsTypePentester    ProviderOptionsType = "pentester"
 	OptionsTypeReflector    ProviderOptionsType = "reflector"
+	OptionsTypeReporter     ProviderOptionsType = "reporter"
 )
 
 var AllAgentTypes = []ProviderOptionsType{
@@ -166,6 +167,7 @@ var AllAgentTypes = []ProviderOptionsType{
 	OptionsTypeCoder,
 	OptionsTypeInstaller,
 	OptionsTypePentester,
+	OptionsTypeReporter,
 }
 
 type ModelConfig struct {
@@ -227,6 +229,7 @@ type ProviderConfig struct {
 	Coder          *AgentConfig      `json:"coder,omitempty" yaml:"coder,omitempty"`
 	Installer      *AgentConfig      `json:"installer,omitempty" yaml:"installer,omitempty"`
 	Pentester      *AgentConfig      `json:"pentester,omitempty" yaml:"pentester,omitempty"`
+	Reporter       *AgentConfig      `json:"reporter,omitempty" yaml:"reporter,omitempty"`
 	defaultOptions []llms.CallOption `json:"-" yaml:"-"`
 	rawConfig      []byte            `json:"-" yaml:"-"`
 }
@@ -731,6 +734,15 @@ func (pc *ProviderConfig) GetOptionsForType(optType ProviderOptionsType) []llms.
 	switch optType {
 	case OptionsTypeSimple:
 		agentConfig = pc.Simple
+	case OptionsTypeReporter:
+		// The reporter has its own profile because it emits the whole findings array in
+		// one response and needs a far larger ceiling than the other "simple" callers.
+		// Providers that define no "reporter" block keep their previous behaviour by
+		// falling back to "simple", so adding the type changes nothing for them.
+		agentConfig = pc.Reporter
+		if agentConfig == nil {
+			agentConfig = pc.Simple
+		}
 	case OptionsTypeSimpleJSON:
 		return pc.buildSimpleJSONOptions()
 	case OptionsTypePrimaryAgent:
@@ -780,6 +792,12 @@ func (pc *ProviderConfig) GetPriceInfoForType(optType ProviderOptionsType) *Pric
 	case OptionsTypeSimpleJSON:
 		if pc.SimpleJSON != nil {
 			agentConfig = pc.SimpleJSON
+		} else {
+			agentConfig = pc.Simple
+		}
+	case OptionsTypeReporter:
+		if pc.Reporter != nil {
+			agentConfig = pc.Reporter
 		} else {
 			agentConfig = pc.Simple
 		}
@@ -839,6 +857,7 @@ func (pc *ProviderConfig) BuildOptionsMap() map[ProviderOptionsType][]llms.CallO
 		OptionsTypeCoder:        pc.GetOptionsForType(OptionsTypeCoder),
 		OptionsTypeInstaller:    pc.GetOptionsForType(OptionsTypeInstaller),
 		OptionsTypePentester:    pc.GetOptionsForType(OptionsTypePentester),
+		OptionsTypeReporter:     pc.GetOptionsForType(OptionsTypeReporter),
 	}
 
 	return options
