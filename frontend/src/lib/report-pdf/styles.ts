@@ -6,27 +6,24 @@ import { CF_PDF } from './cf-brand';
 export const PDF_FOOTER_TEXT = 'Confidential — prepared by CyberFortify';
 export const PDF_BRAND_NAME = 'CyberFortify';
 
-// Horizontal page inset; the running bands bleed full width and pad to this.
-export const PAGE_INSET = 42;
+// Horizontal page inset — matches the client report's generous ~70pt margins.
+export const PAGE_INSET = 68;
 
 export const reportPdfStyles = StyleSheet.create({
-    // Full-bleed gray footer band, a touch darker than the white body.
+    // Minimal footer — just a hairline rule with the page number below it (no fill,
+    // no confidential note), matching the client report.
     chromeFooter: {
-        alignItems: 'center',
-        backgroundColor: CF_PDF.band,
-        bottom: 0,
-        flexDirection: 'row',
-        height: 30,
-        justifyContent: 'space-between',
-        left: 0,
-        paddingHorizontal: PAGE_INSET,
+        borderTopColor: CF_PDF.hairline,
+        borderTopWidth: 1,
+        bottom: 60,
+        left: PAGE_INSET,
         position: 'absolute',
-        right: 0,
+        right: PAGE_INSET,
     },
     // Page number sits as its own fixed element (render works reliably only when the
     // dynamic text is a direct fixed child, not nested inside the flex footer row).
     chromeFooterPage: {
-        bottom: 10,
+        bottom: 42,
         color: CF_PDF.muted,
         fontSize: 8,
         position: 'absolute',
@@ -39,12 +36,14 @@ export const reportPdfStyles = StyleSheet.create({
         // a fixed render() page-number text pushes it out of view in react-pdf 4.x.
         lineHeight: 1,
     },
-    // Full-bleed gray header band.
+    // Light-gray header band — full width and flush to the top edge (all gray, no
+    // white strip above it). Content stays inset to the body's left/right margin via
+    // paddingHorizontal; the gap below the band is balanced against the footer gap.
     chromeHeader: {
         alignItems: 'center',
         backgroundColor: CF_PDF.band,
         flexDirection: 'row',
-        height: 50,
+        height: 54,
         justifyContent: 'space-between',
         left: 0,
         paddingHorizontal: PAGE_INSET,
@@ -70,26 +69,29 @@ export const reportPdfStyles = StyleSheet.create({
         // NOTE: no page-level lineHeight. A >1 lineHeight here is inherited by the
         // fixed render() page-number and hides it in react-pdf 4.x; every multi-line
         // body style sets its own lineHeight instead.
-        paddingBottom: 48,
+        // Even breathing room top and bottom: header band is 54 tall (flush to top),
+        // so 96 leaves a ~42pt gap below it; the footer hairline sits at 60, so 102
+        // leaves a matching ~42pt gap above it. No body content collides with chrome.
+        paddingBottom: 102,
         paddingHorizontal: PAGE_INSET,
-        paddingTop: 70,
+        paddingTop: 96,
     },
+    // No visible rule under headings (their report has none) — kept as a spacer.
     sectionDivider: {
-        backgroundColor: CF_PDF.accent,
-        height: 2,
-        marginBottom: 12,
-        width: 60,
+        height: 0,
+        marginBottom: 4,
     },
-    // Section titles read as the template's green banners.
+    // Section titles: uppercase dark-green, like the client report.
     sectionHeading: {
         color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
         fontSize: 16,
         letterSpacing: 0.3,
-        marginBottom: 6,
+        marginBottom: 10,
+        textTransform: 'uppercase',
     },
     subHeading: {
-        color: CF_PDF.greenBar,
+        color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
         fontSize: 10,
         letterSpacing: 0.5,

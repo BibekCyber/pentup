@@ -16,8 +16,7 @@ const styles = StyleSheet.create({
         textDecoration: 'none',
     },
     marker: {
-        color: CF_PDF.accentText,
-        fontFamily: 'Helvetica-Bold',
+        color: CF_PDF.ink,
         fontSize: 9.5,
         minWidth: 14,
     },

@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
         paddingVertical: 56,
     },
     kicker: {
-        color: CF_PDF.accent,
+        color: CF_PDF.lime,
         fontFamily: 'Helvetica-Bold',
         fontSize: 11,
         letterSpacing: 3,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     rule: {
-        backgroundColor: CF_PDF.accent,
+        backgroundColor: CF_PDF.lime,
         height: 3,
         marginTop: 14,
         width: 54,

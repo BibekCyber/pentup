@@ -129,7 +129,7 @@ const FlowReportView = ({
                                     className="mt-1 h-8"
                                     id="report-client-name"
                                     onChange={(event) => onClientNameChange(event.target.value)}
-                                    placeholder="e.g. Healthnix"
+                                    placeholder="e.g. Acme Corp"
                                     value={clientName ?? ''}
                                 />
                             </div>

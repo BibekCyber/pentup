@@ -7,23 +7,25 @@ import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
     cell: {
+        backgroundColor: '#f3f4f6',
         color: CF_PDF.body,
         fontSize: 9.5,
         paddingHorizontal: 10,
         paddingVertical: 7,
     },
     headCell: {
-        color: CF_PDF.white,
+        backgroundColor: CF_PDF.lime,
+        color: CF_PDF.limeText,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         letterSpacing: 0.4,
         paddingHorizontal: 10,
         paddingVertical: 7,
-        textTransform: 'uppercase',
     },
     headRow: {
-        backgroundColor: CF_PDF.greenBar,
         flexDirection: 'row',
+        gap: 2,
+        marginBottom: 2,
     },
     intro: {
         color: CF_PDF.body,
@@ -32,8 +34,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     row: {
-        backgroundColor: CF_PDF.white,
         flexDirection: 'row',
+        gap: 2,
     },
 });
 
@@ -52,7 +54,7 @@ const DocumentHistoryPdf = ({ model }: DocumentHistoryPdfProps) => {
             <Text style={reportPdfStyles.sectionHeading}>Document History</Text>
             <View style={reportPdfStyles.sectionDivider} />
 
-            <Text style={styles.intro}>Revision Overview</Text>
+            <Text style={[styles.intro, { color: CF_PDF.ink, fontFamily: 'Helvetica-Bold' }]}>Revision Overview</Text>
 
             <View style={styles.headRow}>
                 <Text style={[styles.headCell, { width: '30%' }]}>Version</Text>

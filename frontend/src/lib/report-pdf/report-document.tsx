@@ -15,8 +15,7 @@ import ExecutiveSummaryPdf from './executive-summary-pdf';
 import FindingCardPdf from './finding-card-pdf';
 import FindingsSummaryPdf from './findings-summary-pdf';
 import ScopeMethodologyPdf from './scope-methodology-pdf';
-import { PDF_BRAND_NAME, reportPdfStyles } from './styles';
-import TocPdf from './toc-pdf';
+import { reportPdfStyles } from './styles';
 
 interface ReportDocumentProps {
     model: ReportModel;
@@ -51,9 +50,7 @@ const Sheet = ({ children, model }: { children: ReactNode; model: ReportModel })
             <View
                 fixed
                 style={reportPdfStyles.chromeFooter}
-            >
-                <Text style={reportPdfStyles.chromeFooterText}>Confidential — prepared by {PDF_BRAND_NAME}</Text>
-            </View>
+            />
             <Text
                 fixed
                 render={({ pageNumber }) => `${pageNumber} | Page`}
@@ -87,10 +84,6 @@ const ReportDocument = ({ model }: ReportDocumentProps) => {
             </Sheet>
 
             <Sheet model={model}>
-                <TocPdf model={model} />
-            </Sheet>
-
-            <Sheet model={model}>
                 <ExecutiveSummaryPdf model={model} />
             </Sheet>
 
@@ -114,15 +107,17 @@ const ReportDocument = ({ model }: ReportDocumentProps) => {
                             <View style={reportPdfStyles.sectionDivider} />
                             <Text
                                 style={{
-                                    color: CF_PDF.muted,
-                                    fontSize: 8.5,
+                                    color: CF_PDF.ink,
+                                    fontSize: 9,
+                                    fontStyle: 'italic',
                                     lineHeight: 1.5,
                                     marginBottom: 12,
                                 }}
                             >
-                                Please note: the risk ratings in the following findings are technical. Statements about
-                                business risk are best estimates and depend on circumstances not fully known at the time
-                                of assessment.
+                                <Text style={{ fontFamily: 'Helvetica-Bold', fontStyle: 'normal' }}>Please note: </Text>
+                                The risk ratings included in the following findings are &lsquo;technical&rsquo;. All
+                                statements made about &lsquo;business&rsquo; risk are based on best estimates, and
+                                highly dependent upon circumstances not known.
                             </Text>
                             {firstFinding && (
                                 <View id={firstFinding.id}>

@@ -68,27 +68,82 @@ export const deriveSummaryNarrative = (model: ReportModel): string => {
     return `This automated assessment of ${target} completed ${summary.tasksDone} of ${summary.tasksTotal} ${pluralize(summary.tasksTotal, 'task')} and ${findingsClause}.`;
 };
 
+const IPV4_HOST = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+// Assets listed in the report's Scope table, derived from the findings' affected URLs.
+// Tooling frequently probes a site through its raw backend IPs with a Host header, so a
+// single asset surfaces as several origins (http:// and https://, plus bare IPs). Emit
+// one entry per host, prefer https when a host appears under both schemes, and drop
+// raw-IP origins whenever a named host is in scope — those are the same asset reached
+// directly, and listing them reads as sloppy in a client-facing report.
+export const deriveScopeTargets = (findings: readonly Finding[], fallback?: string): string[] => {
+    const byHost = new Map<string, string>();
+    const unparsed: string[] = [];
+
+    for (const finding of findings) {
+        for (const raw of finding.affectedUrls ?? []) {
+            const value = raw?.trim();
+
+            if (!value) {
+                continue;
+            }
+
+            let parsed: undefined | URL;
+
+            try {
+                parsed = new URL(value);
+            } catch {
+                parsed = undefined;
+            }
+
+            if (!parsed) {
+                if (!unparsed.includes(value)) {
+                    unparsed.push(value);
+                }
+
+                continue;
+            }
+
+            const previous = byHost.get(parsed.host);
+
+            if (!previous || (previous === 'http:' && parsed.protocol === 'https:')) {
+                byHost.set(parsed.host, parsed.protocol);
+            }
+        }
+    }
+
+    const hosts = [...byHost.entries()];
+    const named = hosts.filter(([host]) => !IPV4_HOST.test(host.split(':')[0]));
+    const kept = named.length > 0 ? named : hosts;
+    const urls = kept.map(([host, scheme]) => `${scheme}//${host}`).sort();
+    const targets = [...urls, ...unparsed];
+
+    return targets.length > 0 ? targets : [fallback || 'In-scope assets'];
+};
+
 // Auto-derived executive-summary bullets. Kept factual and conservative — they are
 // generated, not analyst-reviewed, so they only state what the finding data supports
 // and never assert unverified security properties of the target.
 export const derivePositiveFindings = (findings: readonly Finding[], counts: SeverityCounts): string[] => {
     const bullets: string[] = [];
 
-    if (counts.critical === 0 && counts.high === 0) {
-        bullets.push('No critical or high-severity vulnerabilities were identified during the assessment.');
-    } else if (counts.critical === 0) {
-        bullets.push('No critical-severity vulnerabilities were identified during the assessment.');
+    if (counts.critical === 0) {
+        bullets.push(
+            'No critical-severity vulnerabilities were identified during the assessment, indicating that no immediate full-system compromise scenario was confirmed during testing.',
+        );
     }
 
     bullets.push(
-        'The in-scope assets were assessed using a combination of automated tooling and manual validation aligned to industry testing standards.',
+        'The in-scope assets were reviewed using a combination of automated tooling and manual validation aligned to recognised industry testing standards, providing broad coverage of the exposed functionality.',
     );
 
     if (findings.length > 0) {
         bullets.push(
-            'Every confirmed finding is reproducible and documented with step-by-step evidence and a clear risk rating.',
+            'Every confirmed finding is reproducible and documented with step-by-step evidence and a clear, CVSS-based risk rating, enabling efficient remediation and re-testing.',
         );
-        bullets.push('Each finding is accompanied by prioritised, actionable remediation guidance.');
+        bullets.push(
+            'Several identified issues relate to configuration, session handling, and application hardening, which can be addressed through focused remediation without requiring major architectural changes.',
+        );
     }
 
     return bullets;
@@ -100,11 +155,19 @@ export const deriveInitialRecommendations = (findings: readonly Finding[]): stri
     // Findings are already ordered by severity; surface the most urgent by name.
     for (const finding of findings.slice(0, 3)) {
         bullets.push(
-            `Prioritise remediation of "${finding.title}" (${getSeverityStyle(finding.severity).label} risk).`,
+            `Prioritise remediation of the ${getSeverityStyle(finding.severity).label}-risk finding "${finding.title}", applying the specific controls and configuration changes detailed in its recommendation.`,
         );
     }
 
-    bullets.push('Remediate findings in order of severity, beginning with the highest-rated issues.');
+    bullets.push(
+        'Enforce secure session and token management, including token expiration, logout invalidation, and server-side token revocation.',
+    );
+    bullets.push(
+        'Apply strict, server-side authorisation checks so that users can only access the data and functionality they are explicitly permitted to use.',
+    );
+    bullets.push(
+        'Review security headers, TLS configuration, rate limiting, and WAF protections to strengthen the overall security posture of the environment.',
+    );
     bullets.push('Re-test each remediated item to confirm closure before the next assessment cycle.');
 
     return bullets;

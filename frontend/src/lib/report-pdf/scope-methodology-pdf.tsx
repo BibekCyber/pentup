@@ -1,69 +1,117 @@
-import { StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Link, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { ReportModel } from '@/lib/report-model';
 
 import { TargetType } from '@/graphql/types';
+import { deriveScopeTargets } from '@/lib/build-report-model';
 import { getEngagementLabel } from '@/lib/target-type-colors';
 
 import { CF_PDF } from './cf-brand';
-import { Bullets } from './pdf-primitives';
 import { reportPdfStyles } from './styles';
 
 const styles = StyleSheet.create({
-    activity: {
+    activityItem: {
+        flexDirection: 'row',
+        marginBottom: 5,
+    },
+    activityLabel: {
+        color: CF_PDF.ink,
+        fontFamily: 'Helvetica-Bold',
+    },
+    activityMarker: {
+        color: CF_PDF.ink,
+        fontSize: 9.5,
+        minWidth: 14,
+    },
+    activityText: {
         color: CF_PDF.body,
         flex: 1,
         fontSize: 9.5,
         lineHeight: 1.5,
     },
-    activityLabel: {
-        color: CF_PDF.accentText,
-        fontFamily: 'Helvetica-Bold',
-    },
     intro: {
         color: CF_PDF.body,
         fontSize: 10,
         lineHeight: 1.6,
-        marginBottom: 12,
+        marginBottom: 10,
+    },
+    lead: {
+        color: CF_PDF.body,
+        fontSize: 10,
+        lineHeight: 1.6,
+        marginBottom: 6,
+        marginTop: 4,
     },
     table: {
         marginTop: 4,
     },
-    // Borderless table: green header row, white body.
     tCell: {
         color: CF_PDF.body,
         fontSize: 9.5,
         paddingHorizontal: 10,
         paddingVertical: 7,
     },
+    tCellFill: {
+        backgroundColor: '#f3f4f6',
+        color: CF_PDF.ink,
+        fontSize: 9,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+    },
     tHead: {
-        backgroundColor: CF_PDF.greenBar,
         flexDirection: 'row',
+        gap: 2,
+        marginBottom: 2,
     },
     tHeadCell: {
-        color: CF_PDF.white,
+        backgroundColor: CF_PDF.lime,
+        color: CF_PDF.limeText,
         fontFamily: 'Helvetica-Bold',
         fontSize: 8.5,
         letterSpacing: 0.4,
         paddingHorizontal: 10,
         paddingVertical: 7,
-        textTransform: 'uppercase',
+    },
+    tLink: {
+        backgroundColor: '#f3f4f6',
+        color: CF_PDF.ink,
+        fontSize: 9,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        textDecoration: 'none',
     },
     tRow: {
-        backgroundColor: CF_PDF.white,
         flexDirection: 'row',
-    },
-    tRowAlt: {
-        backgroundColor: '#f4f7f9',
-        flexDirection: 'row',
+        gap: 2,
+        marginBottom: 2,
     },
 });
 
-const WEB_ACTIVITIES = [
-    'Discovery & Mapping — identification of application workflows, endpoints, parameters, and exposed functionality.',
-    'Access Control Testing — review of authentication, session handling, authorization, and privilege-escalation scenarios.',
-    'Vulnerability Testing — validation of input handling, injection risks, insecure configurations, security headers, CORS, and API-specific weaknesses.',
-    'Manual Validation — business-logic review, exploitation verification, risk rating, and documentation of confirmed findings.',
+const WEB_ACTIVITIES: { desc: string; label: string }[] = [
+    {
+        desc: 'Identification of application workflows, endpoints, parameters, authentication flows, and exposed functionality.',
+        label: 'Discovery & Mapping',
+    },
+    {
+        desc: 'Review of login behaviour, authentication, JWT/session handling, session expiration, logout behaviour, and token revocation.',
+        label: 'Authentication & Session Testing',
+    },
+    {
+        desc: 'Validation of user authorisation controls across sensitive functions and user-specific resources, including privilege-escalation scenarios.',
+        label: 'Access Control Testing',
+    },
+    {
+        desc: 'Validation of input handling, injection risks, insecure configurations, security headers, CORS, and API-specific weaknesses.',
+        label: 'Vulnerability Testing',
+    },
+    {
+        desc: 'Review of security headers, TLS configuration, rate-limiting behaviour, exposed service information, and general hardening controls.',
+        label: 'Configuration Review',
+    },
+    {
+        desc: 'Verification of exploitability, assessment of business impact, risk rating, and documentation of confirmed findings.',
+        label: 'Manual Validation',
+    },
 ];
 
 interface ScopeMethodologyPdfProps {
@@ -74,28 +122,7 @@ const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
     const isCloud = model.flow.targetType === TargetType.Cloud;
     const engagementLabel = getEngagementLabel(model.flow.targetType) || 'Web Application';
 
-    // In-scope assets: the distinct hosts across the findings (a multi-host engagement
-    // lists several rows; a single-host one lists just that host). Falls back to the
-    // derived flow target when no finding URLs are available.
-    const targets = (() => {
-        const hosts = new Set<string>();
-
-        for (const finding of model.findings) {
-            for (const url of finding.affectedUrls ?? []) {
-                try {
-                    hosts.add(new URL(url).hostname);
-                } catch {
-                    if (url.trim()) {
-                        hosts.add(url.trim());
-                    }
-                }
-            }
-        }
-
-        const list = [...hosts];
-
-        return list.length > 0 ? list : [model.flow.target || 'In-scope assets'];
-    })();
+    const targets = deriveScopeTargets(model.findings, model.flow.target);
 
     return (
         <View id="scope">
@@ -104,34 +131,58 @@ const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
 
             {isCloud ? (
                 <Text style={styles.intro}>
-                    The assessment covered the in-scope cloud infrastructure assets using a risk-based testing approach
-                    aligned with cloud security best practices and the CIS Benchmarks. A combination of automated
-                    tooling and manual testing techniques was employed to identify and validate potential
-                    misconfigurations and vulnerabilities. Testing activities included:
+                    The assessment covered the in-scope cloud infrastructure assets. Testing followed a risk-based
+                    approach aligned with cloud security best practices and the CIS Benchmarks, using a combination of
+                    automated tooling and manual techniques to identify and validate misconfigurations and
+                    vulnerabilities.
                 </Text>
             ) : (
                 <Text style={styles.intro}>
-                    The assessment covered the in-scope Web Application and API assets using a risk-based testing
-                    approach aligned with the OWASP Web Security Testing Guide (WSTG) and the OWASP API Security Top 10.
-                    A combination of automated tooling and manual testing techniques was employed to identify and
-                    validate potential vulnerabilities. Testing activities included:
+                    The assessment covered the in-scope Web Application and API assets. Testing was focused on the
+                    functionality available through the provided assets and followed a risk-based approach aligned with
+                    the OWASP Web Security Testing Guide (WSTG) and the OWASP API Security Top 10, using a combination
+                    of automated tooling and manual techniques.
                 </Text>
             )}
 
-            <Bullets items={WEB_ACTIVITIES} />
+            <Text style={styles.lead}>Testing activities included:</Text>
+            {WEB_ACTIVITIES.map((activity) => (
+                <View
+                    key={activity.label}
+                    style={styles.activityItem}
+                >
+                    <Text style={styles.activityMarker}>•</Text>
+                    <Text style={styles.activityText}>
+                        <Text style={styles.activityLabel}>{activity.label}: </Text>
+                        {activity.desc}
+                    </Text>
+                </View>
+            ))}
 
+            <Text style={[styles.lead, { marginTop: 10 }]}>
+                The assessment was conducted with the following assets in the scope.
+            </Text>
             <View style={styles.table}>
                 <View style={styles.tHead}>
-                    <Text style={[styles.tHeadCell, { width: '60%' }]}>Asset / Target</Text>
-                    <Text style={[styles.tHeadCell, { width: '40%' }]}>Type</Text>
+                    <Text style={[styles.tHeadCell, { flex: 35 }]}>Assets</Text>
+                    <Text style={[styles.tHeadCell, { flex: 63 }]}>URLs</Text>
                 </View>
                 {targets.map((target, i) => (
                     <View
                         key={target}
-                        style={i % 2 === 1 ? styles.tRowAlt : styles.tRow}
+                        style={styles.tRow}
                     >
-                        <Text style={[styles.tCell, { width: '60%' }]}>{target}</Text>
-                        <Text style={[styles.tCell, { width: '40%' }]}>{engagementLabel}</Text>
+                        <Text style={[styles.tCellFill, { flex: 35 }]}>{i === 0 ? engagementLabel : ''}</Text>
+                        {target.startsWith('http') ? (
+                            <Link
+                                src={target}
+                                style={[styles.tLink, { flex: 63 }]}
+                            >
+                                {target}
+                            </Link>
+                        ) : (
+                            <Text style={[styles.tCellFill, { flex: 63 }]}>{target}</Text>
+                        )}
                     </View>
                 ))}
             </View>

@@ -8,26 +8,26 @@ import { CF_PDF } from './cf-brand';
 import { Bullets } from './pdf-primitives';
 
 const styles = StyleSheet.create({
-    // Facts table — borderless, green label cells, white value cells.
+    // Facts block — light-gray label cells (like the client report's gray label
+    // column) with plain values; only the title bar is severity-coloured.
     factLabel: {
-        backgroundColor: CF_PDF.greenBar,
-        color: CF_PDF.white,
+        backgroundColor: '#f3f4f6',
+        color: CF_PDF.ink,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 8.5,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
+        fontSize: 9,
+        paddingHorizontal: 6,
+        paddingVertical: 4,
     },
     factRow: {
         flexDirection: 'row',
-        marginBottom: 1,
+        gap: 2,
+        marginBottom: 2,
     },
     factValue: {
-        backgroundColor: '#f4f7f9',
         color: CF_PDF.ink,
-        fontFamily: 'Courier',
-        fontSize: 8.5,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
+        fontSize: 9,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
     },
     paragraph: {
         color: CF_PDF.body,
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     sectionLabel: {
-        color: CF_PDF.accentText,
+        color: CF_PDF.ink,
         fontFamily: 'Helvetica-Bold',
         fontSize: 9,
         letterSpacing: 0.4,
@@ -57,13 +57,11 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     titleBar: {
-        backgroundColor: CF_PDF.greenBar,
         marginBottom: 4,
         paddingHorizontal: 12,
         paddingVertical: 8,
     },
     titleText: {
-        color: CF_PDF.white,
         fontFamily: 'Helvetica-Bold',
         fontSize: 12,
         textAlign: 'center',
@@ -98,8 +96,8 @@ const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
 
     return (
         <View>
-            <View style={styles.titleBar}>
-                <Text style={styles.titleText}>{finding.title}</Text>
+            <View style={[styles.titleBar, { backgroundColor: style.pdf.solid }]}>
+                <Text style={[styles.titleText, { color: style.pdf.onSolid }]}>{finding.title}</Text>
             </View>
 
             {/* Facts — CVSS + Severity on one row, Targets below. No Finding ID. */}

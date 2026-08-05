@@ -14,27 +14,25 @@ export const CF_LOGO_DATA_URI =
  * rules, key-fact panels and links, per the CyberFortify brand guide.
  */
 export const CF_PDF = {
-    // Fortify green — brand primary accent (rules, highlights, success).
-    accent: '#2acc77',
+    // Sampled from the client's own report PDF (the "ideal" reference): a warm/olive
+    // green family, NOT the bluish Fortify teal we had before.
+    accent: '#307818', // dark green — section heading rules / pops
     accentBorder: '#bfe8d3',
-    accentDeep: '#209868', // turquoise, secondary/neon accent (brand)
-    // Green TEXT on white — the brand turquoise reads clearly; the bright Fortify
-    // green (#2acc77) is too light for legible text on white.
-    accentText: '#209868',
-    accentTint: '#e9f8f0', // pale green panel fill
+    accentDeep: '#307818',
+    accentText: '#307818', // dark green TEXT — headings, subheadings, labels, links
+    accentTint: '#eef7e7', // pale green panel fill
     amber: '#ffbd2e', // pending / warning
-    // Header/footer running bands — a clear gray, distinctly darker than the white body.
-    band: '#dfe4ea',
-    body: '#33424e',
+    // Header/footer running bands — a light gray band on the header only.
+    band: '#eef0f2',
+    body: '#333333',
     // Reserved brand tokens (used sparingly).
     electric: '#00c7ff', // AI-specific callouts only
-    // Brand turquoise (#209868) for filled title bars / table header rows with white
-    // text — it's a palette colour and dark enough for legible white text (the bright
-    // Fortify green #2acc77 is not).
-    greenBar: '#209868',
-    hairline: '#dbe3ea',
+    hairline: '#d7dce1',
     // Neutrals for body text on white pages.
     ink: '#0b1b28', // near-black, navy-tinted
+    // Lime green (from their tables) for header rows / matrix axis — DARK text on it.
+    lime: '#8dd873',
+    limeText: '#1f4d10', // dark green text on lime cells
     muted: '#6b7d8b',
     mutedOnNavy: '#9db4c8', // secondary text on navy grounds
     // Cyber blue navy — headings, cover base, table headers, masthead.

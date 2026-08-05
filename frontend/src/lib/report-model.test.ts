@@ -7,7 +7,7 @@ import { Severity, StatusType } from '@/graphql/types';
 import type { Finding } from './report-model';
 
 import { buildReportMarkdown } from './build-report-markdown';
-import { buildReportModel, deriveSummaryNarrative, mapFindings } from './build-report-model';
+import { buildReportModel, deriveScopeTargets, deriveSummaryNarrative, mapFindings } from './build-report-model';
 import { sampleFindings, sampleReportModel } from './report-sample';
 import { getSeverityStyle, getStatusStyle } from './severity-palette';
 
@@ -212,5 +212,40 @@ describe('mapFindings + buildReportModel (backend findings drive a coherent repo
     it('returns an empty list when findings are absent', () => {
         expect(mapFindings(null)).toEqual([]);
         expect(mapFindings(undefined)).toEqual([]);
+    });
+});
+
+describe('deriveScopeTargets', () => {
+    const withUrls = (urls: string[]): Finding[] => [{ ...sampleFindings[0], affectedUrls: urls }];
+
+    it('collapses the same host reached over http and https into one https entry', () => {
+        expect(deriveScopeTargets(withUrls(['http://example.com/a', 'https://example.com/b']))).toEqual([
+            'https://example.com',
+        ]);
+    });
+
+    it('drops raw backend IPs when a named host is in scope (the Host-header probing artefact)', () => {
+        // Exactly the flow-22 defect: the scan reached the site through its backend IPs.
+        const targets = deriveScopeTargets(
+            withUrls([
+                'https://bebekthapa.com.np/',
+                'http://13.215.239.219',
+                'https://13.215.239.219',
+                'http://52.74.6.109',
+                'https://52.74.6.109',
+            ]),
+        );
+
+        expect(targets).toEqual(['https://bebekthapa.com.np']);
+    });
+
+    it('keeps IP assets when the engagement has no named host', () => {
+        expect(deriveScopeTargets(withUrls(['http://10.0.0.5:8080/x', 'http://10.0.0.5:8080/y']))).toEqual([
+            'http://10.0.0.5:8080',
+        ]);
+    });
+
+    it('falls back to the flow target when no findings carry URLs', () => {
+        expect(deriveScopeTargets([], 'acme.test')).toEqual(['acme.test']);
     });
 });
