@@ -179,6 +179,9 @@ func main() {
 	}
 
 	params := map[string]any{
+		// Must mirror the production reporter context in providers/provider.go —
+		// omitting FindingsSpec silently renders the findings requirements as empty.
+		"FindingsSpec":            templates.StructuredFindingsSpec,
 		"ReportResultToolName":    tools.ReportResultToolName,
 		"SummarizationToolName":   "summarized_content",
 		"SummarizedContentPrefix": "[summarized]",
@@ -210,6 +213,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("render reporter.tmpl: %v", err)
 		}
+	}
+
+	// Guard against silently measuring a prompt whose findings requirements failed to
+	// render (a missing template param renders as empty, which looks like a huge quality
+	// regression in the metrics but is really a harness bug).
+	if !strings.Contains(systemPrompt, "Required content of each field") {
+		log.Fatalf("rendered prompt is missing the findings spec — check the template params")
 	}
 
 	// The report_result tool, exactly as the reporter executor registers it.

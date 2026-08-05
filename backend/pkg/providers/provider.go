@@ -507,6 +507,7 @@ func (fp *flowProvider) GetTaskResult(ctx context.Context, taskID int64) (*tools
 			"PlannedSubtasks":   subtasksInfo.Planned,
 		},
 		"system": {
+			"FindingsSpec":            templates.StructuredFindingsSpec,
 			"ReportResultToolName":    tools.ReportResultToolName,
 			"SummarizationToolName":   cast.SummarizationToolName,
 			"SummarizedContentPrefix": strings.ReplaceAll(csum.SummarizedContentPrefix, "\n", "\\n"),
