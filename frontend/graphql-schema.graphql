@@ -787,8 +787,12 @@ query assistantLogs($flowId: ID!, $assistantId: ID!) {
 
 fragment findingFragment on Finding {
     taskId
+    index
     title
     severity
+    severityUpdated
+    originalSeverity
+    originalCvss
     cvss
     cve
     affectedUrls
@@ -934,6 +938,32 @@ query settingsUser {
 }
 
 # ==================== Mutations ====================
+
+mutation updateFindingCvss($taskId: ID, $assistantId: ID, $index: Int!, $expectedTitle: String!, $cvss: Float!) {
+    updateFindingCvss(
+        taskId: $taskId
+        assistantId: $assistantId
+        index: $index
+        expectedTitle: $expectedTitle
+        cvss: $cvss
+    )
+}
+
+mutation updateFindingSeverity(
+    $taskId: ID
+    $assistantId: ID
+    $index: Int!
+    $expectedTitle: String!
+    $severity: Severity!
+) {
+    updateFindingSeverity(
+        taskId: $taskId
+        assistantId: $assistantId
+        index: $index
+        expectedTitle: $expectedTitle
+        severity: $severity
+    )
+}
 
 mutation addFavoriteFlow($flowId: ID!) {
     addFavoriteFlow(flowId: $flowId)

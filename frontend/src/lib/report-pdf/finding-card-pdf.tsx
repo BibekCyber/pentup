@@ -109,6 +109,12 @@ const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
                 <Text style={[styles.factLabel, { width: '18%' }]}>Severity</Text>
                 <Text style={[styles.factValue, { color: style.pdf.text, fontFamily: 'Helvetica-Bold', width: '40%' }]}>
                     {style.label}
+                    {/* An analyst override is a human judgement, not a recalculation: the
+                        CVSS cell above is intentionally empty, so label the rating rather
+                        than leave the reader wondering why no score is shown. */}
+                    {finding.severityUpdated && (
+                        <Text style={{ color: CF_PDF.muted, fontFamily: 'Helvetica' }}> (adjusted)</Text>
+                    )}
                 </Text>
             </View>
             <View style={styles.factRow}>

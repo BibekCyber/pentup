@@ -89,6 +89,18 @@ type Finding struct {
 	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered steps to reproduce or verify the finding, one plain-text step per item"`
 	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"Concrete remediation guidance to fix the vulnerability, in plain text without markdown"`
 	References       []string `json:"references,omitempty" jsonschema:"title=References" jsonschema_description:"Reference URLs that support the finding (OWASP, CWE, vendor advisories)"`
+
+	// Analyst triage. These are written by the application when a human re-rates a
+	// finding, never by the model: `jsonschema:"-"` keeps them out of the report_result
+	// tool schema, so the LLM cannot see, set or forge an override.
+	//
+	// Severity stays the single effective value that the whole report renders from, so
+	// an override needs no changes anywhere downstream. OriginalSeverity records what the
+	// model actually assessed, and OriginalCVSS parks the score: an override is a human
+	// judgement, not a recalculation, so the report shows no CVSS while one is in force.
+	SeverityUpdated  bool     `json:"severity_updated,omitempty" jsonschema:"-"`
+	OriginalSeverity string   `json:"original_severity,omitempty" jsonschema:"-"`
+	OriginalCVSS     *float64 `json:"original_cvss,omitempty" jsonschema:"-"`
 }
 
 type TaskResult struct {

@@ -258,6 +258,32 @@ func (r *mutationResolver) RenameFlow(ctx context.Context, flowID int64, title s
 	return model.ResultTypeSuccess, nil
 }
 
+// UpdateFindingCvss is the resolver for the updateFindingCvss field.
+func (r *mutationResolver) UpdateFindingCvss(ctx context.Context, taskID *int64, assistantID *int64, index int, expectedTitle string, cvss float64) (model.ResultType, error) {
+	r.Logger.WithFields(logrus.Fields{
+		"task": taskID, "assistant": assistantID, "index": index, "cvss": cvss,
+	}).Debug("update finding cvss")
+
+	return r.findingsMutation(ctx, taskID, assistantID, func(blob json.RawMessage) (json.RawMessage, error) {
+		return applyCVSSScore(blob, index, expectedTitle, cvss)
+	})
+}
+
+// UpdateFindingSeverity is the resolver for the updateFindingSeverity field.
+func (r *mutationResolver) UpdateFindingSeverity(ctx context.Context, taskID *int64, assistantID *int64, index int, expectedTitle string, severity model.Severity) (model.ResultType, error) {
+	if !severity.IsValid() {
+		return model.ResultTypeError, fmt.Errorf("invalid severity %q", severity)
+	}
+
+	r.Logger.WithFields(logrus.Fields{
+		"task": taskID, "assistant": assistantID, "index": index, "severity": severity,
+	}).Debug("update finding severity")
+
+	return r.findingsMutation(ctx, taskID, assistantID, func(blob json.RawMessage) (json.RawMessage, error) {
+		return applySeverityOverride(blob, index, expectedTitle, severity.String())
+	})
+}
+
 // CreateAssistant is the resolver for the createAssistant field.
 func (r *mutationResolver) CreateAssistant(ctx context.Context, flowID int64, modelProvider string, input string, useAgents bool) (*model.FlowAssistant, error) {
 	var (

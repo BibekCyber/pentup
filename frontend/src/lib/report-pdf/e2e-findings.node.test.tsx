@@ -19,10 +19,12 @@ const gqlFindings: FindingFragmentFragment[] = [
         evidence:
             'POST /api/auth/logout -> 200 OK; subsequent GET /api/auth/me with the same token -> 200 OK {id:33, role:TEACHER}.',
         impact: ['Persistent unauthorized access after logout', 'Stolen tokens cannot be revoked'],
+        index: 0,
         recommendation:
             'Maintain a server-side token denylist (Redis, keyed by jti) and invalidate tokens on logout and password change.',
         references: ['https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html'],
         severity: Severity.Critical,
+        severityUpdated: false,
         stepsToReproduce: [
             'Authenticate and capture the access token cookie.',
             'Call POST /api/auth/logout and observe 200 OK.',
@@ -36,9 +38,11 @@ const gqlFindings: FindingFragmentFragment[] = [
         description:
             '50+ rapid authentication requests are accepted without 429 responses or account lockout, enabling credential stuffing.',
         impact: ['Credential stuffing and brute force at scale'],
+        index: 1,
         recommendation:
             'Add express-rate-limit backed by Redis (for example 5 attempts / 15 minutes) and account lockout on the auth endpoints.',
         severity: Severity.Critical,
+        severityUpdated: false,
         taskId: '9',
         title: 'AUTH-002 Missing Rate Limiting',
     },
@@ -46,9 +50,11 @@ const gqlFindings: FindingFragmentFragment[] = [
         cvss: 6.1,
         description:
             'The API reflects arbitrary Origin headers with credentials allowed, weakening the same-origin policy.',
+        index: 2,
         recommendation:
             'Restrict CORS to an explicit allowlist and avoid reflecting arbitrary origins with credentials.',
         severity: Severity.Medium,
+        severityUpdated: false,
         taskId: '9',
         title: 'HTTP-001 CORS Misconfiguration',
     },
@@ -56,8 +62,10 @@ const gqlFindings: FindingFragmentFragment[] = [
         cvss: 5.3,
         description:
             'No HttpOnly/Secure/SameSite cookie flags and missing CSP / X-Frame-Options / X-Content-Type-Options headers.',
+        index: 3,
         recommendation: 'Set secure cookie attributes and add the standard security headers via Helmet.js.',
         severity: Severity.Medium,
+        severityUpdated: false,
         taskId: '9',
         title: 'HTTP-002 Missing Security Headers',
     },

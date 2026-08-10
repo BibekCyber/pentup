@@ -4,6 +4,25 @@ export type Severity = 'critical' | 'high' | 'informational' | 'low' | 'medium';
 
 export const SEVERITY_ORDER: Severity[] = ['critical', 'high', 'medium', 'low', 'informational'];
 
+// CVSS v3.1 bands, mirroring the table the report's appendix publishes to the client and
+// the server-side validation in pkg/tools. A score outside its severity's band contradicts
+// the report's own document.
+export const SEVERITY_BANDS: Record<Severity, { max: number; min: number }> = {
+    critical: { max: 10, min: 9 },
+    high: { max: 8.9, min: 7 },
+    informational: { max: 0, min: 0 },
+    low: { max: 3.9, min: 0.1 },
+    medium: { max: 6.9, min: 4 },
+};
+
+// Whether re-rating a finding to `severity` is a real change worth sending.
+//
+// Picking the severity a finding already has is normally a no-op — except when an override
+// is in force, where it IS the reset: after a CVSS-only edit the original severity equals
+// the current one, so a plain equality guard silently swallows "Reset to original".
+export const isSeverityChangeMeaningful = (finding: Finding, severity: Severity): boolean =>
+    finding.index !== undefined && (finding.severity !== severity || Boolean(finding.severityUpdated));
+
 export interface Finding {
     affectedUrls?: string[];
     cve?: string;
@@ -12,10 +31,16 @@ export interface Finding {
     evidence?: string;
     id: string;
     impact?: string[];
+    // Position in the stored findings array — the address used to re-rate a finding.
+    // Display order is severity-sorted, so list position is not a stable identifier.
+    index?: number;
+    originalCvss?: number;
+    originalSeverity?: Severity;
     recommendation?: string;
     references?: string[];
     screenshots?: ReportScreenshot[];
     severity: Severity;
+    severityUpdated?: boolean;
     stepsToReproduce?: string[];
     taskId?: string;
     title: string;

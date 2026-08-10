@@ -73,6 +73,13 @@ const assistantFindingsUserPrompt = `<assistant_assessment>
 
 Extract the structured security findings from the assessment above.`
 
+// AssistantFindingsSystemPrompt returns the exact system prompt used to extract findings
+// from an assistant-mode report, so out-of-band tooling (report regeneration) can reproduce
+// production behaviour instead of approximating it.
+func AssistantFindingsSystemPrompt(reportResultToolName string) string {
+	return fmt.Sprintf(assistantFindingsSystemPrompt, reportResultToolName, templates.StructuredFindingsSpec)
+}
+
 // ExtractFindings runs a single constrained reporter call (the report_result tool only)
 // over the assistant's report output to extract structured findings. It reuses the
 // existing reporter machinery, so no new LLM client or executor is introduced.
@@ -85,7 +92,7 @@ func (ap *assistantProvider) ExtractFindings(ctx context.Context, content string
 		return nil, nil
 	}
 
-	systemPrompt := fmt.Sprintf(assistantFindingsSystemPrompt, tools.ReportResultToolName, templates.StructuredFindingsSpec)
+	systemPrompt := AssistantFindingsSystemPrompt(tools.ReportResultToolName)
 	userPrompt := fmt.Sprintf(assistantFindingsUserPrompt, content)
 
 	result, err := ap.fp.performTaskResultReporter(ctx, nil, nil, systemPrompt, userPrompt, "assistant findings extraction")

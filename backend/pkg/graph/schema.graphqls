@@ -350,8 +350,15 @@ enum Severity {
 # report's finding cards and severity summary. String fields are plain prose.
 type Finding {
   taskId: ID!
+  # Position within the source findings array. Display order is sorted by severity, so
+  # this — not the list position — is what identifies a finding for editing.
+  index: Int!
   title: String!
   severity: Severity!
+  # True when an analyst re-rated this finding; originalSeverity is what the model assessed.
+  severityUpdated: Boolean!
+  originalSeverity: Severity
+  originalCvss: Float
   cvss: Float
   cve: String
   affectedUrls: [String!]
@@ -1016,6 +1023,29 @@ type Mutation {
   finishFlow(flowId: ID!): ResultType!
   deleteFlow(flowId: ID!): ResultType!
   renameFlow(flowId: ID!, title: String!): ResultType!
+
+  # Finding triage: re-rate a finding before issuing the report. Supply taskId for
+  # automation findings or assistantId for assistant-mode findings.
+  # expectedTitle pins the edit to the finding the analyst was actually looking at:
+  # findings are regenerated wholesale, so an index alone can silently address a
+  # different finding if the report was refreshed since the page loaded.
+  # Analyst-chosen CVSS score. Must sit inside the band its severity denotes, matching the
+  # CVSS-to-severity table the report's appendix publishes.
+  updateFindingCvss(
+    taskId: ID
+    assistantId: ID
+    index: Int!
+    expectedTitle: String!
+    cvss: Float!
+  ): ResultType!
+
+  updateFindingSeverity(
+    taskId: ID
+    assistantId: ID
+    index: Int!
+    expectedTitle: String!
+    severity: Severity!
+  ): ResultType!
 
   # Assistant management
   createAssistant(flowId: ID!, modelProvider: String!, input: String!, useAgents: Boolean!): FlowAssistant!

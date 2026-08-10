@@ -1,7 +1,10 @@
-import type { Finding } from '@/lib/report-model';
+import type { Finding, Severity } from '@/lib/report-model';
 
 import { SeverityBadge } from '@/components/shared/severity-badge';
 import { Card, CardContent } from '@/components/ui/card';
+
+import { FindingCvssControl } from './finding-cvss-control';
+import { FindingSeverityControl } from './finding-severity-control';
 
 const shorten = (text: string | undefined, max = 120): string => {
     if (!text) {
@@ -15,9 +18,20 @@ const shorten = (text: string | undefined, max = 120): string => {
 
 interface FlowReportFindingsSummaryProps {
     findings: Finding[];
+    // Supplied only where triage is possible; without them the table stays read-only.
+    onCvssChange?: (finding: Finding, cvss: number) => void;
+    onCvssOutOfRange?: (severity: string, min: number, max: number) => void;
+    onSeverityChange?: (finding: Finding, severity: Severity) => void;
+    severityPending?: boolean;
 }
 
-const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps) => {
+const FlowReportFindingsSummary = ({
+    findings,
+    onCvssChange,
+    onCvssOutOfRange,
+    onSeverityChange,
+    severityPending,
+}: FlowReportFindingsSummaryProps) => {
     if (findings.length === 0) {
         return null;
     }
@@ -42,6 +56,7 @@ const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps)
                                     <th className="px-4 py-2.5 font-medium">#</th>
                                     <th className="px-4 py-2.5 font-medium">Finding</th>
                                     <th className="px-4 py-2.5 font-medium">Severity</th>
+                                    <th className="px-4 py-2.5 font-medium">CVSS</th>
                                     <th className="px-4 py-2.5 font-medium">Recommendation</th>
                                 </tr>
                             </thead>
@@ -63,7 +78,29 @@ const FlowReportFindingsSummary = ({ findings }: FlowReportFindingsSummaryProps)
                                             </a>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <SeverityBadge severity={finding.severity} />
+                                            {onSeverityChange ? (
+                                                <FindingSeverityControl
+                                                    disabled={severityPending}
+                                                    finding={finding}
+                                                    onChange={onSeverityChange}
+                                                />
+                                            ) : (
+                                                <SeverityBadge severity={finding.severity} />
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {onCvssChange ? (
+                                                <FindingCvssControl
+                                                    disabled={severityPending}
+                                                    finding={finding}
+                                                    onChange={onCvssChange}
+                                                    onOutOfRange={onCvssOutOfRange ?? (() => undefined)}
+                                                />
+                                            ) : (
+                                                <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                                                    {finding.cvss?.toFixed(1) ?? '—'}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="text-muted-foreground max-w-md px-4 py-3 text-xs">
                                             {shorten(finding.recommendation)}

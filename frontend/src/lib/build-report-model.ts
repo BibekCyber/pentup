@@ -42,9 +42,13 @@ export const mapFindings = (findings: null | readonly FindingFragmentFragment[] 
         evidence: finding.evidence ?? undefined,
         id: `finding-${finding.taskId}-${index}`,
         impact: finding.impact ?? undefined,
+        index: finding.index,
+        originalCvss: finding.originalCvss ?? undefined,
+        originalSeverity: finding.originalSeverity ? SEVERITY_MAP[finding.originalSeverity] : undefined,
         recommendation: finding.recommendation ?? undefined,
         references: finding.references ?? undefined,
         severity: SEVERITY_MAP[finding.severity] ?? 'informational',
+        severityUpdated: finding.severityUpdated,
         stepsToReproduce: finding.stepsToReproduce ?? undefined,
         taskId: finding.taskId,
         title: finding.title,
@@ -113,7 +117,7 @@ export const deriveScopeTargets = (findings: readonly Finding[], fallback?: stri
     }
 
     const hosts = [...byHost.entries()];
-    const named = hosts.filter(([host]) => !IPV4_HOST.test(host.split(':')[0]));
+    const named = hosts.filter(([host]) => !IPV4_HOST.test(host.split(':')[0] ?? host));
     const kept = named.length > 0 ? named : hosts;
     const urls = kept.map(([host, scheme]) => `${scheme}//${host}`).sort();
     const targets = [...urls, ...unparsed];
@@ -328,16 +332,17 @@ export const buildReportModel = (
 
     // The dynamic per-task "Methodology" section was dropped from the report, so the
     // TOC lists only the fixed deliverable sections that actually render.
+    // Contents of the on-screen report. Scope & Methodology and the Appendix are fixed
+    // boilerplate that only the exported PDF renders, so listing them here would be a link
+    // to nothing; the PDF carries its own structure.
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
-        { id: 'scope', level: 1, title: 'Scope & Methodology' },
         ...(hasFindings
             ? ([
                   { id: 'findings-summary', level: 1, title: 'Finding Summary' },
                   { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
               ] as ReportTocEntry[])
             : []),
-        { id: 'appendix', level: 1, title: 'Appendix' },
     ];
 
     return {
