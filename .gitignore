@@ -9,6 +9,9 @@ docs
 
 backend/tmp
 backend/build
+backend/.envrc
+backend/.air.toml
+backend/data/
 
 frontend/coverage
 frontend/dist
