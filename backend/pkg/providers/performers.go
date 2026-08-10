@@ -26,8 +26,11 @@ func (fp *flowProvider) performTaskResultReporter(
 	systemReporterTmpl, userReporterTmpl, input string,
 ) (*tools.TaskResult, error) {
 	var (
-		taskResult   tools.TaskResult
-		optAgentType = pconfig.OptionsTypeSimple
+		taskResult tools.TaskResult
+		// The reporter emits every structured finding in a single response, so it runs
+		// on its own options profile with a larger token ceiling. Providers that define
+		// no "reporter" block fall back to "simple", i.e. their previous behaviour.
+		optAgentType = pconfig.OptionsTypeReporter
 		msgChainType = database.MsgchainTypeReporter
 	)
 

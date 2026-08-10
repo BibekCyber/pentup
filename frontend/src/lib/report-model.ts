@@ -1,4 +1,4 @@
-import { StatusType } from '@/graphql/types';
+import { StatusType, TargetType } from '@/graphql/types';
 
 export type Severity = 'critical' | 'high' | 'informational' | 'low' | 'medium';
 
@@ -22,6 +22,9 @@ export interface Finding {
 }
 
 export interface ReportModel {
+    // Client the report is prepared for (drives the header + confidentiality copy).
+    // Optional so a report renders before a name is entered.
+    clientName?: string;
     executiveSummary?: {
         content: string;
         generatedAt: string;
@@ -33,9 +36,16 @@ export interface ReportModel {
         startedAt?: string;
         status: StatusType;
         target?: string;
+        // Engagement class of the parent scan (Web / Cloud). Reports state the
+        // engagement type rather than the raw flow title; optional so older
+        // reports built without it still render.
+        targetType?: TargetType;
         title: string;
     };
     generatedAt: string;
+    // Auto-derived executive-summary bullet lists (no manual edit yet).
+    initialRecommendations: string[];
+    positiveFindings: string[];
     sections: ReportSection[];
     sectionsTitle?: string;
     summary: ReportSummary;

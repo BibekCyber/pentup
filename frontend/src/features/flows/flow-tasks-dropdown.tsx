@@ -123,12 +123,12 @@ const FlowTasksDropdown = ({ disabled, onChange, value }: FlowTasksDropdownProps
                     size="icon"
                     variant="outline"
                 >
-                    <ListFilter className={cn(hasActiveFilters ? 'text-foreground' : 'text-muted-foreground')} />
+                    <ListFilter className={cn(hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
                 align="end"
-                className="w-[360px] p-0"
+                className="w-[min(360px,calc(100vw-2rem))] p-0"
             >
                 <Command>
                     <CommandInput placeholder="Search tasks..." />

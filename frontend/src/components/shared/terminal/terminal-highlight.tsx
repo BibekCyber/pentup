@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -49,10 +49,7 @@ const MAX_SCAN_LINES = 2_000; // lines sampled for content-type detection
 // ---------------------------------------------------------------------------
 const URL_REDACT = String.raw`(?<url>https?:\/\/[^\s"'\`<>]+)|(?<redact>§\*+[^§\n]*?\*+§?)`;
 const OUTPUT_RE = new RegExp(URL_REDACT, 'g');
-const COMMAND_RE = new RegExp(
-    `${URL_REDACT}|(?<str>"[^"\\n]*"|'[^'\\n]*')|(?<flag>(?<=^|\\s)--?[A-Za-z][\\w-]*)`,
-    'g',
-);
+const COMMAND_RE = new RegExp(`${URL_REDACT}|(?<str>"[^"\\n]*"|'[^'\\n]*')|(?<flag>(?<=^|\\s)--?[A-Za-z][\\w-]*)`, 'g');
 // JSON, tokenized in place (no reformat): keys before ':' win over plain strings.
 const JSON_RE =
     /(?<key>"(?:[^"\\]|\\.)*"(?=\s*:))|(?<str>"(?:[^"\\]|\\.)*")|(?<bool>\b(?:true|false|null)\b)|(?<num>-?\b\d[\d.eE+-]*\b)|(?<punct>[{}[\],:])/g;
@@ -152,8 +149,15 @@ export const detectBlockType = (texts: string[]): LineType => {
 
 const DIVIDER_RE = /^\s*[-=_*~]{3,}\s*$/;
 const SUCCESS_RE = /(^|\s)(→|✓|✔|\[ok\]|success(ful)?|passed|completed|confirmed|enabled|granted|valid\b)/i;
-const ERROR_RE = /(error|fail(ed|ure)?|denied|refus|invalid|unauthoriz|forbidden|fatal|traceback|exception|not found|no such|cannot|permission denied)/i;
+const ERROR_RE =
+    /(error|fail(ed|ure)?|denied|refus|invalid|unauthoriz|forbidden|fatal|traceback|exception|not found|no such|cannot|permission denied)/i;
 const WARN_RE = /(warn(ing)?|deprecat|timed? ?out|skipp|retry|retrying|not blocked)/i;
+// A zeroed / negated count is a healthy result, not a problem — "0 errors",
+// "no warnings", "none failed" must not paint the whole line red or amber. Checked
+// before ERROR/WARN so a clean summary line reads as success. One extra test only
+// on lines that aren't already classified, so this adds no meaningful cost.
+const NEGATED_COUNT_RE =
+    /(^|\s)(0|no|none|zero|without)\s+(errors?|failures?|faults?|warnings?|issues?|problems?|vulnerabilit(?:y|ies))\b/i;
 
 const textLineBase = (text: string): string | undefined => {
     if (/^\s*#/.test(text)) {
@@ -165,6 +169,10 @@ const textLineBase = (text: string): string | undefined => {
     }
 
     if (SUCCESS_RE.test(text)) {
+        return 'term-success';
+    }
+
+    if (NEGATED_COUNT_RE.test(text)) {
         return 'term-success';
     }
 
@@ -235,7 +243,10 @@ const flattenLines = (lines: { isErr: boolean; text: string }[]): { isErr: boole
         for (const sub of stripAnsi(raw).split('\n')) {
             flat.push({
                 isErr: line.isErr,
-                text: sub.length > MAX_LINE_CHARS ? `${sub.slice(0, MAX_LINE_CHARS)} … [line truncated — full text in Raw tab]` : sub,
+                text:
+                    sub.length > MAX_LINE_CHARS
+                        ? `${sub.slice(0, MAX_LINE_CHARS)} … [line truncated — full text in Raw tab]`
+                        : sub,
             });
 
             if (flat.length >= MAX_FLAT_LINES) {
@@ -247,6 +258,95 @@ const flattenLines = (lines: { isErr: boolean; text: string }[]): { isErr: boole
     return flat;
 };
 
+// Lines highlighted eagerly on first paint. Both output containers scroll inside a fixed
+// box — CommandPane is max-h-[26rem] (~23 lines) and TermOutputCard is max-h-[320px]
+// (~17 lines) — so 24 comfortably covers either box's initial fold: whatever is visible on
+// load is coloured immediately, with no plain→highlighted flash. Everything past this
+// renders as plain text and upgrades in place as it scrolls into view.
+const EAGER_LINES = 24;
+// The observer root is the viewport (each output box scrolls inside its own overflow-auto
+// container, which the observer still respects). This margin therefore preloads a whole
+// output box just before it scrolls into the outer view; a line revealed by scrolling
+// *within* a single box upgrades as it enters that box (one frame behind, self-healing).
+const HIGHLIGHT_ROOT_MARGIN = '400px';
+
+/**
+ * One output line. It renders as plain text until it is near the viewport, then upgrades
+ * to the content-aware highlighted render *in place* — the wrapper <div> (className, key,
+ * style) is byte-identical across the flip, so the one-shot fade-in never re-fires. The
+ * full plain text is in the DOM from first paint, so find-in-page and the copy button
+ * always see the complete output, and the `base` line colour (success/error/warn) is on
+ * the wrapper so it shows immediately; only the per-token tokenising is deferred. That
+ * deferral — the expensive part — is what stops a flow with many command panes from
+ * stalling on load. If IntersectionObserver is unavailable (SSR / jsdom / very old
+ * browsers) every line highlights eagerly, identical to the previous behaviour.
+ *
+ * Memoised on its (primitive) props: live output arrives via subscription, which
+ * re-renders the whole pane on every appended line. Without this, every already-
+ * rendered line re-runs the tokeniser each tick even though its text is unchanged;
+ * memo keeps highlighting proportional to *new* lines, not the whole visible buffer.
+ * This is what keeps accuracy improvements from costing anything at render time.
+ */
+const TermLine = memo(
+    ({
+        base,
+        delay,
+        eager,
+        isErr,
+        text,
+    }: {
+        base: string | undefined;
+        delay: string;
+        eager: boolean;
+        isErr: boolean;
+        text: string;
+    }) => {
+        const [lit, setLit] = useState(eager || typeof IntersectionObserver === 'undefined');
+        const ref = useRef<HTMLDivElement>(null);
+
+        useEffect(() => {
+            if (lit) {
+                return;
+            }
+
+            // IntersectionObserver-unavailable (SSR / jsdom / old browsers) is already handled
+            // by the initial `lit` state, so past the `if (lit)` guard IO is always defined and
+            // the committed ref is always set; `!el` is just a type guard.
+            const el = ref.current;
+
+            if (!el) {
+                return;
+            }
+
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries.some((entry) => entry.isIntersecting)) {
+                        setLit(true);
+                        observer.disconnect();
+                    }
+                },
+                { rootMargin: HIGHLIGHT_ROOT_MARGIN },
+            );
+
+            observer.observe(el);
+
+            return () => observer.disconnect();
+        }, [lit]);
+
+        return (
+            <div
+                className={cn('term-line break-all whitespace-pre-wrap', base)}
+                ref={ref}
+                style={{ animationDelay: delay }}
+            >
+                {lit ? renderOutputLine(text, isErr) : text}
+            </div>
+        );
+    },
+);
+
+TermLine.displayName = 'TermLine';
+
 /**
  * A command's output block: each line detected + coloured by content type, with a
  * subtle staggered fade-in so output reads as if it is streaming in one line at a
@@ -255,29 +355,30 @@ const flattenLines = (lines: { isErr: boolean; text: string }[]): { isErr: boole
  * `maxLines` caps how many lines are rendered (one <div> each — there is no
  * virtualization here) so a huge output can't flood the DOM; the overflow count is
  * shown as a trailing note. The full text is still available via the copy button and
- * the Raw terminal tab.
+ * the Raw terminal tab. Off-screen lines are highlighted lazily as they scroll into
+ * view (see TermLine) so a flow with many panes doesn't stall on load.
  */
 export const TermOutput = ({ lines, maxLines }: { lines: { isErr: boolean; text: string }[]; maxLines?: number }) => {
-    const flat = flattenLines(lines);
+    // Re-split the source logs only when they change, not on every parent re-render;
+    // callers pass a memoised `lines`, so streaming a new pane elsewhere no longer
+    // re-flattens this one's whole preview.
+    const flat = useMemo(() => flattenLines(lines), [lines]);
     const hidden = maxLines != null && flat.length > maxLines ? flat.length - maxLines : 0;
     const shown = hidden > 0 ? flat.slice(0, maxLines) : flat;
 
     return (
         <>
-            {shown.map((line, i) => {
-                const base = line.isErr ? 'term-error' : textLineBase(line.text);
-
-                return (
-                    <div
-                        className={cn('term-line break-all whitespace-pre-wrap', base)}
-                        // output lines are positional and have no stable id
-                        key={i}
-                        style={{ animationDelay: lineDelay(i) }}
-                    >
-                        {renderOutputLine(line.text, line.isErr)}
-                    </div>
-                );
-            })}
+            {shown.map((line, i) => (
+                <TermLine
+                    base={line.isErr ? 'term-error' : textLineBase(line.text)}
+                    delay={lineDelay(i)}
+                    eager={i < EAGER_LINES}
+                    isErr={line.isErr}
+                    // output lines are positional and have no stable id
+                    key={i}
+                    text={line.text}
+                />
+            ))}
             {hidden > 0 ? <div className="term-muted mt-1 select-none">+{hidden} more lines</div> : null}
         </>
     );

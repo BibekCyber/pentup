@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     AlertCircle,
-    Bot,
     CheckCircle,
     Code,
     FileDiff,
@@ -21,6 +20,7 @@ import { z } from 'zod';
 
 import type { AgentPrompt, AgentPrompts, DefaultPrompt, PromptType } from '@/graphql/types';
 
+import { AgentMonogram } from '@/components/shared/agent-monogram';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -143,18 +143,18 @@ const Variables: React.FC<VariablesProps> = ({ currentTemplate, onVariableClick,
     const usedVariables = getUsedVariables(currentTemplate);
 
     return (
-        <div className="bg-muted/50 mb-4 rounded-md border p-3">
-            <h4 className="text-muted-foreground mb-2 text-sm font-medium">Available Variables:</h4>
+        <div className="bg-well border-border-strong mb-4 rounded-md border p-3">
+            <h4 className="mb-2 block overline">Available Variables</h4>
             <div className="flex flex-wrap gap-1">
                 {variables.map((variable) => {
                     const isUsed = usedVariables.has(variable);
 
                     return (
                         <code
-                            className={`cursor-pointer rounded border px-2 py-1 font-mono text-xs transition-colors ${
+                            className={`cursor-pointer rounded border px-2 py-1 font-mono text-xs tracking-wide transition-colors ${
                                 isUsed
-                                    ? 'border-green-300 bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-background text-foreground hover:bg-accent'
+                                    ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20'
+                                    : 'border-border-strong bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'
                             }`}
                             key={variable}
                             onClick={() => onVariableClick(variable)}
@@ -533,7 +533,6 @@ const SettingsPrompt = () => {
 
         // For creation, check if the template is identical to the default
         if (!isUpdate && formData.template === promptInfo.defaultSystemTemplate) {
-
             return;
         }
 
@@ -585,7 +584,6 @@ const SettingsPrompt = () => {
 
         // For creation, check if the template is identical to the default
         if (!isUpdate && formData.template === promptInfo.defaultHumanTemplate) {
-
             return;
         }
 
@@ -750,20 +748,24 @@ const SettingsPrompt = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    {promptInfo.type === 'agent' ? (
-                        <Bot className="text-muted-foreground size-5" />
-                    ) : (
-                        <Wrench className="text-muted-foreground size-5" />
-                    )}
-                    {promptInfo.displayName}
-                </h2>
-
-                <div className="text-muted-foreground">
-                    {promptInfo.type === 'agent'
-                        ? 'Configure prompts for this AI agent'
-                        : 'Configure the prompt for this tool'}
+            <div className="flex items-center gap-3">
+                {promptInfo.type === 'agent' ? (
+                    <AgentMonogram
+                        size="lg"
+                        type={promptId ?? ''}
+                    />
+                ) : (
+                    <span className="border-border bg-muted text-muted-foreground grid size-[30px] shrink-0 place-items-center rounded-md border">
+                        <Wrench className="size-4" />
+                    </span>
+                )}
+                <div className="flex flex-col gap-0.5">
+                    <h2 className="text-lg font-semibold">{promptInfo.displayName}</h2>
+                    <div className="text-muted-foreground text-sm">
+                        {promptInfo.type === 'agent'
+                            ? 'Configure prompts for this AI agent'
+                            : 'Configure the prompt for this tool'}
+                    </div>
                 </div>
             </div>
 
@@ -869,7 +871,7 @@ const SettingsPrompt = () => {
             </Tabs>
 
             {/* Sticky footer with variables and buttons */}
-            <div className="bg-background sticky -bottom-4 -mx-4 mt-4 -mb-4 border-t p-4 shadow-lg">
+            <div className="bg-background border-border-strong sticky -bottom-4 -mx-4 mt-4 -mb-4 border-t p-4">
                 {/* Variables */}
                 {variablesData && (
                     <Variables
@@ -880,7 +882,7 @@ const SettingsPrompt = () => {
                 )}
 
                 {/* Action buttons */}
-                <div className="flex items-center">
+                <div className="flex flex-wrap items-center gap-y-2">
                     <div className="flex gap-2">
                         {/* Reset button - only show when user has custom prompt */}
                         {((activeTab === 'system' && promptInfo?.userSystemPrompt) ||
@@ -936,7 +938,7 @@ const SettingsPrompt = () => {
                                 disabled={isLoading}
                                 form="system-prompt-form"
                                 type="submit"
-                                variant="secondary"
+                                variant="default"
                             >
                                 {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 {isLoading ? 'Saving...' : 'Save Changes'}
@@ -947,7 +949,7 @@ const SettingsPrompt = () => {
                                 disabled={isLoading}
                                 form="human-prompt-form"
                                 type="submit"
-                                variant="secondary"
+                                variant="default"
                             >
                                 {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                                 {isLoading ? 'Saving...' : 'Save Changes'}

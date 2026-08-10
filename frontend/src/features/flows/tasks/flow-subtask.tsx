@@ -66,7 +66,7 @@ const FlowSubtask = ({ commands, onToggleCommands, searchValue = '', subtask }: 
     return (
         <div className="group relative flex gap-2.5 pb-4 pl-0.5">
             <FlowTaskStatusIcon
-                className="bg-background ring-border ring-background relative z-1 mt-px rounded-full ring-3"
+                className="bg-card ring-border ring-card relative z-1 mt-px rounded-full ring-3"
                 status={status}
                 tooltip={`Subtask ID: ${id}`}
             />
@@ -148,7 +148,7 @@ const FlowSubtask = ({ commands, onToggleCommands, searchValue = '', subtask }: 
                     </div>
                 )}
             </div>
-            <div className="absolute top-0 left-[calc((--spacing(2.5))-0.5px)] h-full border-l group-last:hidden"></div>
+            <div className="border-border-strong absolute top-0 left-[calc((--spacing(2.5))-0.5px)] h-full border-l group-last:hidden"></div>
         </div>
     );
 };

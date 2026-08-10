@@ -5,10 +5,6 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
-import type { OAuthProvider } from '@/providers/user-provider';
-
-import Github from '@/components/icons/github';
-import Google from '@/components/icons/google';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -34,33 +30,12 @@ const formSchema = z.object({
 });
 
 const errorMessage = 'Invalid login or password';
-const errorProviderMessage = 'Authentication failed';
-
-interface AuthProviderAction {
-    icon: React.ReactNode;
-    id: OAuthProvider;
-    name: string;
-}
-
-const providerActions: AuthProviderAction[] = [
-    {
-        icon: <Google className="size-5" />,
-        id: 'google',
-        name: 'Continue with Google',
-    },
-    {
-        icon: <Github className="size-5" />,
-        id: 'github',
-        name: 'Continue with GitHub',
-    },
-];
 
 interface LoginFormProps {
-    providers: string[]; // OAuth providers: ['google', 'github']
     returnUrl?: string;
 }
 
-const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
+const LoginForm = ({ returnUrl = '/flows/new' }: LoginFormProps) => {
     const form = useForm<z.infer<typeof formSchema>>({
         defaultValues: {
             mail: '',
@@ -72,7 +47,7 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
     const [error, setError] = useState<null | string>(null);
     const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
     const navigate = useNavigate();
-    const { authInfo, isAuthenticated, login, loginWithOAuth, setAuth } = useUser();
+    const { authInfo, isAuthenticated, login, setAuth } = useUser();
 
     const handleSubmit = async (values: z.infer<typeof formSchema>) => {
         setError(null);
@@ -96,27 +71,6 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
             navigate(returnUrl);
         } catch {
             setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleProviderLogin = async (provider: OAuthProvider) => {
-        setError(null);
-        setIsSubmitting(true);
-
-        try {
-            const result = await loginWithOAuth(provider);
-
-            if (!result.success) {
-                setError(result.error || errorProviderMessage);
-
-                return;
-            }
-
-            navigate(returnUrl);
-        } catch (error) {
-            setError(error instanceof Error ? error.message : errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -158,17 +112,20 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
 
     if (shouldShowPasswordChange) {
         return (
-            <div className="mx-auto flex w-[350px] flex-col gap-6">
-                <h1 className="text-center text-3xl font-bold">Update Password</h1>
-                <p className="text-muted-foreground text-center text-sm">
+            <div className="w-full max-w-[360px]">
+                <div className="mb-3.5 overline">Operator access</div>
+                <h2 className="text-foreground text-[22px] font-bold tracking-tight">Update Password</h2>
+                <p className="text-muted-foreground mt-1.5 text-[13px]">
                     You need to change your password before continuing.
                 </p>
-                <PasswordChangeForm
-                    isModal={false}
-                    onSkip={handleSkipPasswordChange}
-                    onSuccess={handlePasswordChangeSuccess}
-                    showSkip={true}
-                />
+                <div className="mt-6">
+                    <PasswordChangeForm
+                        isModal={false}
+                        onSkip={handleSkipPasswordChange}
+                        onSuccess={handlePasswordChangeSuccess}
+                        showSkip={true}
+                    />
+                </div>
             </div>
         );
     }
@@ -176,53 +133,26 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
     return (
         <Form {...form}>
             <form
-                className="mx-auto grid w-[350px] gap-8"
+                className="w-full max-w-[360px]"
                 onSubmit={form.handleSubmit(handleSubmit)}
             >
-                <h1 className="text-center text-3xl font-bold">PentAGI</h1>
+                <div className="mb-3.5 overline">Operator access</div>
+                <h2 className="text-foreground text-[22px] font-bold tracking-tight">Sign in</h2>
+                <p className="text-muted-foreground mt-1.5 text-[13px]">Enter your credentials to reach the console.</p>
 
-                {providers?.length > 0 && (
-                    <>
-                        <div className="flex flex-col gap-4">
-                            {providerActions
-                                .filter((provider) => providers.includes(provider.id))
-                                .map((provider) => (
-                                    <Button
-                                        disabled={isSubmitting}
-                                        key={provider.id}
-                                        onClick={() => handleProviderLogin(provider.id)}
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        {provider.icon}
-                                        {provider.name}
-                                    </Button>
-                                ))}
-                        </div>
-
-                        <div className="relative -mb-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="border-border w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="bg-background px-2">or</span>
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                <div className="flex flex-col gap-4">
+                <div className="mt-6 flex flex-col gap-4">
                     <FormField
                         control={form.control}
                         name="mail"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Login</FormLabel>
+                                <FormLabel className="field-label">Email</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
+                                        autoComplete="username"
                                         autoFocus
-                                        placeholder="Enter your email"
+                                        placeholder="you@company.com"
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -235,21 +165,26 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
+                                <div className="flex items-center justify-between">
+                                    <FormLabel className="field-label m-0">Password</FormLabel>
+                                    <span className="text-primary cursor-pointer font-mono text-[11px]">Forgot?</span>
+                                </div>
                                 <FormControl>
                                     <Input
                                         {...field}
-                                        placeholder="Enter your password"
+                                        autoComplete="current-password"
+                                        placeholder="••••••••••••"
                                         type="password"
                                     />
                                 </FormControl>
+                                <div className="field-hint">12+ chars · upper/lower/number/symbol</div>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
 
                     <Button
-                        className="w-full"
+                        className="mt-2 w-full"
                         disabled={isSubmitting || (!form.formState.isValid && form.formState.isSubmitted)}
                         type="submit"
                     >
@@ -259,6 +194,10 @@ const LoginForm = ({ providers, returnUrl = '/flows/new' }: LoginFormProps) => {
 
                     {error && <FormMessage>{error}</FormMessage>}
                 </div>
+
+                <p className="text-muted-foreground mt-6 text-center text-[11.5px] leading-relaxed">
+                    Protected by secure session cookies. New operators are provisioned by an administrator.
+                </p>
             </form>
         </Form>
     );

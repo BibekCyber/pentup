@@ -1,7 +1,8 @@
-import type { Finding, ReportModel, ReportSection } from './report-model';
+import type { Finding, ReportModel } from './report-model';
 
 import { SEVERITY_ORDER } from './report-model';
-import { getSeverityStyle, getStatusStyle } from './severity-palette';
+import { getSeverityStyle } from './severity-palette';
+import { getEngagementLabel } from './target-type-colors';
 
 const findingHeading = (finding: Finding, index: number): string => {
     const style = getSeverityStyle(finding.severity);
@@ -68,33 +69,16 @@ const renderFinding = (finding: Finding, index: number): string => {
     return lines.join('\n');
 };
 
-const renderSection = (section: ReportSection): string => {
-    const status = getStatusStyle(section.status);
-    const lines: string[] = [`## ${section.title} — ${status.label}`, ''];
-
-    if (section.resultMarkdown) {
-        lines.push(section.resultMarkdown.trim(), '');
-    }
-
-    if (section.subtasks.length > 0) {
-        lines.push('### Subtasks', '');
-        section.subtasks.forEach((subtask) => {
-            const subStatus = getStatusStyle(subtask.status);
-            lines.push(`#### ${subtask.title} — ${subStatus.label}`, '');
-
-            if (subtask.resultMarkdown) {
-                lines.push(subtask.resultMarkdown.trim(), '');
-            }
-        });
-    }
-
-    return lines.join('\n');
-};
-
 export const buildReportMarkdown = (model: ReportModel): string => {
-    const lines: string[] = [`# ${model.flow.title}`, ''];
+    const engagement = getEngagementLabel(model.flow.targetType);
+    const lines: string[] = [
+        `# ${engagement || model.flow.title} — Penetration Test Report`,
+        '',
+        '_By CyberFortify_',
+        '',
+    ];
 
-    const meta: string[] = [`**Status:** ${getStatusStyle(model.flow.status).label}`];
+    const meta: string[] = [];
 
     if (model.flow.target) {
         meta.push(`**Target:** ${model.flow.target}`);
@@ -104,7 +88,9 @@ export const buildReportMarkdown = (model: ReportModel): string => {
         meta.push(`**Duration:** ${model.summary.duration}`);
     }
 
-    lines.push(meta.join('  \n'), '');
+    if (meta.length > 0) {
+        lines.push(meta.join('  \n'), '');
+    }
 
     lines.push('## Executive Summary', '');
 
@@ -128,22 +114,31 @@ export const buildReportMarkdown = (model: ReportModel): string => {
     );
 
     if (model.findings.length > 0) {
-        lines.push('## Findings Summary', '', '| # | Finding | Severity | Recommendation |', '| --- | --- | --- | --- |');
+        lines.push(
+            '## Findings Summary',
+            '',
+            '| # | Finding | Severity | Recommendation |',
+            '| --- | --- | --- | --- |',
+        );
         model.findings.forEach((finding, idx) => {
             const recommendation = (finding.recommendation ?? '').replaceAll('\n', ' ').slice(0, 140);
-            lines.push(`| ${idx + 1} | ${finding.title} | ${getSeverityStyle(finding.severity).label} | ${recommendation} |`);
+            lines.push(
+                `| ${idx + 1} | ${finding.title} | ${getSeverityStyle(finding.severity).label} | ${recommendation} |`,
+            );
         });
         lines.push('');
 
-        lines.push('## Detailed Findings', '', '_Findings are ordered by severity. Risk ratings are technical and based on CVSS v3.1._', '');
+        lines.push(
+            '## Detailed Findings',
+            '',
+            '_Findings are ordered by severity. Risk ratings are technical and based on CVSS v3.1._',
+            '',
+        );
         model.findings.forEach((finding, idx) => lines.push(renderFinding(finding, idx + 1)));
     }
 
-    if (model.sectionsTitle && model.sections.length > 0) {
-        lines.push(`## ${model.sectionsTitle}`, '');
-    }
-
-    model.sections.forEach((section) => lines.push(renderSection(section)));
+    // The dynamic per-task methodology / assistant conversation log is intentionally
+    // omitted from the deliverable (PDF, web view and markdown alike).
 
     return lines.join('\n').trim();
 };

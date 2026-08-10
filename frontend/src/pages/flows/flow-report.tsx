@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import type { ReportModel } from '@/lib/report-model';
 
 import Logo from '@/components/icons/logo';
 import FlowReportView from '@/features/flows/report/flow-report-view';
-import { useAssistantLogsQuery, useAssistantsQuery, useFlowReportQuery } from '@/graphql/types';
+import { useAssistantLogsQuery, useAssistantsQuery, useDomainsQuery, useFlowReportQuery } from '@/graphql/types';
 import { assistantSampleReportModel } from '@/lib/assistant-report-sample';
 import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
@@ -20,6 +20,7 @@ type ReportState = 'content' | 'error' | 'generating' | 'loading';
 
 const FlowReport = () => {
     const { flowId } = useParams<{ flowId: string }>();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const download = searchParams.has('download');
     const silent = searchParams.has('silent');
@@ -29,6 +30,33 @@ const FlowReport = () => {
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [downloadState, setDownloadState] = useState<ReportState>(download ? 'generating' : 'content');
 
+    // Client the report is prepared for — typed in the report view, flows into the
+    // header, confidentiality copy and cover of the exported PDF/markdown. Stored
+    // strictly PER FLOW in localStorage so each flow keeps its own client name and
+    // one flow never pre-fills another's.
+    const clientStorageKey = flowId ? `report:clientName:${flowId}` : null;
+    const [clientName, setClientName] = useState<string>(() => {
+        if (typeof localStorage === 'undefined' || !clientStorageKey) {
+            return '';
+        }
+
+        return localStorage.getItem(clientStorageKey) ?? '';
+    });
+
+    useEffect(() => {
+        if (typeof localStorage === 'undefined' || !clientStorageKey) {
+            return;
+        }
+
+        const value = clientName.trim();
+
+        if (value) {
+            localStorage.setItem(clientStorageKey, value);
+        } else {
+            localStorage.removeItem(clientStorageKey);
+        }
+    }, [clientName, clientStorageKey]);
+
     const { data, error: queryError } = useFlowReportQuery({
         errorPolicy: 'all',
         skip: !flowId || sample,
@@ -37,6 +65,15 @@ const FlowReport = () => {
 
     const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
     const isAutomation = tasks.length > 0;
+
+    // A flow does not carry its own target type — it lives on the parent scan
+    // (domain). Resolve it client-side from the cached domains list so the report
+    // can state the engagement class (Web / Cloud); undefined is a safe fallback.
+    const { data: domainsData } = useDomainsQuery({ errorPolicy: 'all', skip: !flowId || sample });
+    const targetType = useMemo(
+        () => domainsData?.domains.find((domain) => domain.flows.some((flow) => flow.id === flowId))?.targetType,
+        [domainsData?.domains, flowId],
+    );
 
     const { data: assistantsData, loading: assistantsLoading } = useAssistantsQuery({
         errorPolicy: 'all',
@@ -53,7 +90,7 @@ const FlowReport = () => {
         variables: { assistantId: primaryAssistantId ?? '', flowId: flowId! },
     });
 
-    const model: null | ReportModel = useMemo(() => {
+    const baseModel: null | ReportModel = useMemo(() => {
         if (assistantSample) {
             return assistantSampleReportModel;
         }
@@ -69,7 +106,7 @@ const FlowReport = () => {
         const findings = mapFindings(data.flow.findings);
 
         if (isAutomation) {
-            return buildReportModel(data.flow, tasks, findings);
+            return buildReportModel(data.flow, tasks, findings, { targetType });
         }
 
         if (assistantsLoading) {
@@ -77,13 +114,44 @@ const FlowReport = () => {
         }
 
         if (assistants.length > 0) {
-            return logsLoading ? null : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], { findings: mapFindings(assistants[0]?.findings) });
+            return logsLoading
+                ? null
+                : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], {
+                      findings: mapFindings(assistants[0]?.findings),
+                      targetType,
+                  });
         }
 
-        return buildReportModel(data.flow, [], findings);
-    }, [assistantSample, sample, data, isAutomation, tasks, assistantsLoading, assistants, logsLoading, logsData]);
+        return buildReportModel(data.flow, [], findings, { targetType });
+    }, [
+        assistantSample,
+        sample,
+        data,
+        isAutomation,
+        tasks,
+        assistantsLoading,
+        assistants,
+        logsLoading,
+        logsData,
+        targetType,
+    ]);
 
-    const fileBaseName = useMemo(() => (sample ? `report_sample${assistantSample ? '_assistant' : ''}` : data?.flow ? generateFileName(data.flow) : 'report'), [sample, assistantSample, data]);
+    // The typed client name is authoritative everywhere (view + exports); fall back
+    // to any name already baked into the model (e.g. the sample report).
+    const model = useMemo(
+        () => (baseModel ? { ...baseModel, clientName: clientName.trim() || baseModel.clientName } : null),
+        [baseModel, clientName],
+    );
+
+    const fileBaseName = useMemo(
+        () =>
+            sample
+                ? `report_sample${assistantSample ? '_assistant' : ''}`
+                : data?.flow
+                  ? generateFileName(data.flow)
+                  : 'report',
+        [sample, assistantSample, data],
+    );
 
     useEffect(() => {
         if (!download || !model) {
@@ -147,10 +215,17 @@ const FlowReport = () => {
         return (
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="animate-logo-spin size-16" />
-                <h1 className="text-foreground text-2xl font-semibold">{downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}</h1>
+                <p className="text-primary font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
+                    CyberFortify · Penetration Test Report
+                </p>
+                <h1 className="text-foreground text-2xl font-semibold">
+                    {downloadState === 'generating' ? 'Generating PDF…' : 'Loading Report…'}
+                </h1>
                 <div className="border-b-primary size-8 animate-spin rounded-full border-b-2" />
                 <p className="text-muted-foreground max-w-md">
-                    {downloadState === 'generating' ? 'Creating your PDF document. This may take a few moments.' : 'Please wait while we prepare your penetration testing report.'}
+                    {downloadState === 'generating'
+                        ? 'Creating your PDF document. This may take a few moments.'
+                        : 'Please wait while we prepare your penetration testing report.'}
                 </p>
             </div>
         );
@@ -160,8 +235,13 @@ const FlowReport = () => {
         return (
             <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
                 <Logo className="size-16" />
+                <p className="text-sev-crit font-mono text-[10px] font-semibold tracking-[0.2em] uppercase">
+                    CyberFortify · Penetration Test Report
+                </p>
                 <h1 className="text-destructive text-2xl font-semibold">Error Loading Report</h1>
-                <p className="text-muted-foreground max-w-md">We could not load this report. Please close this window and try again.</p>
+                <p className="text-muted-foreground max-w-md">
+                    We could not load this report. Please close this window and try again.
+                </p>
                 <button
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90 mt-2 rounded-md px-4 py-2 transition-colors"
                     onClick={() => window.close()}
@@ -175,7 +255,10 @@ const FlowReport = () => {
 
     return (
         <FlowReportView
+            clientName={clientName}
             model={model}
+            onBackToFlow={!sample && flowId ? () => navigate(`/flows/${flowId}`) : undefined}
+            onClientNameChange={setClientName}
             onCopyMarkdown={handleCopyMarkdown}
             onDownloadMarkdown={handleDownloadMarkdown}
             onDownloadPdf={handleDownloadPdf}

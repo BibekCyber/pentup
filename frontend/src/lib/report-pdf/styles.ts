@@ -1,73 +1,102 @@
 import { StyleSheet } from '@react-pdf/renderer';
 
-import { BRAND } from '@/lib/severity-palette';
+import { CF_PDF } from './cf-brand';
 
-export const PDF_FOOTER_TEXT = 'Confidential — prepared by PentAGI';
+// The generated PDF is white-labelled for CyberFortify (the delivering firm).
+export const PDF_FOOTER_TEXT = 'Confidential — prepared by CyberFortify';
+export const PDF_BRAND_NAME = 'CyberFortify';
+
+// Horizontal page inset — matches the client report's generous ~70pt margins.
+export const PAGE_INSET = 68;
 
 export const reportPdfStyles = StyleSheet.create({
+    // Minimal footer — just a hairline rule with the page number below it (no fill,
+    // no confidential note), matching the client report.
     chromeFooter: {
-        bottom: 24,
-        left: 44,
+        borderTopColor: CF_PDF.hairline,
+        borderTopWidth: 1,
+        bottom: 60,
+        left: PAGE_INSET,
         position: 'absolute',
-        right: 44,
+        right: PAGE_INSET,
+    },
+    // Page number sits as its own fixed element (render works reliably only when the
+    // dynamic text is a direct fixed child, not nested inside the flex footer row).
+    chromeFooterPage: {
+        bottom: 42,
+        color: CF_PDF.muted,
+        fontSize: 8,
+        position: 'absolute',
+        right: PAGE_INSET,
     },
     chromeFooterText: {
-        color: '#94a3b8',
+        color: CF_PDF.muted,
         fontSize: 8,
+        // Must override the page's inherited lineHeight (1.5) — a >1 line height on
+        // a fixed render() page-number text pushes it out of view in react-pdf 4.x.
+        lineHeight: 1,
     },
-    chromeHairline: {
-        backgroundColor: '#e2e8f0',
-        height: 1,
-    },
+    // Light-gray header band — full width and flush to the top edge (all gray, no
+    // white strip above it). Content stays inset to the body's left/right margin via
+    // paddingHorizontal; the gap below the band is balanced against the footer gap.
     chromeHeader: {
-        left: 44,
+        alignItems: 'center',
+        backgroundColor: CF_PDF.band,
+        flexDirection: 'row',
+        height: 54,
+        justifyContent: 'space-between',
+        left: 0,
+        paddingHorizontal: PAGE_INSET,
         position: 'absolute',
-        right: 44,
-        top: 24,
+        right: 0,
+        top: 0,
     },
-    chromeHeaderDate: {
-        color: '#94a3b8',
-        fontSize: 8.5,
+    chromeHeaderLogo: {
+        height: 34,
+        width: 49,
     },
     chromeHeaderTitle: {
-        color: '#475569',
+        color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 8.5,
-        maxWidth: 360,
-    },
-    chromeRow: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        fontSize: 9.5,
+        letterSpacing: 0.3,
     },
     page: {
-        backgroundColor: '#ffffff',
-        color: '#334155',
+        backgroundColor: CF_PDF.white,
+        color: CF_PDF.body,
         fontFamily: 'Helvetica',
         fontSize: 10.5,
-        lineHeight: 1.5,
-        paddingBottom: 56,
-        paddingHorizontal: 44,
-        paddingTop: 64,
+        // NOTE: no page-level lineHeight. A >1 lineHeight here is inherited by the
+        // fixed render() page-number and hides it in react-pdf 4.x; every multi-line
+        // body style sets its own lineHeight instead.
+        // Even breathing room top and bottom: header band is 54 tall (flush to top),
+        // so 96 leaves a ~42pt gap below it; the footer hairline sits at 60, so 102
+        // leaves a matching ~42pt gap above it. No body content collides with chrome.
+        paddingBottom: 102,
+        paddingHorizontal: PAGE_INSET,
+        paddingTop: 96,
     },
+    // No visible rule under headings (their report has none) — kept as a spacer.
     sectionDivider: {
-        borderBottomColor: BRAND.solid,
-        borderBottomWidth: 2,
-        marginBottom: 10,
+        height: 0,
+        marginBottom: 4,
     },
+    // Section titles: uppercase dark-green, like the client report.
     sectionHeading: {
-        color: '#0f172a',
+        color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 15,
-        marginBottom: 8,
+        fontSize: 16,
+        letterSpacing: 0.3,
+        marginBottom: 10,
+        textTransform: 'uppercase',
     },
     subHeading: {
-        color: '#334155',
+        color: CF_PDF.accentText,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 11,
+        fontSize: 10,
         letterSpacing: 0.5,
-        marginBottom: 6,
-        marginTop: 4,
+        marginBottom: 5,
+        marginTop: 8,
         textTransform: 'uppercase',
     },
 });

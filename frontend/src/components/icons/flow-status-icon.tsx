@@ -13,11 +13,11 @@ interface FlowStatusIconProps {
 }
 
 const statusIcons: Record<StatusType, { className: string; icon: LucideIcon }> = {
-    [StatusType.Created]: { className: 'text-blue-500', icon: CircleDashed },
-    [StatusType.Failed]: { className: 'text-red-500', icon: CircleX },
-    [StatusType.Finished]: { className: 'text-green-500', icon: CircleCheck },
-    [StatusType.Running]: { className: 'animate-spin text-purple-500', icon: Loader2 },
-    [StatusType.Waiting]: { className: 'text-yellow-500', icon: CircleDashed },
+    [StatusType.Created]: { className: 'text-[var(--st-created)]', icon: CircleDashed },
+    [StatusType.Failed]: { className: 'text-[var(--st-failed)]', icon: CircleX },
+    [StatusType.Finished]: { className: 'text-[var(--st-finished)]', icon: CircleCheck },
+    [StatusType.Running]: { className: 'animate-spin text-[var(--st-running)]', icon: Loader2 },
+    [StatusType.Waiting]: { className: 'text-[var(--st-waiting)]', icon: CircleDashed },
 };
 const defaultIcon = { className: 'text-muted-foreground', icon: CircleOff };
 

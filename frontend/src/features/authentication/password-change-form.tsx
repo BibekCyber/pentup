@@ -223,7 +223,7 @@ export function PasswordChangeForm({
                                     </Button>
                                 </div>
                             </FormControl>
-                            <FormDescription className="text-xs">
+                            <FormDescription className="text-muted-foreground font-mono text-xs">
                                 Must be 16+ characters, or 8+ with number, lowercase, uppercase, and special character
                                 (!@#$&*)
                             </FormDescription>

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { FlowStatusIcon } from '@/components/icons/flow-status-icon';
 import { ProviderIcon } from '@/components/icons/provider-icon';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import CommandBar from '@/components/layouts/command-bar';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -14,8 +14,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import FlowCentralTabs from '@/features/flows/flow-central-tabs';
 import FlowTabs from '@/features/flows/flow-tabs';
 import ScanInitializing from '@/features/flows/scan-initializing';
@@ -42,7 +40,13 @@ const FlowReportDropdown = () => {
     const isReportDisabled = !flow || !flowId;
 
     const buildMarkdown = (): string =>
-        isAssistant ? buildReportMarkdown(buildAssistantReportModel(flow, assistants[0], assistantLogs, { findings: mapFindings(assistants[0]?.findings) })) : generateReport(tasks, flow);
+        isAssistant
+            ? buildReportMarkdown(
+                  buildAssistantReportModel(flow, assistants[0], assistantLogs, {
+                      findings: mapFindings(assistants[0]?.findings),
+                  }),
+              )
+            : generateReport(tasks, flow);
 
     // Report export handlers
     const handleCopyToClipboard = async () => {
@@ -99,7 +103,7 @@ const FlowReportDropdown = () => {
                 <Button
                     className="shrink-0"
                     disabled={isReportDisabled}
-                    variant="ghost"
+                    variant="outline"
                 >
                     <NotepadText />
                     Report
@@ -181,9 +185,7 @@ const Flow = () => {
         !isFlowLoading &&
         !!flowData?.flow &&
         !hasStreamedContent &&
-        (flowStatus === StatusType.Created ||
-            flowStatus === StatusType.Waiting ||
-            flowStatus === StatusType.Running);
+        (flowStatus === StatusType.Created || flowStatus === StatusType.Waiting || flowStatus === StatusType.Running);
 
     const scanStage = useScanStage(flowStatus, isInitializing);
 
@@ -197,48 +199,19 @@ const Flow = () => {
     const handleTabsTabChange = isDesktop ? setDesktopTabsTab : handleMobileTabChange;
 
     const tabsCard = (
-        <div className="flex h-[calc(100dvh-3rem)] max-w-full flex-col rounded-none border-0">
-            <div className="flex-1 overflow-auto py-4 pr-0 pl-4">
-                <FlowTabs
-                    activeTab={activeTabsTab}
-                    onTabChange={handleTabsTabChange}
-                />
-            </div>
+        <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
+            <FlowTabs
+                activeTab={activeTabsTab}
+                onTabChange={handleTabsTabChange}
+            />
         </div>
     );
 
     return (
         <>
-            <header className="bg-background sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-                <div className="flex w-full items-center justify-between gap-2 px-4">
-                    <div className="flex items-center gap-2">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator
-                            className="mr-2 h-4"
-                            orientation="vertical"
-                        />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="gap-2">
-                                    {flowData?.flow && (
-                                        <>
-                                            <FlowStatusIcon
-                                                status={flowData.flow.status}
-                                                tooltip={formatName(flowData.flow.status)}
-                                            />
-
-                                            <ProviderIcon
-                                                provider={flowData.flow.provider}
-                                                tooltip={formatName(flowData.flow.provider.name)}
-                                            />
-                                        </>
-                                    )}
-                                    <BreadcrumbPage>{flowData?.flow?.title || 'Select a flow'}</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <CommandBar
+                actions={
+                    <>
                         {flowId && (
                             <Button
                                 className="shrink-0"
@@ -250,10 +223,35 @@ const Flow = () => {
                             </Button>
                         )}
                         {(!!(flowData?.tasks ?? []).length || assistantLogs.length > 0) && <FlowReportDropdown />}
-                    </div>
-                </div>
-            </header>
-            <div className="relative flex h-[calc(100dvh-3rem)] w-full max-w-full flex-1">
+                    </>
+                }
+                ctx={
+                    flowData?.flow && (
+                        <>
+                            <FlowStatusIcon
+                                status={flowData.flow.status}
+                                tooltip={formatName(flowData.flow.status)}
+                            />
+                            <span>{formatName(flowData.flow.status)}</span>
+                            <span className="text-muted-foreground/50">·</span>
+                            <ProviderIcon
+                                provider={flowData.flow.provider}
+                                tooltip={formatName(flowData.flow.provider.name)}
+                            />
+                            <span>{formatName(flowData.flow.provider.name)}</span>
+                        </>
+                    )
+                }
+                title={
+                    <span className="flex min-w-0 items-center gap-2">
+                        {flowId && (
+                            <span className="text-muted-foreground shrink-0 font-mono text-[13px]">#{flowId}</span>
+                        )}
+                        <span className="truncate">{flowData?.flow?.title || 'Select a flow'}</span>
+                    </span>
+                }
+            />
+            <div className="relative flex h-[calc(100dvh-3.5rem)] w-full max-w-full flex-1">
                 {isFlowLoading && (
                     <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center">
                         <Loader2 className="text-primary size-16 animate-spin" />
@@ -273,10 +271,8 @@ const Flow = () => {
                             defaultSize={50}
                             minSize={30}
                         >
-                            <div className="flex h-[calc(100dvh-3rem)] max-w-full flex-col rounded-none border-0">
-                                <div className="flex-1 overflow-auto py-4 pr-0 pl-4">
-                                    <FlowCentralTabs />
-                                </div>
+                            <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
+                                <FlowCentralTabs />
                             </div>
                         </ResizablePanel>
                         <ResizableHandle withHandle>
@@ -286,7 +282,12 @@ const Flow = () => {
                             defaultSize={50}
                             minSize={30}
                         >
-                            {tabsCard}
+                            <div className="flex h-[calc(100dvh-3.5rem)] max-w-full flex-col rounded-none border-0">
+                                <FlowTabs
+                                    activeTab={activeTabsTab}
+                                    onTabChange={handleTabsTabChange}
+                                />
+                            </div>
                         </ResizablePanel>
                     </ResizablePanelGroup>
                 ) : (

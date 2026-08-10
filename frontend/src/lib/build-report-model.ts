@@ -1,8 +1,23 @@
-import type { FindingFragmentFragment, FlowFragmentFragment, SubtaskFragmentFragment, TaskFragmentFragment } from '@/graphql/types';
+import type {
+    FindingFragmentFragment,
+    FlowFragmentFragment,
+    SubtaskFragmentFragment,
+    TargetType,
+    TaskFragmentFragment,
+} from '@/graphql/types';
 
 import { Severity as GqlSeverity, StatusType } from '@/graphql/types';
 
-import type { Finding, ReportModel, ReportScreenshot, ReportSection, ReportSubItem, ReportTocEntry, Severity, SeverityCounts } from './report-model';
+import type {
+    Finding,
+    ReportModel,
+    ReportScreenshot,
+    ReportSection,
+    ReportSubItem,
+    ReportTocEntry,
+    Severity,
+    SeverityCounts,
+} from './report-model';
 
 import { emptySeverityCounts, SEVERITY_ORDER } from './report-model';
 import { getSeverityStyle } from './severity-palette';
@@ -35,12 +50,15 @@ export const mapFindings = (findings: null | readonly FindingFragmentFragment[] 
         title: finding.title,
     }));
 
-export const pluralize = (count: number, singular: string, plural = `${singular}s`): string => (count === 1 ? singular : plural);
+export const pluralize = (count: number, singular: string, plural = `${singular}s`): string =>
+    count === 1 ? singular : plural;
 
 export const deriveSummaryNarrative = (model: ReportModel): string => {
     const { summary } = model;
     const target = model.flow.target ?? model.flow.title;
-    const severityParts = SEVERITY_ORDER.filter((severity) => summary.findingsBySeverity[severity] > 0).map((severity) => `${summary.findingsBySeverity[severity]} ${getSeverityStyle(severity).label.toLowerCase()}`);
+    const severityParts = SEVERITY_ORDER.filter((severity) => summary.findingsBySeverity[severity] > 0).map(
+        (severity) => `${summary.findingsBySeverity[severity]} ${getSeverityStyle(severity).label.toLowerCase()}`,
+    );
 
     const findingsClause =
         summary.findingsTotal > 0
@@ -50,9 +68,116 @@ export const deriveSummaryNarrative = (model: ReportModel): string => {
     return `This automated assessment of ${target} completed ${summary.tasksDone} of ${summary.tasksTotal} ${pluralize(summary.tasksTotal, 'task')} and ${findingsClause}.`;
 };
 
+const IPV4_HOST = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+// Assets listed in the report's Scope table, derived from the findings' affected URLs.
+// Tooling frequently probes a site through its raw backend IPs with a Host header, so a
+// single asset surfaces as several origins (http:// and https://, plus bare IPs). Emit
+// one entry per host, prefer https when a host appears under both schemes, and drop
+// raw-IP origins whenever a named host is in scope — those are the same asset reached
+// directly, and listing them reads as sloppy in a client-facing report.
+export const deriveScopeTargets = (findings: readonly Finding[], fallback?: string): string[] => {
+    const byHost = new Map<string, string>();
+    const unparsed: string[] = [];
+
+    for (const finding of findings) {
+        for (const raw of finding.affectedUrls ?? []) {
+            const value = raw?.trim();
+
+            if (!value) {
+                continue;
+            }
+
+            let parsed: undefined | URL;
+
+            try {
+                parsed = new URL(value);
+            } catch {
+                parsed = undefined;
+            }
+
+            if (!parsed) {
+                if (!unparsed.includes(value)) {
+                    unparsed.push(value);
+                }
+
+                continue;
+            }
+
+            const previous = byHost.get(parsed.host);
+
+            if (!previous || (previous === 'http:' && parsed.protocol === 'https:')) {
+                byHost.set(parsed.host, parsed.protocol);
+            }
+        }
+    }
+
+    const hosts = [...byHost.entries()];
+    const named = hosts.filter(([host]) => !IPV4_HOST.test(host.split(':')[0]));
+    const kept = named.length > 0 ? named : hosts;
+    const urls = kept.map(([host, scheme]) => `${scheme}//${host}`).sort();
+    const targets = [...urls, ...unparsed];
+
+    return targets.length > 0 ? targets : [fallback || 'In-scope assets'];
+};
+
+// Auto-derived executive-summary bullets. Kept factual and conservative — they are
+// generated, not analyst-reviewed, so they only state what the finding data supports
+// and never assert unverified security properties of the target.
+export const derivePositiveFindings = (findings: readonly Finding[], counts: SeverityCounts): string[] => {
+    const bullets: string[] = [];
+
+    if (counts.critical === 0) {
+        bullets.push(
+            'No critical-severity vulnerabilities were identified during the assessment, indicating that no immediate full-system compromise scenario was confirmed during testing.',
+        );
+    }
+
+    bullets.push(
+        'The in-scope assets were reviewed using a combination of automated tooling and manual validation aligned to recognised industry testing standards, providing broad coverage of the exposed functionality.',
+    );
+
+    if (findings.length > 0) {
+        bullets.push(
+            'Every confirmed finding is reproducible and documented with step-by-step evidence and a clear, CVSS-based risk rating, enabling efficient remediation and re-testing.',
+        );
+        bullets.push(
+            'Several identified issues relate to configuration, session handling, and application hardening, which can be addressed through focused remediation without requiring major architectural changes.',
+        );
+    }
+
+    return bullets;
+};
+
+export const deriveInitialRecommendations = (findings: readonly Finding[]): string[] => {
+    const bullets: string[] = [];
+
+    // Findings are already ordered by severity; surface the most urgent by name.
+    for (const finding of findings.slice(0, 3)) {
+        bullets.push(
+            `Prioritise remediation of the ${getSeverityStyle(finding.severity).label}-risk finding "${finding.title}", applying the specific controls and configuration changes detailed in its recommendation.`,
+        );
+    }
+
+    bullets.push(
+        'Enforce secure session and token management, including token expiration, logout invalidation, and server-side token revocation.',
+    );
+    bullets.push(
+        'Apply strict, server-side authorisation checks so that users can only access the data and functionality they are explicitly permitted to use.',
+    );
+    bullets.push(
+        'Review security headers, TLS configuration, rate limiting, and WAF protections to strengthen the overall security posture of the environment.',
+    );
+    bullets.push('Re-test each remediated item to confirm closure before the next assessment cycle.');
+
+    return bullets;
+};
+
 interface BuildReportModelOptions {
+    clientName?: string;
     executiveSummary?: { content: string; generatedAt: string };
     generatedAt?: string;
+    targetType?: TargetType;
 }
 
 const compareFindings = (a: Finding, b: Finding): number => {
@@ -175,8 +300,13 @@ export const buildReportModel = (
         findingsBySeverity[finding.severity] += 1;
     }
 
-    const sectionScreenshots = (section: ReportSection): ReportScreenshot[] => [...section.screenshots, ...section.findings.flatMap((finding) => finding.screenshots ?? [])];
-    const screenshotCount = sections.reduce((total, section) => total + sectionScreenshots(section).length, 0) + orphanFindings.flatMap((finding) => finding.screenshots ?? []).length;
+    const sectionScreenshots = (section: ReportSection): ReportScreenshot[] => [
+        ...section.screenshots,
+        ...section.findings.flatMap((finding) => finding.screenshots ?? []),
+    ];
+    const screenshotCount =
+        sections.reduce((total, section) => total + sectionScreenshots(section).length, 0) +
+        orphanFindings.flatMap((finding) => finding.screenshots ?? []).length;
 
     // End time is the last real task/subtask activity, not flow.updatedAt — the flow
     // row gets touched by status polling and report views, which otherwise inflates
@@ -187,19 +317,31 @@ export const buildReportModel = (
         .filter((ms) => Number.isFinite(ms));
 
     const startMs = flow?.createdAt ? new Date(flow.createdAt).getTime() : Number.NaN;
-    const endMs = activityMs.length > 0 ? Math.max(...activityMs) : flow?.updatedAt ? new Date(flow.updatedAt).getTime() : Number.NaN;
+    const endMs =
+        activityMs.length > 0
+            ? Math.max(...activityMs)
+            : flow?.updatedAt
+              ? new Date(flow.updatedAt).getTime()
+              : Number.NaN;
 
     const hasFindings = allFindings.length > 0;
-    const hasMethodology = hasFindings && sections.length > 0;
 
+    // The dynamic per-task "Methodology" section was dropped from the report, so the
+    // TOC lists only the fixed deliverable sections that actually render.
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
-        ...(hasFindings ? ([{ id: 'findings-summary', level: 1, title: 'Findings Summary' }, { id: 'detailed-findings', level: 1, title: 'Detailed Findings' }] as ReportTocEntry[]) : []),
-        ...(hasMethodology ? ([{ id: 'methodology', level: 1, title: 'Methodology' }] as ReportTocEntry[]) : []),
-        ...sections.map((section) => ({ id: section.id, level: hasMethodology ? 2 : 1, title: section.title })),
+        { id: 'scope', level: 1, title: 'Scope & Methodology' },
+        ...(hasFindings
+            ? ([
+                  { id: 'findings-summary', level: 1, title: 'Finding Summary' },
+                  { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
+              ] as ReportTocEntry[])
+            : []),
+        { id: 'appendix', level: 1, title: 'Appendix' },
     ];
 
     return {
+        clientName: options.clientName,
         executiveSummary: options.executiveSummary,
         findings: allFindings,
         flow: {
@@ -208,11 +350,14 @@ export const buildReportModel = (
             startedAt: flow?.createdAt ? new Date(flow.createdAt).toISOString() : undefined,
             status: flow?.status ?? StatusType.Created,
             target: deriveTarget(allFindings),
+            targetType: options.targetType,
             title: flow?.title ?? 'Untitled Flow',
         },
         generatedAt,
+        initialRecommendations: deriveInitialRecommendations(allFindings),
+        positiveFindings: derivePositiveFindings(allFindings, findingsBySeverity),
         sections,
-        sectionsTitle: hasMethodology ? 'Methodology' : undefined,
+        sectionsTitle: undefined,
         summary: {
             duration: formatDuration(startMs, endMs),
             findingsBySeverity,

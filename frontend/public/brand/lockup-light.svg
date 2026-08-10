@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="72" viewBox="0 0 300 72" fill="none">
+  <g transform="translate(6,8) scale(1.4)" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M20 4 L34 9 V20 C34 28 28 34 20 37 C12 34 6 28 6 20 V9 Z" stroke="#141210" stroke-width="2.3"/>
+    <path d="M14.5 16 L19.5 20.5 L14.5 25" stroke="#F57214" stroke-width="2.5"/>
+    <path d="M22 25 H27" stroke="#F57214" stroke-width="2.5"/>
+  </g>
+  <text x="80" y="49" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="40" letter-spacing="-0.8"><tspan fill="#F57214">AI</tspan><tspan fill="#141210"> Pentest</tspan></text>
+</svg>

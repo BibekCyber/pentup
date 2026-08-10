@@ -2,7 +2,7 @@ import type { VariantProps } from 'class-variance-authority';
 
 import { Slot } from '@radix-ui/react-slot';
 import { cva } from 'class-variance-authority';
-import { PanelLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelLeft } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = '16rem';
 const SIDEBAR_WIDTH_MOBILE = '18rem';
-const SIDEBAR_WIDTH_ICON = '3rem';
+const SIDEBAR_WIDTH_ICON = '4.25rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 
 type SidebarContext = {
@@ -229,7 +229,7 @@ const Sidebar = React.forwardRef<
             />
             <div
                 className={cn(
-                    'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+                    'fixed inset-y-0 z-30 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
                     side === 'left'
                         ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
                         : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
@@ -280,18 +280,14 @@ SidebarTrigger.displayName = 'SidebarTrigger';
 
 const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>(
     ({ className, ...props }, ref) => {
-        const { toggleSidebar } = useSidebar();
+        const { state, toggleSidebar } = useSidebar();
 
         return (
             <button
                 aria-label="Toggle Sidebar"
                 className={cn(
-                    'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex',
-                    'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
-                    '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
-                    'hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full',
-                    '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
-                    '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+                    'bg-card text-muted-foreground border-border-strong hover:border-primary hover:text-primary absolute top-[18px] z-20 hidden size-[22px] place-items-center rounded-full border shadow-md transition-colors ease-linear sm:grid',
+                    'group-data-[side=left]:-right-[11px] group-data-[side=right]:-left-[11px]',
                     className,
                 )}
                 data-sidebar="rail"
@@ -300,7 +296,9 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'bu
                 tabIndex={-1}
                 title="Toggle Sidebar"
                 {...props}
-            />
+            >
+                {state === 'collapsed' ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
+            </button>
         );
     },
 );
@@ -741,4 +739,5 @@ export {
     SidebarRail,
     SidebarSeparator,
     SidebarTrigger,
+    useSidebar,
 };

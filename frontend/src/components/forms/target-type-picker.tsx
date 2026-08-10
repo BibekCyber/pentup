@@ -51,7 +51,10 @@ export const TargetTypePicker = ({
             >
                 <PopoverTrigger asChild>
                     <Button
-                        className={cn('w-full justify-between', value.length === 0 && 'text-muted-foreground')}
+                        className={cn(
+                            'border-border-strong bg-well w-full justify-between font-mono',
+                            value.length === 0 && 'text-muted-foreground',
+                        )}
                         disabled={disabled}
                         role="combobox"
                         variant="outline"
@@ -84,6 +87,7 @@ export const TargetTypePicker = ({
 
                                     return (
                                         <CommandItem
+                                            className={cn('font-mono', selected && 'text-primary')}
                                             key={type}
                                             onSelect={() => toggle(type)}
                                             value={meta.label}

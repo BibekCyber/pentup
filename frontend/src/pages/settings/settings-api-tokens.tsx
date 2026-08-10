@@ -26,9 +26,9 @@ import type { ApiTokenFragmentFragment } from '@/graphql/types';
 
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Card } from '@/components/ui/card';
 import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -104,6 +104,25 @@ const getStatusDisplay = (
     return { label: token.status, variant: 'secondary' };
 };
 
+const getStatusClass = (label: string): string => {
+    if (label === 'active') {
+        return 'st-finished';
+    }
+
+    if (label === 'expired' || label === 'revoked') {
+        return 'st-failed';
+    }
+
+    return 'st-created';
+};
+
+const StatusPill = ({ label }: { label: string }) => (
+    <span className={cn('status', getStatusClass(label))}>
+        <span className="dot" />
+        {label}
+    </span>
+);
+
 const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
 
@@ -142,7 +161,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 
 const SettingsAPITokensHeader = ({ onCreateClick }: { onCreateClick: () => void }) => {
     return (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col gap-2">
                 <p className="text-muted-foreground">Manage API tokens for programmatic access</p>
                 <div className="flex gap-4 text-sm">
@@ -177,6 +196,38 @@ const SettingsAPITokensHeader = ({ onCreateClick }: { onCreateClick: () => void 
         </div>
     );
 };
+
+const passwordRequirements = ['12+ characters', 'Upper + lowercase', 'A number', 'A symbol'];
+
+const SettingsAPITokensIntro = () => (
+    <Card className="flex items-start gap-3.5 p-4">
+        <div className="bg-brand-tint border-primary/30 text-primary grid size-[34px] flex-none place-items-center rounded-lg border">
+            <Key className="size-[17px]" />
+        </div>
+        <div className="grow">
+            <div className="text-sm font-bold">Programmatic API access</div>
+            <p className="text-muted-foreground mt-1.5 max-w-[660px] text-[12.5px] leading-relaxed">
+                Bearer tokens authenticate requests to the REST and GraphQL API — send them as{' '}
+                <code className="bg-well border-border rounded-[5px] border px-1.5 py-px font-mono text-xs text-[var(--term-url)]">
+                    Authorization: Bearer &lt;token&gt;
+                </code>
+                . The secret is shown <b className="text-foreground">once</b> at creation and can never be retrieved
+                again.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+                {passwordRequirements.map((requirement) => (
+                    <span
+                        className="chip"
+                        key={requirement}
+                    >
+                        <Check className="text-st-finished size-3" />
+                        {requirement}
+                    </span>
+                ))}
+            </div>
+        </div>
+    </Card>
+);
 
 const createNewTokenPlaceholder: APIToken = {
     createdAt: new Date().toISOString(),
@@ -466,7 +517,7 @@ const SettingsAPITokens = () => {
 
                     return (
                         <div className="flex items-center gap-2">
-                            <code className="text-sm">{tokenId}</code>
+                            <code className="text-muted-foreground font-mono text-xs">{tokenId}</code>
                             <Button
                                 className="size-6 p-0"
                                 onClick={() => handleCopyTokenId(tokenId)}
@@ -505,7 +556,7 @@ const SettingsAPITokens = () => {
                     const isCreating = token.id === 'create-new';
 
                     if (isCreating) {
-                        return <Badge variant="default">active</Badge>;
+                        return <StatusPill label="active" />;
                     }
 
                     const isEditing = editingTokenId === token.tokenId;
@@ -514,7 +565,7 @@ const SettingsAPITokens = () => {
 
                     if (isEditing) {
                         if (expired) {
-                            return <Badge variant={statusDisplay.variant}>{statusDisplay.label}</Badge>;
+                            return <StatusPill label={statusDisplay.label} />;
                         }
 
                         return (
@@ -537,7 +588,7 @@ const SettingsAPITokens = () => {
                         );
                     }
 
-                    return <Badge variant={statusDisplay.variant}>{statusDisplay.label}</Badge>;
+                    return <StatusPill label={statusDisplay.label} />;
                 },
                 header: ({ column }) => {
                     const sorted = column.getIsSorted();
@@ -612,7 +663,9 @@ const SettingsAPITokens = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(expiresAtString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-xs">
+                                    {formatDateTime(expiresAtString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <div className="text-xs">{formatFullDateTime(expiresAtString)}</div>
@@ -661,7 +714,9 @@ const SettingsAPITokens = () => {
                     return (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
+                                <div className="text-muted-foreground cursor-default font-mono text-xs">
+                                    {formatDateTime(dateString)}
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <div className="text-xs">{formatFullDateTime(dateString)}</div>
@@ -893,7 +948,7 @@ const SettingsAPITokens = () => {
                             Create Token
                         </Button>
                     }
-                    description="Create your first API token to access PentAGI programmatically"
+                    description="Create your first API token to access AI Pentest programmatically"
                     icon={<Key className="text-muted-foreground size-8" />}
                     title="No API tokens configured"
                 />
@@ -904,6 +959,8 @@ const SettingsAPITokens = () => {
     return (
         <div className="flex flex-col gap-4">
             <SettingsAPITokensHeader onCreateClick={handleCreateNew} />
+
+            <SettingsAPITokensIntro />
 
             {(createError || updateError || deleteError || deleteErrorMessage) && (
                 <Alert variant="destructive">
@@ -936,8 +993,13 @@ const SettingsAPITokens = () => {
                             Copy this token now. You won't be able to see it again for security reasons.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="bg-muted rounded p-4">
-                        <code className="text-sm break-all">{tokenSecret}</code>
+                    <div className="flex flex-col gap-2">
+                        <span className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">
+                            One-time secret
+                        </span>
+                        <div className="bg-well border-border-strong rounded border p-4">
+                            <code className="text-primary font-mono text-sm break-all">{tokenSecret}</code>
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         <Button
@@ -953,7 +1015,7 @@ const SettingsAPITokens = () => {
                                     }
                                 }
                             }}
-                            variant="secondary"
+                            variant="default"
                         >
                             <Copy className="size-4" />
                             Copy Token

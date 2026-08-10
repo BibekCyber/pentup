@@ -12,14 +12,17 @@ interface SeverityBadgeProps {
 
 export const SeverityBadge = ({ className, severity }: SeverityBadgeProps) => {
     const style = getSeverityStyle(severity);
-    const Icon = style.icon;
 
     return (
         <Badge
-            className={cn('shrink-0 gap-1 border font-semibold whitespace-nowrap', style.badgeClass, className)}
+            className={cn(
+                'shrink-0 gap-1.5 border font-mono text-[10px] font-semibold tracking-wide whitespace-nowrap uppercase',
+                style.badgeClass,
+                className,
+            )}
             variant="outline"
         >
-            <Icon className="size-3.5 shrink-0" />
+            <span className={cn('size-2 shrink-0 rounded-[2px]', style.dotClass)} />
             {style.label}
         </Badge>
     );

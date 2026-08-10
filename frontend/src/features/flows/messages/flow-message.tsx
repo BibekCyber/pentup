@@ -1,4 +1,4 @@
-import { Copy } from 'lucide-react';
+import { Brain, Copy, Terminal } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { AssistantLogFragmentFragment, MessageLogFragmentFragment } from '@/graphql/types';
@@ -8,10 +8,10 @@ import { TermOutputCard } from '@/components/shared/terminal/terminal-output-car
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageLogType, ResultFormat } from '@/graphql/types';
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatName } from '@/lib/utils/format';
 import { copyMessageToClipboard } from '@/lib/сlipboard';
 
-import FlowMessageTypeIcon from './flow-message-type-icon';
+import FlowMessageTypeIcon, { DEFAULT_MESSAGE_TYPE_TINT, messageTypeTint } from './flow-message-type-icon';
 
 interface FlowMessageProps {
     log: AssistantLogFragmentFragment | MessageLogFragmentFragment;
@@ -141,22 +141,41 @@ const FlowMessage = ({ log, searchValue = '' }: FlowMessageProps) => {
     };
 
     return (
-        <div className={`flex flex-col ${type === MessageLogType.Input ? 'items-end' : 'items-start'}`}>
-            <div
+        // EMBER `.msg` row: leading colour-tinted type tile (.mtype) + body column.
+        <div className="flex gap-3 py-3">
+            <span
                 className={cn(
-                    'bg-card text-card-foreground max-w-[90%] rounded-xl border p-3 shadow-sm',
-                    resultFormat === ResultFormat.Terminal && isDetailsVisible ? 'w-full' : '',
+                    'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border',
+                    (type && messageTypeTint[type]) || DEFAULT_MESSAGE_TYPE_TINT,
                 )}
             >
+                <FlowMessageTypeIcon
+                    className="size-4"
+                    type={type}
+                />
+            </span>
+            <div
+                className={cn(
+                    'min-w-0 flex-1',
+                    // Input turns read distinctly: brand left-accent + well tint (className-only).
+                    type === MessageLogType.Input && 'border-primary bg-brand-tint rounded-lg border-l-2 px-3 py-2',
+                )}
+            >
+                <div className="mb-1.5 flex items-center gap-2">
+                    <span className="text-[12.5px] font-bold">{formatName(type ?? '')}</span>
+                    <span className="text-muted-foreground/60 font-mono text-[10px]">
+                        {formatDate(new Date(createdAt))}
+                    </span>
+                </div>
+
                 {/* Thinking toggle button */}
                 {shouldShowThinkingToggle && (
-                    <div className="text-muted-foreground mb-2 text-xs">
-                        <div
-                            className="cursor-pointer"
-                            onClick={toggleThinking}
-                        >
-                            {isThinkingVisible ? 'Hide thinking' : 'Show thinking'}
-                        </div>
+                    <div
+                        className="text-muted-foreground bg-well hover:text-foreground mb-2 flex w-fit cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-[11px] transition-colors"
+                        onClick={toggleThinking}
+                    >
+                        <Brain className="size-3.5" />
+                        {isThinkingVisible ? 'Hide thinking' : 'Show thinking'}
                     </div>
                 )}
 
@@ -177,32 +196,29 @@ const FlowMessage = ({ log, searchValue = '' }: FlowMessageProps) => {
                 {result && (
                     <div className="text-muted-foreground mt-2 text-xs">
                         <div
-                            className="cursor-pointer"
+                            className="bg-well text-ag-executor hover:text-foreground flex w-fit cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-[11px] transition-colors"
                             onClick={toggleDetails}
                         >
+                            <Terminal className="size-3.5" />
                             {isDetailsVisible ? 'Hide details' : 'Show details'}
                         </div>
                         {renderDetailsContent()}
                     </div>
                 )}
-            </div>
-            <div
-                className={`text-muted-foreground mt-1 flex items-center gap-1 px-1 text-xs ${
-                    type === MessageLogType.Input ? 'flex-row-reverse' : 'flex-row'
-                }`}
-            >
-                <FlowMessageTypeIcon type={type} />
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Copy
-                            className="hover:text-foreground mx-1 size-3 shrink-0 cursor-pointer transition-colors"
-                            onClick={handleCopy}
-                        />
-                    </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
-                </Tooltip>
-                <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
-                <span className="text-muted-foreground/50">{log.id}</span>
+
+                {/* Footer: copy + id */}
+                <div className="text-muted-foreground/60 mt-2 flex items-center gap-2 text-xs">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Copy
+                                className="hover:text-foreground size-3 shrink-0 cursor-pointer transition-colors"
+                                onClick={handleCopy}
+                            />
+                        </TooltipTrigger>
+                        <TooltipContent>Copy</TooltipContent>
+                    </Tooltip>
+                    <span className="font-mono text-[10px]">{log.id}</span>
+                </div>
             </div>
         </div>
     );

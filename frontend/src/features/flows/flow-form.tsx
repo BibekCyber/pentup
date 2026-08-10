@@ -60,7 +60,7 @@ export const FlowForm = ({
     isSubmitting,
     onCancel,
     onSubmit,
-    placeholder = 'Describe what you would like PentAGI to test...',
+    placeholder = 'Describe what you would like AI Pentest to test...',
     type,
 }: FlowFormProps) => {
     const { providers, setSelectedProvider } = useProviders();
@@ -202,7 +202,7 @@ export const FlowForm = ({
                     name="message"
                     render={({ field }) => (
                         <FormControl>
-                            <InputGroup className="block">
+                            <InputGroup className="bg-well block rounded-lg">
                                 <InputGroupTextareaAutosize
                                     {...field}
                                     autoFocus
@@ -230,6 +230,7 @@ export const FlowForm = ({
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <InputGroupButton
+                                                            className="border-border border"
                                                             disabled={isFormDisabled || isProviderDisabled}
                                                             variant="ghost"
                                                         >
@@ -361,6 +362,7 @@ export const FlowForm = ({
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <InputGroupButton
+                                                className="border-border border"
                                                 disabled={isFormDisabled}
                                                 variant="ghost"
                                             >

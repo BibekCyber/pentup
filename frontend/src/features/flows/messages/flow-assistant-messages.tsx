@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import debounce from 'lodash/debounce';
 import { Check, ChevronDown, ListFilter, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -184,7 +184,7 @@ const AssistantsDropdown = ({
             >
                 <PopoverTrigger asChild>
                     <Button
-                        className="px-2"
+                        className="rounded-full px-2"
                         disabled={isAssistantCreating}
                         variant="outline"
                     >
@@ -209,7 +209,7 @@ const AssistantsDropdown = ({
                 </PopoverTrigger>
                 <PopoverContent
                     align="start"
-                    className="w-[400px] p-0"
+                    className="w-[min(400px,calc(100vw-2rem))] p-0"
                 >
                     <Command>
                         <CommandInput placeholder="Search assistants..." />
@@ -276,13 +276,14 @@ const AssistantsDropdown = ({
 
 interface FlowAssistantMessagesProps {
     className?: string;
+    isActive?: boolean;
 }
 
 const searchFormSchema = z.object({
     search: z.string(),
 });
 
-const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
+const FlowAssistantMessages = ({ className, isActive = true }: FlowAssistantMessagesProps) => {
     const { providers } = useProviders();
 
     const {
@@ -318,6 +319,19 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
         selectedAssistantLogs,
         selectedAssistantId ?? null,
     );
+
+    // When returning to this conversation tab (e.g. from Dashboard), scroll to the
+    // latest message. The tab stays force-mounted, so useAutoScroll no longer re-fires
+    // on remount; fire only on the false->true transition so we never scroll while the
+    // user is reading with the tab already active.
+    const wasActiveRef = useRef(isActive);
+    useEffect(() => {
+        if (isActive && !wasActiveRef.current) {
+            scrollToEnd();
+        }
+
+        wasActiveRef.current = isActive;
+    }, [isActive, scrollToEnd]);
 
     // Get system settings
     const { settings } = useSystemSettings();
@@ -402,6 +416,22 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
                 (log.thinking && log.thinking.toLowerCase().includes(search)),
         );
     }, [selectedAssistantLogs, debouncedSearchValue]);
+
+    // Memoize the rendered message list so keystroke-driven parent re-renders
+    // (form.watch('search')) reuse the same element array by reference. This lets
+    // React skip reconciling every memoized FlowMessage until the debounced value
+    // or the filtered logs actually change — no markdown re-parse per keystroke.
+    const messageList = useMemo(
+        () =>
+            filteredLogs.map((log) => (
+                <FlowMessage
+                    key={log.id}
+                    log={log}
+                    searchValue={debouncedSearchValue}
+                />
+            )),
+        [filteredLogs, debouncedSearchValue],
+    );
 
     // Handlers for interacting with assistant
     const handleAssistantDelete = (assistantId: string) => {
@@ -545,7 +575,7 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
                                 name="search"
                                 render={({ field }) => (
                                     <FormControl>
-                                        <InputGroup>
+                                        <InputGroup className="bg-well">
                                             <InputGroupAddon>
                                                 <Search />
                                             </InputGroupAddon>
@@ -598,13 +628,7 @@ const FlowAssistantMessages = ({ className }: FlowAssistantMessagesProps) => {
                             className="flex h-full flex-col gap-4 overflow-y-auto"
                             ref={containerRef}
                         >
-                            {filteredLogs.map((log) => (
-                                <FlowMessage
-                                    key={log.id}
-                                    log={log}
-                                    searchValue={debouncedSearchValue}
-                                />
-                            ))}
+                            {messageList}
                             <div ref={endRef} />
                         </div>
 

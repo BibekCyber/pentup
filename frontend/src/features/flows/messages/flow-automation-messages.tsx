@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import debounce from 'lodash/debounce';
 import { ChevronDown, Inbox, ListFilter, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -20,6 +20,7 @@ import FlowMessage from './flow-message';
 
 interface FlowAutomationMessagesProps {
     className?: string;
+    isActive?: boolean;
 }
 
 const searchFormSchema = z.object({
@@ -32,7 +33,7 @@ const searchFormSchema = z.object({
     search: z.string(),
 });
 
-const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
+const FlowAutomationMessages = ({ className, isActive = true }: FlowAutomationMessagesProps) => {
     const { flowData, flowId, flowStatus, stopAutomation, submitAutomationMessage } = useFlow();
 
     const logs = useMemo(() => flowData?.messageLogs ?? [], [flowData?.messageLogs]);
@@ -43,6 +44,19 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
     const [isCanceling, setIsCanceling] = useState(false);
 
     const { containerRef, endRef, hasNewMessages, isScrolledToBottom, scrollToEnd } = useAutoScroll(logs, flowId);
+
+    // When returning to this conversation tab (e.g. from Dashboard), scroll to the
+    // latest message. The tab stays force-mounted, so useAutoScroll no longer re-fires
+    // on remount; fire only on the false->true transition so we never scroll while the
+    // user is reading with the tab already active.
+    const wasActiveRef = useRef(isActive);
+    useEffect(() => {
+        if (isActive && !wasActiveRef.current) {
+            scrollToEnd();
+        }
+
+        wasActiveRef.current = isActive;
+    }, [isActive, scrollToEnd]);
 
     const form = useForm<z.infer<typeof searchFormSchema>>({
         defaultValues: {
@@ -140,6 +154,22 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
         return filtered;
     }, [logs, debouncedSearchValue, filter]);
 
+    // Memoize the rendered message list so keystroke-driven parent re-renders
+    // (form.watch('search')) reuse the same element array by reference. This lets
+    // React skip reconciling every memoized FlowMessage until the debounced value
+    // or the filtered logs actually change — no markdown re-parse per keystroke.
+    const messageList = useMemo(
+        () =>
+            filteredLogs.map((log) => (
+                <FlowMessage
+                    key={log.id}
+                    log={log}
+                    searchValue={debouncedSearchValue}
+                />
+            )),
+        [filteredLogs, debouncedSearchValue],
+    );
+
     // Get placeholder text based on flow status
     const placeholder = useMemo(() => {
         if (!flowId) {
@@ -158,7 +188,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
             }
 
             case StatusType.Running: {
-                return 'PentAGI is working... Click Stop to interrupt';
+                return 'AI Pentest is working... Click Stop to interrupt';
             }
 
             case StatusType.Waiting: {
@@ -220,7 +250,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
                             name="search"
                             render={({ field }) => (
                                 <FormControl>
-                                    <InputGroup className="flex-1">
+                                    <InputGroup className="bg-well flex-1">
                                         <InputGroupAddon>
                                             <Search />
                                         </InputGroupAddon>
@@ -270,13 +300,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
                         className="flex h-full flex-col gap-4 overflow-y-auto"
                         ref={containerRef}
                     >
-                        {filteredLogs.map((log) => (
-                            <FlowMessage
-                                key={log.id}
-                                log={log}
-                                searchValue={debouncedSearchValue}
-                            />
-                        ))}
+                        {messageList}
                         <div ref={endRef} />
                     </div>
 
@@ -322,7 +346,7 @@ const FlowAutomationMessages = ({ className }: FlowAutomationMessagesProps) => {
                         </EmptyMedia>
                         <EmptyTitle>No active tasks</EmptyTitle>
                         <EmptyDescription>
-                            Starting a new task may take some time as the PentAGI agent downloads the required Docker
+                            Starting a new task may take some time as the AI Pentest agent downloads the required Docker
                             image
                         </EmptyDescription>
                     </EmptyHeader>

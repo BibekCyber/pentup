@@ -167,13 +167,14 @@ const FlowTerminal = () => {
                             name="search"
                             render={({ field }) => (
                                 <FormControl>
-                                    <InputGroup className="flex-1">
+                                    <InputGroup className="bg-well flex-1">
                                         <InputGroupAddon>
                                             <Search />
                                         </InputGroupAddon>
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
+                                            className="font-mono"
                                             placeholder="Search terminal logs..."
                                             type="text"
                                         />

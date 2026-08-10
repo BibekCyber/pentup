@@ -1,0 +1,84 @@
+# EMBER Reskin — Progress
+
+Companion to `IMPLEMENTATION-PLAN.md`. The self-loop reads this each iteration, does the first unchecked phase, then
+ticks it. One phase per run. Gate = `build` + `lint` + `prettier` + dev-screenshot (both themes) + the phase's named
+system-function check + a className/JSX-only `git diff`.
+
+- [x] **P1 — Design-system tokens + base components** — `index.css` (@theme + `:root` + `.dark` + radius/mono),
+      `theme-provider.tsx` + `app.tsx` default-flip to dark, `ui/{button,card,tabs,input,table}.tsx` (badge generic;
+      sidebar token-driven → P2). _Gate: build green, lint = baseline (0 new), prettier clean, dark login screenshot._
+- [x] **P2 — App shell** — `main-sidebar.tsx` (EMBER rail + profile-pop), `ui/sidebar.tsx` (SidebarRail→collapse
+      circle, icon-rail 4.25rem), NEW `layouts/command-bar.tsx`, `settings-layout.tsx` (Option A). Rail theme-aware.
+      _Gate: build ✓, lint = baseline (0 new), diff style-only (sole logic line: additive `state` destructure)._
+- [x] **P3 — Shared signal components** — `severity-palette.ts` (web→--sev-* tokens + pdf hex→EMBER; weight/keys/
+      pdf-structure preserved), `severity-badge.tsx`, `flow-status-icon.tsx`, `domain-status-badge.tsx` (+pulse),
+      `target-type-chip.tsx`+`target-type-colors.ts` (→muted chip), `flow-task-status-icon.tsx`, `index.css`
+      (+@keyframes pulse), NEW `agent-monogram.tsx` + `status-pill.tsx`. _Gate: build ✓, lint baseline (0 new),
+      diff value-only (weight/pdf-keys unchanged). Deferred: per-type target glyph (needs a meta field)._
+- [x] **P4 — Scans (Domains)** — `domains.tsx` (CommandBar + derived KPI strip + dossier cards), `domain.tsx`
+      (header dossier + child FlowCards), `new-engagement.tsx` (wrappers only: stepper/choice/seg/review/CommandBar).
+      _Gate: build ✓, lint baseline (0 new); R2 create-scan contract (buildCredential/onSubmit/createScan/navigate)
+      + ScanInitializing = ZERO diff (byte-identical). Deferred: optional wizard summary aside (kept single-col for R2)._
+- [x] **P5 — Flows list + Cockpit** — `flow.tsx` (CommandBar + pane-head + resizable split kept), `flows.tsx`
+      (DataTable reskin in place), `flow-central-tabs`/`flow-tabs` (underline + icons, forceMount kept), messages
+      (EMBER .msg bubbles + both disclosures), `flow-form.tsx` (dock frame + chips), `flow-tasks-dropdown.tsx`.
+      _Gate: build ✓, lint baseline (0 new); R1 flow-provider EMPTY diff; R6 gating + R7 forceMount = 0 altered lines._
+      _Deferred: Flows dossier grid (per-flow severity not in list query)._
+- [x] **P6 — Terminal + Tasks (chrome only)** — `terminal-config.ts` (surface #0B0D10 / cursor #F57214),
+      `terminal-frame.tsx` (mono dots), `terminal-output-card.tsx` (SHELL overline chip), `flow-terminal.tsx` +
+      `flow-tasks.tsx` (search → bg-well + font-mono), `flow-task.tsx` (EMBER card + 5px progress, border-red dropped),
+      `flow-subtask.tsx` (ring-card + border-strong rule), `index.css` (.terminal-scope bg nudge). command-panes /
+      split-terminal / status-icon / dropdown already EMBER → untouched. _Gate: build ✓, lint baseline (0 new);
+      R8 terminal-highlight + xterm/tokenizer + budget engine (1500/200/100/300) = EMPTY diff. border-red removed._
+- [x] **P7 — Dashboard + Report + Templates** — dashboard (kpi tiles + mono source-query chips; flow-dashboard.tsx
+      untouched), report web-view masthead (Target-led, derived risk grade via POSTURE_GRADE map, SeverityBar mix +
+      sev-pills, evidence panels) + PDF StyleSheet/hex reskin (teal/blue→ember, cool→warm graphite), NEW
+      `shared/severity-bar.tsx`, templates→EMBER card gallery + editor + target-type-picker. VERBATIM confirmed empty
+      diff: `build-report-model.ts`, `report-model.ts`, `report-pdf.tsx`, `report-document.tsx`, `format-utils.ts`,
+      `severity-palette.ts`, all `*.test`. _Gate: build ✓, lint baseline (0 new), **27/27 report+pdf tests green**._
+      _Built via workflow (3 parallel modules → gate → 4 adversarial verifiers); Report/Dashboard/Templates lenses
+      clean. Deferred: gallery drops DataTable title-search+sort (plan-sanctioned, restore in P10); dashboard
+      cost-share mini-bars omitted (optional)._
+- [x] **P8 — Settings + Login + Auth** — settings {`settings-providers,settings-provider(R3),settings-prompts,
+      settings-prompt,settings-mcp-servers,settings-mcp-server,settings-api-tokens,settings-users`}.tsx (mcp pair
+      folded in — they existed + use DataTable); `login.tsx`, `login-form.tsx`, `password-change-form.tsx`; shared
+      `ui/data-table.tsx` (R10). _Gate: build ✓, lint baseline (0 new), **full 159/159 tests green**; R3 form
+      (reduce builder + setValue cascades + 6 mutations) byte-identical; R10 table engine untouched (no cva key
+      renamed); R11 `passwordChangeSchema` + rule copy byte-identical; `user-provider`/`confirmation-dialog`/
+      ui-primitives EMPTY diff. Built via workflow (5 modules → gate → 4 adversarial lenses, all clean). Only prop
+      swaps: Save `secondary→default`, OAuth/Custom-badge `secondary→outline` (presentational, no cva key dropped)._
+- [x] **P9 — Terminal lazy-highlight** — `shared/terminal/terminal-highlight.tsx`: new `TermLine` defers per-token
+      tokenising (the stall) until a line nears view via IntersectionObserver; first 24 lines eager (covers both
+      containers' folds → no flash), IO-unavailable → eager fallback. Wrapper `<div>` byte-identical across the
+      plain→lit flip (fade never re-fires); `base` colour stays eager; full plain text always in DOM (copy/find
+      intact); global-index `lineDelay` kept; `TermOutput`/`TermCommandLines` signatures unchanged (4 consumers safe).
+      _Gate: build ✓, lint baseline, 159/159 tests. Adversarially verified (3 lenses): full-text/copy/find CLEAN,
+      zero blockers. Accepted trade-off: viewport root (best flow-load perf, the actual complaint) leaves a narrow
+      1-frame upgrade when scrolling *within* one tall pane — documented; scroll-parent root would regress load._
+- [x] **P10 — Responsiveness + regression pass** — audited all 61 changed files via workflow (4 responsive lenses +
+      cumulative-diff integrity). Reskin was already broadly responsive (grid ladders, contained table scroll, cockpit
+      stacks to tabs on mobile, no viewport forcers). Applied 11 className-only mobile-overflow fixes: CommandBar ctx
+      `overflow-hidden`; terminal-frame title `min-w-0 truncate`; assistant/tasks popovers → `w-[min(…,100vw-2rem)]`;
+      templates toolbar (`w-[130px] sm:w-[160px]` + `hidden sm:inline` label); dashboard tab-row + 4 settings sticky
+      footers + api-tokens header → `flex-wrap gap-y-2`; dashboard-analytics rows `min-w-0`. _Gate: build ✓, lint
+      baseline (0 new), prettier ✓, full 159/159 tests, P10 diff pure className. **Integrity lens: the only logic
+      across all 9 phases is terminal-highlight.tsx (P9) + the intended dark-default flip + 3 presentational derives
+      (KPI counts, running-count, sidebar chevron state) — zero regressions.**_
+
+## Deferred / decisions to surface (flag, don't guess)
+- Always-dark vs theme-aware rail — plan defaults to **theme-aware** (one-line flip to always-dark).
+- Password-policy mismatch (legacy 8/16 schema vs 12-char mandate) — preserve schema; reconcile only on approval (R11).
+- Flows **dossier-card Grid** + grid/list toggle — needs per-flow severity/findings not in the list query (data task).
+- CommandBar Approach B (layout-persistent bar) + Settings Option B (in-page tab strip) — routing restructures; deferred.
+- Templates gallery dropped DataTable's title text-search + column sort (plan-sanctioned in P7) — restore as a cheap
+  client-side title filter over `filteredTemplates` if the client wants it back.
+- `ui/tabs.tsx` global `overflow-x-auto` (P10 nit) — skipped: shared primitive, `overflow-x-auto` forces `overflow-y`
+  and risks clipping the active-tab underline app-wide for marginal benefit (no tab row is actually wide; the one
+  wide case — the dashboard tab+period row — was fixed locally with `flex-wrap`).
+- Terminal lazy-highlight (P9) intra-pane scroll: viewport observer root = best flow-load perf (the actual complaint);
+  narrow self-healing 1-frame upgrade when scrolling *within* one tall pane. A per-box root would regress load.
+
+## Log
+- P1 — EMBER tokens (warm-graphite dark default + off-white light + sev/st/ag ramps + radius 8px + JetBrains mono),
+  theme default→dark, tabs→underline, card/button/input/table restyle. Build ✓, lint = baseline 75 (0 new),
+  prettier ✓. Commit scoped to 8 files (prettier tree-wide noise reverted). Screenshot: real dark login = EMBER.

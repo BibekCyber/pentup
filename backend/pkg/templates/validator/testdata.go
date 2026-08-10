@@ -9,6 +9,7 @@ import (
 	"pentagi/pkg/csum"
 	"pentagi/pkg/database"
 	"pentagi/pkg/providers"
+	"pentagi/pkg/templates"
 	"pentagi/pkg/tools"
 )
 
@@ -58,6 +59,7 @@ func CreateDummyTemplateData() map[string]any {
 		"HackResultToolName":        tools.HackResultToolName,
 		"EnricherResultToolName":    tools.EnricherResultToolName,
 		"ReportResultToolName":      tools.ReportResultToolName,
+		"FindingsSpec":              templates.StructuredFindingsSpec,
 		"SubtaskListToolName":       tools.SubtaskListToolName,
 		"SubtaskPatchToolName":      tools.SubtaskPatchToolName,
 		"AskUserToolName":           tools.AskUserToolName,

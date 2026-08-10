@@ -245,11 +245,14 @@ function DataTable<TData, TValue = unknown>({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="rounded-md border">
+            <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow
+                                className="bg-muted/40 hover:bg-transparent"
+                                key={headerGroup.id}
+                            >
                                 {headerGroup.headers.map((header) => (
                                     <TableHead
                                         className={header.column.columnDef.meta?.headerClassName}
@@ -279,7 +282,7 @@ function DataTable<TData, TValue = unknown>({
 
                                 const tableRow = (
                                     <TableRow
-                                        className={cn('group hover:bg-primary/5', isRowInteractive && 'cursor-pointer')}
+                                        className={cn('group', isRowInteractive && 'cursor-pointer')}
                                         data-state={row.getIsSelected() && 'selected'}
                                         onClick={() => handleRowClick(row)}
                                     >
@@ -334,7 +337,7 @@ function DataTable<TData, TValue = unknown>({
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    className="h-24 text-center"
+                                    className="text-muted-foreground h-24 text-center"
                                     colSpan={columns.length}
                                 >
                                     No results.
@@ -355,7 +358,7 @@ function DataTable<TData, TValue = unknown>({
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Rows per page</span>
+                    <span className="text-muted-foreground text-xs font-medium">Rows per page</span>
                     <Select
                         onValueChange={(value) => {
                             const pageSize = value === 'all' ? data.length : Number.parseInt(value, 10);
@@ -382,7 +385,7 @@ function DataTable<TData, TValue = unknown>({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex items-center justify-center text-xs font-medium lg:w-20">
+                <div className="text-muted-foreground flex items-center justify-center font-mono text-xs font-medium lg:w-20">
                     Page {pagination.pageIndex + 1} of {table.getPageCount()}
                 </div>
                 <div className="flex items-center gap-1">

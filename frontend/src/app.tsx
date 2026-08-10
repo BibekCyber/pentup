@@ -79,7 +79,7 @@ const App = () => {
 
     return (
         <ApolloProvider client={client}>
-            <ThemeProvider defaultTheme="light">
+            <ThemeProvider defaultTheme="dark">
                 <Toaster />
                 <BrowserRouter>
                     <UserProvider>
@@ -177,51 +177,52 @@ const App = () => {
                                                     element={<Template />}
                                                     path="templates/:templateId"
                                                 />
-                                            </Route>
 
-                                            {/* Settings with nested routes */}
-                                            <Route
-                                                element={<SettingsLayout />}
-                                                path="settings"
-                                            >
+                                                {/* Settings with nested routes —
+                                                    nested inside MainLayout so the
+                                                    app rail/shell renders around it */}
                                                 <Route
-                                                    element={
-                                                        <Navigate
-                                                            replace
-                                                            to="providers"
-                                                        />
-                                                    }
-                                                    index
-                                                />
-                                                <Route
-                                                    element={<SettingsProviders />}
-                                                    path="providers"
-                                                />
-                                                <Route
-                                                    element={<SettingsProvider />}
-                                                    path="providers/:providerId"
-                                                />
-                                                <Route
-                                                    element={<SettingsPrompts />}
-                                                    path="prompts"
-                                                />
-                                                <Route
-                                                    element={<SettingsPrompt />}
-                                                    path="prompts/:promptId"
-                                                />
-                                                <Route
-                                                    element={<SettingsAPITokens />}
-                                                    path="api-tokens"
-                                                />
-                                                <Route
-                                                    element={
-                                                        <ProtectedByPermission permission="users.view">
-                                                            <SettingsUsers />
-                                                        </ProtectedByPermission>
-                                                    }
-                                                    path="users"
-                                                />
-                                                {/* <Route
+                                                    element={<SettingsLayout />}
+                                                    path="settings"
+                                                >
+                                                    <Route
+                                                        element={
+                                                            <Navigate
+                                                                replace
+                                                                to="providers"
+                                                            />
+                                                        }
+                                                        index
+                                                    />
+                                                    <Route
+                                                        element={<SettingsProviders />}
+                                                        path="providers"
+                                                    />
+                                                    <Route
+                                                        element={<SettingsProvider />}
+                                                        path="providers/:providerId"
+                                                    />
+                                                    <Route
+                                                        element={<SettingsPrompts />}
+                                                        path="prompts"
+                                                    />
+                                                    <Route
+                                                        element={<SettingsPrompt />}
+                                                        path="prompts/:promptId"
+                                                    />
+                                                    <Route
+                                                        element={<SettingsAPITokens />}
+                                                        path="api-tokens"
+                                                    />
+                                                    <Route
+                                                        element={
+                                                            <ProtectedByPermission permission="users.view">
+                                                                <SettingsUsers />
+                                                            </ProtectedByPermission>
+                                                        }
+                                                        path="users"
+                                                    />
+                                                    {/* <Route
                                         path="mcp-servers"
                                         element={<SettingsMcpServers />}
                                         />
@@ -233,16 +234,17 @@ const App = () => {
                                             path="mcp-servers/:mcpServerId"
                                             element={<SettingsMcpServer />}
                                         /> */}
-                                                {/* Catch-all route for unknown settings paths */}
-                                                <Route
-                                                    element={
-                                                        <Navigate
-                                                            replace
-                                                            to="/settings/providers"
-                                                        />
-                                                    }
-                                                    path="*"
-                                                />
+                                                    {/* Catch-all route for unknown settings paths */}
+                                                    <Route
+                                                        element={
+                                                            <Navigate
+                                                                replace
+                                                                to="/settings/providers"
+                                                            />
+                                                        }
+                                                        path="*"
+                                                    />
+                                                </Route>
                                             </Route>
                                         </Route>
 

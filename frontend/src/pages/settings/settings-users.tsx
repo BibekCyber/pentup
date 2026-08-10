@@ -1,6 +1,18 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { AlertCircle, KeyRound, Loader2, Lock, LockOpen, MoreHorizontal, Pencil, Plus, Trash, Users as UsersIcon } from 'lucide-react';
+import {
+    AlertCircle,
+    KeyRound,
+    Loader2,
+    Lock,
+    LockOpen,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Shield,
+    Trash,
+    Users as UsersIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import UserDeleteDialog from '@/components/forms/user-delete-dialog';
@@ -8,8 +20,8 @@ import UserFormDialog from '@/components/forms/user-form-dialog';
 import UserResetPasswordDialog from '@/components/forms/user-reset-password-dialog';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     DropdownMenu,
@@ -22,13 +34,43 @@ import { StatusCard } from '@/components/ui/status-card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApiErrorMessage } from '@/lib/api/errors';
 import { fetchRoles, fetchUsers, type RolePrivileges, updateUser, type UserRole } from '@/lib/api/users';
+import { cn } from '@/lib/utils';
 import { useUser } from '@/providers/user-provider';
 
-const statusVariant: Record<UserRole['status'], 'default' | 'destructive' | 'secondary'> = {
-    active: 'default',
-    blocked: 'destructive',
-    created: 'secondary',
+const statusMeta: Record<UserRole['status'], { className: string; label: string }> = {
+    active: { className: 'st-finished', label: 'Active' },
+    blocked: { className: 'st-failed', label: 'Blocked' },
+    created: { className: 'st-created', label: 'Invited' },
 };
+
+const StatusPill = ({ status }: { status: UserRole['status'] }) => {
+    const meta = statusMeta[status] ?? statusMeta.created;
+
+    return (
+        <span className={cn('status', meta.className)}>
+            <span className="dot" />
+            {meta.label}
+        </span>
+    );
+};
+
+const SettingsUsersIntro = () => (
+    <Card className="flex items-start gap-3.5 p-4">
+        <div className="bg-brand-tint border-primary/30 text-primary grid size-[34px] flex-none place-items-center rounded-lg border">
+            <UsersIcon className="size-[17px]" />
+        </div>
+        <div className="grow">
+            <div className="text-sm font-bold">Users &amp; roles</div>
+            <p className="text-muted-foreground mt-1.5 max-w-[680px] text-[12.5px] leading-relaxed">
+                Invite operators, assign roles, reset passwords, and block or remove accounts. This page is gated on the{' '}
+                <code className="bg-well border-border rounded-[5px] border px-1.5 py-px font-mono text-xs text-[var(--term-url)]">
+                    users.view
+                </code>{' '}
+                permission. New passwords must meet the 12-character policy.
+            </p>
+        </div>
+    </Card>
+);
 
 const formatDate = (value: string) => {
     if (!value) {
@@ -138,26 +180,38 @@ const SettingsUsers = () => {
         () => [
             {
                 accessorKey: 'mail',
-                cell: ({ row }) => <div className="font-medium">{row.original.mail}</div>,
+                cell: ({ row }) => <div className="font-mono text-sm font-medium">{row.original.mail}</div>,
                 header: 'Email',
             },
             {
                 accessorKey: 'name',
-                cell: ({ row }) => <div>{row.original.name || '—'}</div>,
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-2">
+                        <span>{row.original.name || '—'}</span>
+                        {row.original.id === currentUserId && <span className="badge badge-sys">YOU</span>}
+                    </div>
+                ),
                 header: 'Name',
             },
             {
-                cell: ({ row }) => row.original.role?.name ?? roleNameById.get(row.original.role_id) ?? '—',
+                cell: ({ row }) => (
+                    <span className="chip">
+                        <Shield className="size-3" />
+                        {row.original.role?.name ?? roleNameById.get(row.original.role_id) ?? '—'}
+                    </span>
+                ),
                 header: 'Role',
                 id: 'role',
             },
             {
                 accessorKey: 'status',
-                cell: ({ row }) => <Badge variant={statusVariant[row.original.status]}>{row.original.status}</Badge>,
+                cell: ({ row }) => <StatusPill status={row.original.status} />,
                 header: 'Status',
             },
             {
-                cell: ({ row }) => formatDate(row.original.created_at),
+                cell: ({ row }) => (
+                    <div className="text-muted-foreground font-mono text-xs">{formatDate(row.original.created_at)}</div>
+                ),
                 header: 'Created',
                 id: 'created_at',
             },
@@ -270,6 +324,8 @@ const SettingsUsers = () => {
     return (
         <div className="flex flex-col gap-4">
             <SettingsUsersHeader onCreate={handleCreate} />
+
+            <SettingsUsersIntro />
 
             {error && (
                 <Alert variant="destructive">

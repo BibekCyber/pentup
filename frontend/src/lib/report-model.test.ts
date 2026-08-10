@@ -7,7 +7,7 @@ import { Severity, StatusType } from '@/graphql/types';
 import type { Finding } from './report-model';
 
 import { buildReportMarkdown } from './build-report-markdown';
-import { buildReportModel, deriveSummaryNarrative, mapFindings } from './build-report-model';
+import { buildReportModel, deriveScopeTargets, deriveSummaryNarrative, mapFindings } from './build-report-model';
 import { sampleFindings, sampleReportModel } from './report-sample';
 import { getSeverityStyle, getStatusStyle } from './severity-palette';
 
@@ -39,7 +39,8 @@ describe('buildReportModel', () => {
         expect(model.findings).toHaveLength(0);
         expect(model.summary.tasksTotal).toBe(0);
         expect(model.summary.findingsTotal).toBe(0);
-        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary']);
+        // Scope & Methodology and the Appendix are fixed sections that always render.
+        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary', 'scope', 'appendix']);
     });
 
     it('handles a missing flow gracefully', () => {
@@ -82,7 +83,13 @@ describe('buildReportModel', () => {
 describe('sample report fixture', () => {
     it('reflects the reference report severity distribution', () => {
         expect(sampleReportModel.findings).toHaveLength(12);
-        expect(sampleReportModel.summary.findingsBySeverity).toEqual({ critical: 0, high: 3, informational: 0, low: 3, medium: 6 });
+        expect(sampleReportModel.summary.findingsBySeverity).toEqual({
+            critical: 0,
+            high: 3,
+            informational: 0,
+            low: 3,
+            medium: 6,
+        });
         expect(sampleReportModel.sections).toHaveLength(3);
         expect(sampleReportModel.flow.target).toBe('abc.xyz.com');
     });
@@ -97,7 +104,10 @@ describe('buildReportMarkdown', () => {
     it('renders the executive summary, risk table and every finding title', () => {
         const md = buildReportMarkdown(sampleReportModel);
 
-        expect(md).toContain('# Web Application Penetration Test');
+        // Reports state the engagement class (Web / Cloud) and are white-labelled
+        // for CyberFortify rather than titled by the raw flow name.
+        expect(md).toContain('# Web Application — Penetration Test Report');
+        expect(md).toContain('_By CyberFortify_');
         expect(md).toContain('## Executive Summary');
         expect(md).toContain('| Severity | Findings | CVSS Range |');
         expect(md).toContain('## Findings Summary');
@@ -107,12 +117,11 @@ describe('buildReportMarkdown', () => {
         }
     });
 
-    it('uses the finding-centric structure (Detailed Findings + Methodology, no findings nested in tasks)', () => {
+    it('uses the finding-centric structure (Detailed Findings, no dynamic methodology)', () => {
         const md = buildReportMarkdown(sampleReportModel);
 
-        // Findings are a dedicated top-level section, methodology follows.
+        // Findings are a dedicated top-level section.
         expect(md).toContain('## Detailed Findings');
-        expect(md).toContain('## Methodology');
         expect(md).toContain('### 1. Insecure Direct Object Reference (IDOR) via Predictable User ID');
 
         // Reference sub-section order is present.
@@ -121,9 +130,9 @@ describe('buildReportMarkdown', () => {
         expect(md).toContain('**Impact**');
         expect(md).toContain('**Remediation**');
 
-        // Findings live only under Detailed Findings, not nested under task sections.
-        expect(md).not.toContain('### Findings');
-        expect(md.indexOf('## Detailed Findings')).toBeLessThan(md.indexOf('## Methodology'));
+        // The dynamic per-task methodology log is no longer part of the deliverable.
+        expect(md).not.toContain('## Methodology');
+        expect(md).not.toContain('### Subtasks');
     });
 });
 
@@ -137,14 +146,40 @@ describe('palette defaults', () => {
 
 describe('mapFindings + buildReportModel (backend findings drive a coherent report)', () => {
     const gqlFindings: FindingFragmentFragment[] = [
-        { cvss: 9.1, description: 'Logout keeps tokens valid', recommendation: 'Add a Redis token denylist', references: ['https://owasp.org/Top10/'], severity: Severity.Critical, taskId: '9', title: 'Token Revocation Failure' },
+        {
+            cvss: 9.1,
+            description: 'Logout keeps tokens valid',
+            recommendation: 'Add a Redis token denylist',
+            references: ['https://owasp.org/Top10/'],
+            severity: Severity.Critical,
+            taskId: '9',
+            title: 'Token Revocation Failure',
+        },
         { cvss: 9, severity: Severity.Critical, taskId: '9', title: 'Missing Rate Limiting' },
         { cvss: 6.1, severity: Severity.Medium, taskId: '9', title: 'CORS Misconfiguration' },
         { cvss: 5.3, severity: Severity.Medium, taskId: '9', title: 'Missing Security Headers' },
     ];
 
-    const flow = { createdAt: '2026-06-28T10:00:00Z', id: '15', status: StatusType.Finished, title: 'Audit API Auth Flows', updatedAt: '2026-06-28T23:00:00Z' };
-    const tasks = [{ createdAt: '2026-06-28T10:05:00Z', flowId: '15', id: '9', input: 'internal prompt', result: 'done', status: StatusType.Finished, subtasks: [], title: 'Assess API Auth & Session', updatedAt: '2026-06-28T11:42:00Z' }] as unknown as TaskFragmentFragment[];
+    const flow = {
+        createdAt: '2026-06-28T10:00:00Z',
+        id: '15',
+        status: StatusType.Finished,
+        title: 'Audit API Auth Flows',
+        updatedAt: '2026-06-28T23:00:00Z',
+    };
+    const tasks = [
+        {
+            createdAt: '2026-06-28T10:05:00Z',
+            flowId: '15',
+            id: '9',
+            input: 'internal prompt',
+            result: 'done',
+            status: StatusType.Finished,
+            subtasks: [],
+            title: 'Assess API Auth & Session',
+            updatedAt: '2026-06-28T11:42:00Z',
+        },
+    ] as unknown as TaskFragmentFragment[];
 
     it('maps GraphQL findings into renderable findings with stable ids', () => {
         const findings = mapFindings(gqlFindings);
@@ -177,5 +212,40 @@ describe('mapFindings + buildReportModel (backend findings drive a coherent repo
     it('returns an empty list when findings are absent', () => {
         expect(mapFindings(null)).toEqual([]);
         expect(mapFindings(undefined)).toEqual([]);
+    });
+});
+
+describe('deriveScopeTargets', () => {
+    const withUrls = (urls: string[]): Finding[] => [{ ...sampleFindings[0], affectedUrls: urls }];
+
+    it('collapses the same host reached over http and https into one https entry', () => {
+        expect(deriveScopeTargets(withUrls(['http://example.com/a', 'https://example.com/b']))).toEqual([
+            'https://example.com',
+        ]);
+    });
+
+    it('drops raw backend IPs when a named host is in scope (the Host-header probing artefact)', () => {
+        // Exactly the flow-22 defect: the scan reached the site through its backend IPs.
+        const targets = deriveScopeTargets(
+            withUrls([
+                'https://bebekthapa.com.np/',
+                'http://13.215.239.219',
+                'https://13.215.239.219',
+                'http://52.74.6.109',
+                'https://52.74.6.109',
+            ]),
+        );
+
+        expect(targets).toEqual(['https://bebekthapa.com.np']);
+    });
+
+    it('keeps IP assets when the engagement has no named host', () => {
+        expect(deriveScopeTargets(withUrls(['http://10.0.0.5:8080/x', 'http://10.0.0.5:8080/y']))).toEqual([
+            'http://10.0.0.5:8080',
+        ]);
+    });
+
+    it('falls back to the flow target when no findings carry URLs', () => {
+        expect(deriveScopeTargets([], 'acme.test')).toEqual(['acme.test']);
     });
 });

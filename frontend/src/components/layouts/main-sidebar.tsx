@@ -1,10 +1,8 @@
-import { Avatar, AvatarFallback } from '@radix-ui/react-avatar';
 import {
-    ChevronsUpDown,
+    ChevronsLeft,
+    ChevronsRight,
     Clock,
     FileText,
-    GitFork,
-    Globe,
     KeyRound,
     LayoutDashboard,
     LogOut,
@@ -14,7 +12,9 @@ import {
     Settings2,
     Star,
     Sun,
+    Target,
     UserIcon,
+    Workflow,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useMatch, useParams } from 'react-router-dom';
@@ -44,7 +44,7 @@ import {
     SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PasswordChangeForm } from '@/features/authentication/password-change-form';
@@ -53,6 +53,30 @@ import { useTheme } from '@/hooks/use-theme';
 import { useFavorites } from '@/providers/favorites-provider';
 import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
 import { useUser } from '@/providers/user-provider';
+
+// EMBER nav active accent: left brand bar on top of the token-driven
+// brand-tint fill + primary icon that `data-[active=true]` already provides.
+const navActiveAccent =
+    "relative data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1.5 data-[active=true]:before:bottom-1.5 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-r-full data-[active=true]:before:bg-primary data-[active=true]:before:content-['']";
+
+// EMBER .rail-collapse: a clearly-visible circular toggle pinned to the rail's
+// right edge (z-30 so page content can't clip it). Drives the same
+// shadcn `toggleSidebar` behavior as the underlying SidebarRail.
+const RailCollapse = () => {
+    const { state, toggleSidebar } = useSidebar();
+
+    return (
+        <button
+            aria-label="Toggle Sidebar"
+            className="bg-card text-muted-foreground border-border-strong hover:border-primary hover:text-primary absolute top-[22px] -right-[11px] z-50 hidden size-[22px] place-items-center rounded-full border shadow-md transition-colors ease-linear sm:grid"
+            onClick={toggleSidebar}
+            title={state === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'}
+            type="button"
+        >
+            {state === 'collapsed' ? <ChevronsRight className="size-3.5" /> : <ChevronsLeft className="size-3.5" />}
+        </button>
+    );
+};
 
 interface FlowMenuItemProps {
     activeFlowId: null | number;
@@ -66,13 +90,14 @@ const FlowMenuItem = ({ activeFlowId, flow, isFavorite, onToggleFavorite }: Flow
         <SidebarMenuItem>
             <SidebarMenuButton
                 asChild
+                className={navActiveAccent}
                 isActive={activeFlowId === Number(flow.id)}
             >
                 <Link to={`/flows/${flow.id}`}>
-                    <span className="-mx-2 w-8 shrink-0 text-center text-xs group-data-[state=expanded]:hidden">
+                    <span className="-mx-2 w-8 shrink-0 text-center font-mono text-xs group-data-[state=expanded]:hidden">
                         {flow.id}
                     </span>
-                    <span className="text-muted-foreground bg-background dark:bg-muted -my-0.5 -ml-0.5 h-5 min-w-5 shrink-0 rounded-md px-px py-0.5 text-center text-xs group-data-[state=collapsed]:hidden">
+                    <span className="text-muted-foreground bg-well border-border -my-0.5 -ml-0.5 h-5 min-w-5 shrink-0 rounded-md border px-px py-0.5 text-center font-mono text-[11px] group-data-[state=collapsed]:hidden">
                         {flow.id}
                     </span>
                     <span className="truncate">{flow.title}</span>
@@ -100,6 +125,13 @@ export const MainSidebar = () => {
 
     const { authInfo, logout } = useUser();
     const user = authInfo?.user;
+    const userInitials = (user?.name ?? '')
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
     const canSeeDashboard = usePermission('usage.view');
     const { setTheme, theme } = useTheme();
     const { addFavoriteFlow, favoriteFlowIds, removeFavoriteFlow } = useFavorites();
@@ -126,14 +158,20 @@ export const MainSidebar = () => {
 
     return (
         <Sidebar collapsible="icon">
+            <RailCollapse />
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-2">
+                    <SidebarMenuItem className="flex items-center gap-2.5 px-1 py-1.5">
                         <div className="flex aspect-square size-8 items-center justify-center">
-                            <Logo className="hover:animate-logo-spin size-6" />
+                            <Logo className="hover:animate-logo-spin size-6 drop-shadow-[0_0_10px_rgba(245,114,20,0.45)]" />
                         </div>
-                        <div className="grid flex-1 text-left leading-tight">
-                            <span className="truncate font-semibold">PentAGI</span>
+                        <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                            <span className="truncate text-[15px] font-bold tracking-[0.02em]">
+                                <span className="text-primary">AI</span> Pentest
+                            </span>
+                            <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
+                                operator console
+                            </span>
                         </div>
                     </SidebarMenuItem>
                 </SidebarMenu>
@@ -142,11 +180,15 @@ export const MainSidebar = () => {
                 <SidebarGroup className="bg-sidebar sticky top-0 z-10">
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <SidebarMenuItem className="group-data-[state=expanded]:hidden">
-                                <SidebarMenuButton asChild>
-                                    <Link to="/flows/new">
+                            <SidebarMenuItem className="mb-1">
+                                <SidebarMenuButton
+                                    asChild
+                                    className="text-primary-foreground shadow-glow-brand hover:text-primary-foreground h-9 justify-center bg-[linear-gradient(180deg,var(--primary-hover),var(--primary))] font-semibold hover:bg-transparent hover:brightness-105"
+                                    tooltip="New Scan"
+                                >
+                                    <Link to="/scans/new">
                                         <Plus />
-                                        New Flow
+                                        <span className="group-data-[collapsible=icon]:hidden">New Scan</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -154,7 +196,9 @@ export const MainSidebar = () => {
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         asChild
+                                        className={`${navActiveAccent} h-9`}
                                         isActive={!!isDashboardActive}
+                                        tooltip="Dashboard"
                                     >
                                         <Link to="/dashboard">
                                             <LayoutDashboard />
@@ -166,10 +210,12 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={`${navActiveAccent} h-9`}
                                     isActive={!!isDomainsActive}
+                                    tooltip="Scans"
                                 >
                                     <Link to="/scans">
-                                        <Globe />
+                                        <Target />
                                         Scans
                                     </Link>
                                 </SidebarMenuButton>
@@ -186,10 +232,12 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={`${navActiveAccent} h-9`}
                                     isActive={!!isFlowsActive}
+                                    tooltip="Flows"
                                 >
                                     <Link to="/flows">
-                                        <GitFork />
+                                        <Workflow />
                                         Flows
                                     </Link>
                                 </SidebarMenuButton>
@@ -206,7 +254,9 @@ export const MainSidebar = () => {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
+                                    className={`${navActiveAccent} h-9`}
                                     isActive={!!isTemplatesActive}
+                                    tooltip="Templates"
                                 >
                                     <Link to="/templates">
                                         <FileText />
@@ -229,7 +279,7 @@ export const MainSidebar = () => {
 
                 {recentFlows.length > 0 && (
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center gap-2">
+                        <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
                             <Clock />
                             Recent Flows
                         </SidebarGroupLabel>
@@ -251,7 +301,7 @@ export const MainSidebar = () => {
 
                 {favoriteFlows.length > 0 && (
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center gap-2">
+                        <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
                             <Star />
                             Favorite Flows
                         </SidebarGroupLabel>
@@ -276,7 +326,9 @@ export const MainSidebar = () => {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
+                            className={`${navActiveAccent} h-9`}
                             isActive={!!isSettingsActive}
+                            tooltip="Settings"
                         >
                             <Link to="/settings">
                                 <Settings />
@@ -284,100 +336,108 @@ export const MainSidebar = () => {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuButton
-                                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                                    size="lg"
-                                >
-                                    <Avatar className="bg-background dark:bg-muted size-8 rounded-lg">
-                                        <AvatarFallback className="flex size-8 items-center justify-center">
-                                            <UserIcon className="size-4" />
-                                        </AvatarFallback>
-                                    </Avatar>
+                </SidebarMenu>
+
+                {/* EMBER .rail-foot — user bar: profile menu + theme toggle */}
+                <div className="border-sidebar-border mt-1 flex items-center gap-1.5 border-t pt-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className="hover:bg-sidebar-accent data-[state=open]:bg-sidebar-accent flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 text-left outline-hidden transition-colors group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:p-0"
+                                type="button"
+                            >
+                                <span className="bg-brand-tint border-border text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold">
+                                    {userInitials || <UserIcon className="size-4" />}
+                                </span>
+                                <span className="grid flex-1 leading-tight group-data-[collapsible=icon]:hidden">
+                                    <span className="truncate text-[12.5px] font-semibold">{user?.name}</span>
+                                    <span className="text-muted-foreground truncate font-mono text-[10px]">
+                                        {user?.mail}
+                                    </span>
+                                </span>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="start"
+                            className="border-border-strong w-56 rounded-lg p-1.5"
+                            side="top"
+                            sideOffset={8}
+                        >
+                            <DropdownMenuLabel className="p-0 font-normal">
+                                <div className="border-border mb-1 flex items-center gap-2 border-b px-1 pt-1 pb-2 text-left text-sm">
+                                    <span className="bg-brand-tint border-border text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold">
+                                        {userInitials || <UserIcon className="size-4" />}
+                                    </span>
                                     <div className="grid flex-1 text-left text-sm leading-tight">
                                         <span className="truncate font-semibold">{user?.name}</span>
-                                        <span className="truncate text-xs">{user?.mail}</span>
+                                        <span className="text-muted-foreground truncate font-mono text-[10.5px]">
+                                            {user?.mail}
+                                        </span>
+                                        <span className="text-muted-foreground truncate font-mono text-[10.5px] uppercase">
+                                            {user?.type === 'local' ? 'local' : 'oauth'}
+                                        </span>
                                     </div>
-                                    <ChevronsUpDown className="ml-auto size-4" />
-                                </SidebarMenuButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                                side="bottom"
-                                sideOffset={4}
-                            >
-                                <DropdownMenuLabel className="p-0 font-normal">
-                                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                        <Avatar className="bg-muted flex size-8 items-center justify-center rounded-lg">
-                                            <AvatarFallback className="flex items-center justify-center rounded-lg">
-                                                <UserIcon className="size-4" />
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="grid flex-1 text-left text-sm leading-tight">
-                                            <span className="truncate font-semibold">{user?.name}</span>
-                                            <span className="truncate text-xs">{user?.mail}</span>
-                                            <span className="text-muted-foreground truncate text-xs">
-                                                {user?.type === 'local' ? 'local' : 'oauth'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {/*
+                                </div>
+                            </DropdownMenuLabel>
+                            {/*
                                   Light/Dark toggle for the two RankLocal variants. The legacy
                                   system/light/dark (blue) themes stay in the provider but are
                                   intentionally not surfaced here.
                                 */}
-                                <DropdownMenuItem
-                                    className="cursor-default hover:bg-transparent focus:bg-transparent"
-                                    onSelect={(event) => event.preventDefault()}
+                            <DropdownMenuItem
+                                className="cursor-default hover:bg-transparent focus:bg-transparent"
+                                onSelect={(event) => event.preventDefault()}
+                            >
+                                <Settings2 />
+                                Theme
+                                <Tabs
+                                    className="-my-1.5 -mr-2 ml-auto"
+                                    onValueChange={(value) => setTheme(value as Theme)}
+                                    value={theme === 'dark' ? 'dark' : 'light'}
                                 >
-                                    <Settings2 />
-                                    Theme
-                                    <Tabs
-                                        className="-my-1.5 -mr-2 ml-auto"
-                                        onValueChange={(value) => setTheme(value as Theme)}
-                                        value={theme === 'dark' ? 'dark' : 'light'}
-                                    >
-                                        <TabsList className="h-7 p-0.5">
-                                            <TabsTrigger
-                                                className="h-6 px-2"
-                                                value="light"
-                                            >
-                                                <Sun className="size-4" />
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                className="h-6 px-2"
-                                                value="dark"
-                                            >
-                                                <Moon className="size-4" />
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </Tabs>
-                                </DropdownMenuItem>
-                                {user?.type === 'local' && (
-                                    <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
-                                            <KeyRound className="mr-2 size-4" />
-                                            Change Password
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => logout()}>
-                                    <LogOut className="mr-2 size-4" />
-                                    Log out
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                                    <TabsList className="h-7 p-0.5">
+                                        <TabsTrigger
+                                            className="h-6 px-2"
+                                            value="light"
+                                        >
+                                            <Sun className="size-4" />
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            className="h-6 px-2"
+                                            value="dark"
+                                        >
+                                            <Moon className="size-4" />
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </DropdownMenuItem>
+                            {user?.type === 'local' && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
+                                        <KeyRound className="mr-2 size-4" />
+                                        Change Password
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => logout()}>
+                                <LogOut className="mr-2 size-4" />
+                                Log out
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <button
+                        aria-label="Toggle theme"
+                        className="text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:border-border flex size-8 shrink-0 place-items-center justify-center rounded-lg border border-transparent transition-colors"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        title="Toggle theme"
+                        type="button"
+                    >
+                        {theme === 'dark' ? <Moon className="size-4" /> : <Sun className="size-4" />}
+                    </button>
+                </div>
             </SidebarFooter>
-            <SidebarRail />
 
             <Dialog
                 onOpenChange={setIsPasswordModalOpen}

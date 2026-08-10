@@ -27,6 +27,14 @@ import { groupCommands, StepPanes, type TermLog } from './flow-command-panes';
 const NONE_KEY = '__none__';
 const RAW_KEY = '__raw__';
 
+// Box/segmented (.seg) tab look: a well-toned pill container with a border; the
+// active tab is a filled box (card bg + subtle shadow), inactive tabs are muted.
+// The step row can hold many tabs, so the container wraps.
+const SEG_LIST =
+    'h-auto w-full flex-wrap justify-start gap-[3px] rounded-[var(--r-md)] border border-border bg-well p-[3px]';
+const SEG_TRIGGER =
+    'mb-0 gap-1.5 rounded-[5px] border-b-0 px-[11px] py-[5px] text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-[var(--hi)]';
+
 const FlowSplitTerminal = () => {
     const { flowData } = useFlow();
     const nav = useFlowExecNav();
@@ -122,10 +130,10 @@ const FlowSplitTerminal = () => {
             onValueChange={handleStepChange}
             value={activeStep}
         >
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+            <TabsList className={SEG_LIST}>
                 {steps.map((step) => (
                     <TabsTrigger
-                        className="gap-1.5"
+                        className={SEG_TRIGGER}
                         key={step.id}
                         value={step.id}
                     >
@@ -134,7 +142,7 @@ const FlowSplitTerminal = () => {
                     </TabsTrigger>
                 ))}
                 <TabsTrigger
-                    className="gap-1.5"
+                    className={SEG_TRIGGER}
                     value={RAW_KEY}
                 >
                     <SquareTerminal className="size-4" />

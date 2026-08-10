@@ -147,4 +147,5 @@ The backend contains helper binaries for development/testing:
 - `cmd/ctester/` — tests container execution
 - `cmd/ftester/` — tests LLM function/tool calling
 - `cmd/etester/` — tests embedding providers
+- `cmd/rptester/` — validates the reporter agent's `reporter.tmpl` prompt against a real LLM (renders the production system prompt, forces the `report_result` tool over a fixed evidence-rich scenario, prints findings + depth/shape metrics). Run: `go run ./cmd/rptester -env ../.env -model kimi-k2.5`
 - `cmd/installer/` — interactive TUI wizard for guided deployment setup (configures `.env`, Docker Compose, DB, search engines, etc.)

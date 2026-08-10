@@ -288,6 +288,7 @@ var PromptVariables = map[PromptType][]string{
 		"ExecutionState",
 	},
 	PromptTypeReporter: {
+		"FindingsSpec",
 		"ReportResultToolName",
 		"SummarizationToolName",
 		"SummarizedContentPrefix",

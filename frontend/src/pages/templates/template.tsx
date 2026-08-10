@@ -2,21 +2,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown, FileSymlink, PanelRightClose, PanelRightOpen, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import TargetTypePicker from '@/components/forms/target-type-picker';
+import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextareaAutosize } from '@/components/ui/input-group';
-import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
 import { TargetType, useFlowTemplateQuery } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
@@ -324,34 +330,38 @@ const Template = () => {
     }, [pendingPreset, setValue]);
 
     const pageHeader = (
-        <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-                className="mr-2 h-4"
-                orientation="vertical"
-            />
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{isNew ? 'New template' : (templateName ?? 'Template')}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
-            <Button
-                className="ml-auto"
-                onClick={() => setIsAsideOpen((open) => !open)}
-                size="icon"
-                variant="ghost"
-            >
-                {isAsideOpen ? <PanelRightClose /> : <PanelRightOpen />}
-            </Button>
-        </header>
+        <CommandBar
+            actions={
+                <Button
+                    onClick={() => setIsAsideOpen((open) => !open)}
+                    size="icon"
+                    variant="ghost"
+                >
+                    {isAsideOpen ? <PanelRightClose /> : <PanelRightOpen />}
+                </Button>
+            }
+            title={
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link to="/templates">Templates</Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage>{isNew ? 'New template' : (templateName ?? 'Template')}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            }
+        />
     );
 
     const asideContent = useMemo(
         () => (
             <div className="flex h-full max-h-[calc(100dvh-3rem)] flex-col overflow-y-auto p-4">
-                <h3 className="text-muted-foreground mb-2 text-sm font-medium">Preset templates</h3>
+                <h3 className="mb-3 block overline">Preset templates</h3>
                 {PRESET_TEMPLATES.map((preset, index) => (
                     <Collapsible
                         key={index}
@@ -469,7 +479,7 @@ const Template = () => {
                     <Card className="w-full max-w-2xl">
                         <CardContent className="flex flex-col gap-4 pt-6">
                             <div className="text-center">
-                                <h1 className="text-2xl font-semibold">
+                                <h1 className="text-2xl font-semibold tracking-tight">
                                     {isNew ? 'Create a new template' : 'Edit template'}
                                 </h1>
                                 <p className="text-muted-foreground mt-2">
@@ -493,6 +503,7 @@ const Template = () => {
                                         name="title"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="field-label">Title</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         autoFocus={isNew}
@@ -509,7 +520,7 @@ const Template = () => {
                                         name="targetTypes"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Target types</FormLabel>
+                                                <FormLabel className="field-label">Target types</FormLabel>
                                                 <FormControl>
                                                     <TargetTypePicker
                                                         disabled={isSaving}
@@ -517,7 +528,7 @@ const Template = () => {
                                                         value={field.value}
                                                     />
                                                 </FormControl>
-                                                <FormDescription>
+                                                <FormDescription className="field-hint">
                                                     Tag this template with the scan types it applies to.
                                                 </FormDescription>
                                             </FormItem>
@@ -533,6 +544,7 @@ const Template = () => {
                                         name="text"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="field-label">Content</FormLabel>
                                                 <FormControl>
                                                     <InputGroup className="block">
                                                         <InputGroupTextareaAutosize

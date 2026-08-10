@@ -1,23 +1,19 @@
-import type { ColumnDef } from '@tanstack/react-table';
-
-import { format, isToday } from 'date-fns';
-import { enUS } from 'date-fns/locale';
 import {
     AlertCircle,
-    ArrowDown,
-    ArrowUp,
+    Check,
     ChevronDown,
     Copy,
+    Cpu,
     Loader2,
-    MoreHorizontal,
+    MoreVertical,
     Pencil,
     Plus,
     Settings,
     Star,
     Trash,
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import type { ProviderConfigFragmentFragment } from '@/graphql/types';
@@ -34,15 +30,11 @@ import OpenAi from '@/components/icons/open-ai';
 import Qwen from '@/components/icons/qwen';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
-import { DataTable } from '@/components/ui/data-table';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
@@ -53,7 +45,7 @@ import {
     useSetDefaultProviderMutation,
     useSettingsProvidersQuery,
 } from '@/graphql/types';
-import { cn } from '@/lib/utils';
+
 type Provider = ProviderConfigFragmentFragment;
 
 const providerIcons: Record<ProviderType, React.ComponentType<any>> = {
@@ -82,21 +74,12 @@ const providerTypes = [
     { label: 'Qwen', type: ProviderType.Qwen },
 ];
 
-const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
+const getTypeLabel = (type: ProviderType): string =>
+    providerTypes.find((provider) => provider.type === type)?.label || type;
 
-    if (isToday(date)) {
-        return format(date, 'HH:mm:ss', { locale: enUS });
-    }
-
-    return format(date, 'd MMM yyyy', { locale: enUS });
-};
-
-const formatFullDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-
-    return format(date, 'd MMM yyyy, HH:mm:ss', { locale: enUS });
-};
+// Count configured agents on a provider (excluding the GraphQL __typename key).
+const getAgentCount = (agents: Provider['agents']): number =>
+    agents ? Object.keys(agents).filter((key) => key !== '__typename').length : 0;
 
 const SettingsProvidersHeader = () => {
     const navigate = useNavigate();
@@ -107,7 +90,12 @@ const SettingsProvidersHeader = () => {
 
     return (
         <div className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground">Manage language model providers</p>
+            <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
+                    LLM Providers
+                </span>
+                <p className="text-muted-foreground font-mono text-[12px]">Manage language model providers</p>
+            </div>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -141,8 +129,153 @@ const SettingsProvidersHeader = () => {
     );
 };
 
+interface ProviderCardProps {
+    isDeleting: boolean;
+    modelCount: number;
+    onClone: (providerId: string) => void;
+    onDelete: (provider: Provider) => void;
+    onEdit: (providerId: string) => void;
+    onSetDefault: (provider: Provider) => void;
+    provider: Provider;
+}
+
+// EMBER provider card — monogram tile, name + DEFAULT/CUSTOM badges, type line,
+// Ready status, capabilities line, and an action footer.
+const ProviderCard = ({
+    isDeleting,
+    modelCount,
+    onClone,
+    onDelete,
+    onEdit,
+    onSetDefault,
+    provider,
+}: ProviderCardProps) => {
+    const isCustom = provider.type === ProviderType.Custom;
+    const agentCount = getAgentCount(provider.agents);
+    const monogram = provider.name ? provider.name[0].toUpperCase() : null;
+
+    return (
+        <div className="bg-card border-border flex flex-col rounded-lg border p-4 shadow-[var(--hi)]">
+            {/* Header — monogram · name/type · readiness */}
+            <div className="flex items-start gap-[11px]">
+                <div className="bg-well border-border-strong text-primary grid size-[34px] shrink-0 place-items-center rounded-lg border font-mono text-[15px] font-bold">
+                    {monogram ?? <Cpu className="size-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-[7px]">
+                        <span className="text-[15px] font-bold">{provider.name}</span>
+                        {provider.isDefault ? <span className="badge badge-sys">DEFAULT</span> : null}
+                        {isCustom ? <span className="badge badge-outline">CUSTOM</span> : null}
+                    </div>
+                    <div className="text-muted-foreground mt-[3px] font-mono text-[11.5px]">
+                        type · {getTypeLabel(provider.type)}
+                        {isCustom ? ' · user-defined endpoint' : ''}
+                    </div>
+                </div>
+                <span
+                    className="status st-finished"
+                    title="Credentials valid"
+                >
+                    <span className="dot" />
+                    Ready
+                </span>
+            </div>
+
+            {/* Capabilities line */}
+            <div className="text-muted-foreground mt-[15px] flex items-center gap-2">
+                <Cpu className="size-[13px]" />
+                <span className="font-mono text-[11.5px]">
+                    {agentCount} agents configured
+                    {modelCount > 0 ? (
+                        <>
+                            <span className="text-[var(--ink-4)]"> · </span>
+                            {modelCount} models
+                        </>
+                    ) : null}
+                </span>
+            </div>
+
+            {/* Footer — default marker + action buttons */}
+            <div className="border-border mt-auto flex items-center gap-1 border-t pt-[15px]">
+                {provider.isDefault ? (
+                    <span
+                        className="chip"
+                        style={{ color: 'var(--st-finished)' }}
+                    >
+                        <Check className="size-[13px]" />
+                        Default
+                    </span>
+                ) : null}
+                <span className="flex-1" />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            aria-label="Configure provider"
+                            className="text-muted-foreground hover:text-foreground size-8"
+                            onClick={() => onEdit(provider.id)}
+                            size="icon"
+                            variant="ghost"
+                        >
+                            <Pencil className="size-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Configure</TooltipContent>
+                </Tooltip>
+                {!provider.isDefault ? (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                aria-label="Set as default provider"
+                                className="text-muted-foreground hover:text-primary size-8"
+                                onClick={() => onSetDefault(provider)}
+                                size="icon"
+                                variant="ghost"
+                            >
+                                <Star className="size-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Set as default</TooltipContent>
+                    </Tooltip>
+                ) : null}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            aria-label="Delete provider"
+                            className="text-muted-foreground hover:text-destructive size-8"
+                            disabled={isDeleting}
+                            onClick={() => onDelete(provider)}
+                            size="icon"
+                            variant="ghost"
+                        >
+                            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash className="size-4" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete provider</TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            aria-label="More actions"
+                            className="text-muted-foreground hover:text-foreground size-8"
+                            size="icon"
+                            variant="ghost"
+                        >
+                            <MoreVertical className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onClone(provider.id)}>
+                            <Copy className="size-4" />
+                            Clone
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </div>
+    );
+};
+
 const SettingsProviders = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
     const { data, error, loading: isLoading } = useSettingsProvidersQuery();
     const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useDeleteProviderMutation();
     const [setDefaultProvider] = useSetDefaultProviderMutation({ refetchQueries: ['settingsProviders'] });
@@ -150,50 +283,6 @@ const SettingsProviders = () => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingProvider, setDeletingProvider] = useState<null | Provider>(null);
     const navigate = useNavigate();
-
-
-    // Get current page from URL
-    const currentPage = useMemo(() => {
-        const page = searchParams.get('page');
-
-        return page ? Math.max(0, Number.parseInt(page, 10) - 1) : 0;
-    }, [searchParams]);
-
-    // Handle page change
-    const handlePageChange = useCallback(
-        (pageIndex: number) => {
-            const newParams = new URLSearchParams(searchParams);
-
-            if (pageIndex === 0) {
-                newParams.delete('page');
-            } else {
-                newParams.set('page', String(pageIndex + 1));
-            }
-
-            setSearchParams(newParams);
-        },
-        [searchParams, setSearchParams],
-    );
-
-    // Three-way sorting handler: null -> asc -> desc -> null
-    const handleColumnSort = useCallback(
-        (column: {
-            clearSorting: () => void;
-            getIsSorted: () => 'asc' | 'desc' | false;
-            toggleSorting: (desc?: boolean) => void;
-        }) => {
-            const sorted = column.getIsSorted();
-
-            if (sorted === 'asc') {
-                column.toggleSorting(true);
-            } else if (sorted === 'desc') {
-                column.clearSorting();
-            } else {
-                column.toggleSorting(false);
-            }
-        },
-        [],
-    );
 
     const handleProviderDelete = useCallback(
         async (providerId: string | undefined) => {
@@ -256,379 +345,6 @@ const SettingsProviders = () => {
         setIsDeleteDialogOpen(true);
     }, []);
 
-    const columns: ColumnDef<Provider>[] = useMemo(
-        () => [
-            {
-                accessorKey: 'name',
-                cell: ({ row }) => {
-                    const provider = row.original;
-
-                    return (
-                        <div className="flex items-center gap-2">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        aria-label={
-                                            provider.isDefault ? 'Default provider' : 'Set as default provider'
-                                        }
-                                        className={cn(
-                                            'flex size-6 shrink-0 items-center justify-center rounded transition-colors',
-                                            provider.isDefault
-                                                ? 'text-amber-500'
-                                                : 'text-muted-foreground/40 hover:text-amber-500',
-                                        )}
-                                        disabled={provider.isDefault}
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            void handleSetDefault(provider);
-                                        }}
-                                        type="button"
-                                    >
-                                        <Star className={cn('size-4', provider.isDefault && 'fill-current')} />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {provider.isDefault ? 'Default provider' : 'Set as default'}
-                                </TooltipContent>
-                            </Tooltip>
-                            <span className="font-medium">{row.getValue('name')}</span>
-                            {provider.isDefault ? (
-                                <Badge
-                                    className="text-xs"
-                                    variant="secondary"
-                                >
-                                    Default
-                                </Badge>
-                            ) : null}
-                        </div>
-                    );
-                },
-                enableHiding: false,
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-
-                    return (
-                        <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                            onClick={() => handleColumnSort(column)}
-                            variant="link"
-                        >
-                            Name
-                            {sorted === 'asc' ? (
-                                <ArrowDown className="size-4" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowUp className="size-4" />
-                            ) : null}
-                        </Button>
-                    );
-                },
-                size: 400,
-            },
-            {
-                accessorKey: 'type',
-                cell: ({ row }) => {
-                    const providerType = row.getValue('type') as ProviderType;
-                    const Icon = providerIcons[providerType];
-
-                    return (
-                        <Badge variant="outline">
-                            {Icon && <Icon className="mr-1 size-3" />}
-                            {providerTypes.find((p) => p.type === providerType)?.label || providerType}
-                        </Badge>
-                    );
-                },
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-
-                    return (
-                        <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                            onClick={() => handleColumnSort(column)}
-                            variant="link"
-                        >
-                            Type
-                            {sorted === 'asc' ? (
-                                <ArrowDown className="size-4" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowUp className="size-4" />
-                            ) : null}
-                        </Button>
-                    );
-                },
-                size: 160,
-            },
-            {
-                accessorKey: 'createdAt',
-                cell: ({ row }) => {
-                    const dateString = row.getValue('createdAt') as string;
-
-                    return (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <div className="text-xs">{formatFullDateTime(dateString)}</div>
-                            </TooltipContent>
-                        </Tooltip>
-                    );
-                },
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-
-                    return (
-                        <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                            onClick={() => handleColumnSort(column)}
-                            variant="link"
-                        >
-                            Created
-                            {sorted === 'asc' ? (
-                                <ArrowDown className="size-4" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowUp className="size-4" />
-                            ) : null}
-                        </Button>
-                    );
-                },
-                size: 120,
-                sortingFn: (rowA, rowB) => {
-                    const dateA = new Date(rowA.getValue('createdAt') as string);
-                    const dateB = new Date(rowB.getValue('createdAt') as string);
-
-                    return dateA.getTime() - dateB.getTime();
-                },
-            },
-            {
-                accessorKey: 'updatedAt',
-                cell: ({ row }) => {
-                    const dateString = row.getValue('updatedAt') as string;
-
-                    return (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="cursor-default text-sm">{formatDateTime(dateString)}</div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <div className="text-xs">{formatFullDateTime(dateString)}</div>
-                            </TooltipContent>
-                        </Tooltip>
-                    );
-                },
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-
-                    return (
-                        <Button
-                            className="text-muted-foreground hover:text-primary flex items-center gap-2 p-0 no-underline hover:no-underline"
-                            onClick={() => handleColumnSort(column)}
-                            variant="link"
-                        >
-                            Updated
-                            {sorted === 'asc' ? (
-                                <ArrowDown className="size-4" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowUp className="size-4" />
-                            ) : null}
-                        </Button>
-                    );
-                },
-                size: 120,
-                sortingFn: (rowA, rowB) => {
-                    const dateA = new Date(rowA.getValue('updatedAt') as string);
-                    const dateB = new Date(rowB.getValue('updatedAt') as string);
-
-                    return dateA.getTime() - dateB.getTime();
-                },
-            },
-            {
-                cell: ({ row }) => {
-                    const provider = row.original;
-
-                    return (
-                        <div className="flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        className="size-8 p-0"
-                                        variant="ghost"
-                                    >
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="size-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="min-w-24"
-                                >
-                                    <DropdownMenuItem
-                                        disabled={provider.isDefault}
-                                        onClick={() => handleSetDefault(provider)}
-                                    >
-                                        <Star className="size-4" />
-                                        {provider.isDefault ? 'Default provider' : 'Set as default'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleProviderEdit(provider.id)}>
-                                        <Pencil className="size-3" />
-                                        Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleProviderClone(provider.id)}>
-                                        <Copy className="size-4" />
-                                        Clone
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        disabled={isDeleteLoading && deletingProvider?.id === provider.id}
-                                        onClick={() => handleProviderDeleteDialogOpen(provider)}
-                                    >
-                                        {isDeleteLoading && deletingProvider?.id === provider.id ? (
-                                            <>
-                                                <Loader2 className="size-4 animate-spin" />
-                                                Deleting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Trash className="size-4" />
-                                                Delete
-                                            </>
-                                        )}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    );
-                },
-                enableHiding: false,
-                header: () => null,
-                id: 'actions',
-                meta: { preventRowClick: true },
-                size: 48,
-            },
-        ],
-        [
-            handleColumnSort,
-            handleProviderClone,
-            handleProviderDeleteDialogOpen,
-            handleProviderEdit,
-            handleSetDefault,
-            isDeleteLoading,
-            deletingProvider,
-        ],
-    );
-
-    const renderSubComponent = ({ row }: { row: any }) => {
-        const provider = row.original as Provider;
-        const { agents } = provider;
-
-        if (!agents) {
-            return <div className="text-muted-foreground p-4 text-sm">No agent configuration available</div>;
-        }
-
-        // Convert camelCase key to display name (e.g., 'simpleJson' -> 'Simple Json')
-        const getName = (key: string): string =>
-            key.replaceAll(/([A-Z])/g, ' $1').replace(/^./, (item) => item.toUpperCase());
-
-        // Recursively extract all fields from an object, flattening nested objects
-        const getFields = (obj: any, prefix = ''): { label: string; value: boolean | number | string }[] => {
-            if (!obj || typeof obj !== 'object') {
-                return [];
-            }
-
-            return Object.entries(obj)
-                .filter(([key, value]) => key !== '__typename' && !!value)
-                .flatMap(([key, value]) => {
-                    const label = `${prefix ? `${prefix} ` : ''}${getName(key)}`;
-
-                    return typeof value === 'object'
-                        ? getFields(value, label)
-                        : [{ label, value: value as boolean | number | string }];
-                });
-        };
-
-        // Dynamically create agent types from object keys
-        const agentTypes = Object.entries(agents)
-            .filter(([key]) => key !== '__typename')
-            .map(([key, data]) => ({
-                data,
-                key,
-                name: getName(key),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-
-        return (
-            <div className="bg-muted/20 border-t p-4">
-                <h4 className="font-medium">Agent Configurations</h4>
-                <hr className="border-muted-foreground/20 my-4" />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                    {agentTypes.map(({ data, key, name }) => {
-                        // Get all fields from data, including nested objects
-                        const fields = data ? getFields(data) : [];
-
-                        return (
-                            <div
-                                className="flex flex-col gap-2"
-                                key={key}
-                            >
-                                <div className="text-sm font-medium">{name}</div>
-                                {fields.length > 0 ? (
-                                    <div className="flex flex-col gap-1 text-sm">
-                                        {fields.map(({ label, value }) => (
-                                            <div key={label}>
-                                                <span className="text-muted-foreground">{label}:</span> {value}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-muted-foreground text-sm">No configuration available</div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderRowContextMenu = useCallback(
-        (provider: Provider) => (
-            <>
-                <ContextMenuItem
-                    disabled={provider.isDefault}
-                    onClick={() => handleSetDefault(provider)}
-                >
-                    <Star />
-                    {provider.isDefault ? 'Default provider' : 'Set as default'}
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={() => handleProviderEdit(provider.id)}>
-                    <Pencil />
-                    Edit
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleProviderClone(provider.id)}>
-                    <Copy />
-                    Clone
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem
-                    disabled={isDeleteLoading && deletingProvider?.id === provider.id}
-                    onClick={() => handleProviderDeleteDialogOpen(provider)}
-                >
-                    <Trash />
-                    {isDeleteLoading && deletingProvider?.id === provider.id ? 'Deleting...' : 'Delete'}
-                </ContextMenuItem>
-            </>
-        ),
-        [
-            deletingProvider,
-            handleProviderClone,
-            handleProviderDeleteDialogOpen,
-            handleProviderEdit,
-            handleSetDefault,
-            isDeleteLoading,
-        ],
-    );
-
     if (isLoading) {
         return (
             <div className="flex flex-col gap-4">
@@ -656,6 +372,7 @@ const SettingsProviders = () => {
     }
 
     const providers = data?.settingsProviders?.userDefined || [];
+    const models = data?.settingsProviders?.models;
 
     // Check if providers list is empty
     if (providers.length === 0) {
@@ -693,16 +410,20 @@ const SettingsProviders = () => {
                 </Alert>
             )}
 
-            <DataTable<Provider>
-                columns={columns}
-                data={providers}
-                filterColumn="name"
-                filterPlaceholder="Filter provider names..."
-                onPageChange={handlePageChange}
-                pageIndex={currentPage}
-                renderRowContextMenu={renderRowContextMenu}
-                renderSubComponent={renderSubComponent}
-            />
+            <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 xl:grid-cols-3">
+                {providers.map((provider) => (
+                    <ProviderCard
+                        isDeleting={isDeleteLoading && deletingProvider?.id === provider.id}
+                        key={provider.id}
+                        modelCount={models?.[provider.type as keyof typeof models]?.length ?? 0}
+                        onClone={handleProviderClone}
+                        onDelete={handleProviderDeleteDialogOpen}
+                        onEdit={handleProviderEdit}
+                        onSetDefault={handleSetDefault}
+                        provider={provider}
+                    />
+                ))}
+            </div>
 
             <ConfirmationDialog
                 cancelText="Cancel"
