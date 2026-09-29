@@ -41,10 +41,11 @@ jobs:
             docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
             
             # Tell the server to use this exact new version
-            echo "PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> .env.deploy
-            cat .env .env.deploy | sort -t= -k1,1 -u > .env.merged
-            mv .env.merged .env
-            rm -f .env.deploy
+            if grep -q '^PENTAGI_IMAGE=' .env; then
+              sed -i "s|^PENTAGI_IMAGE=.*|PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" .env
+            else
+              echo "PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> .env
+            fi
             
             # Pull and Restart the Server - THIS MIGRATES THE DATABASE automatically!
             docker compose pull
