@@ -1,0 +1,54 @@
+name: Build and Auto-Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}
+  IMAGE_NAME: pentagi
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Connect to DigitalOcean
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          
+      - name: Login to DOCR (Registry)
+        run: doctl registry login
+
+      - name: Build the Code into a Docker Image & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Update the Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            cd /opt/pentagi
+            docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
+            
+            # Tell the server to use this exact new version
+            echo "PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> .env.deploy
+            cat .env .env.deploy | sort -t= -k1,1 -u > .env.merged
+            mv .env.merged .env
+            rm -f .env.deploy
+            
+            # Pull and Restart the Server - THIS MIGRATES THE DATABASE automatically!
+            docker compose pull
+            docker compose up -d pentagi pgvector scraper
+
+            # Clean up old data to save disk space
+            docker image prune -af --filter "until=48h"
