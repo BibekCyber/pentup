@@ -309,9 +309,13 @@ export type Finding = {
     description?: Maybe<Scalars['String']['output']>;
     evidence?: Maybe<Scalars['String']['output']>;
     impact?: Maybe<Array<Scalars['String']['output']>>;
+    index: Scalars['Int']['output'];
+    originalCvss?: Maybe<Scalars['Float']['output']>;
+    originalSeverity?: Maybe<Severity>;
     recommendation?: Maybe<Scalars['String']['output']>;
     references?: Maybe<Array<Scalars['String']['output']>>;
     severity: Severity;
+    severityUpdated: Scalars['Boolean']['output'];
     stepsToReproduce?: Maybe<Array<Scalars['String']['output']>>;
     taskId: Scalars['ID']['output'];
     title: Scalars['String']['output'];
@@ -457,6 +461,8 @@ export type Mutation = {
     testAgent: AgentTestResult;
     testProvider: ProviderTestResult;
     updateAPIToken: ApiToken;
+    updateFindingCvss: ResultType;
+    updateFindingSeverity: ResultType;
     updateFlowTemplate: FlowTemplate;
     updateFlowTemplateTargetTypes: FlowTemplate;
     updatePrompt: UserPrompt;
@@ -589,6 +595,22 @@ export type MutationTestProviderArgs = {
 export type MutationUpdateApiTokenArgs = {
     input: UpdateApiTokenInput;
     tokenId: Scalars['String']['input'];
+};
+
+export type MutationUpdateFindingCvssArgs = {
+    assistantId?: InputMaybe<Scalars['ID']['input']>;
+    cvss: Scalars['Float']['input'];
+    expectedTitle: Scalars['String']['input'];
+    index: Scalars['Int']['input'];
+    taskId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type MutationUpdateFindingSeverityArgs = {
+    assistantId?: InputMaybe<Scalars['ID']['input']>;
+    expectedTitle: Scalars['String']['input'];
+    index: Scalars['Int']['input'];
+    severity: Severity;
+    taskId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type MutationUpdateFlowTemplateArgs = {
@@ -1753,8 +1775,12 @@ export type AssistantLogsQuery = { assistantLogs?: Array<AssistantLogFragmentFra
 
 export type FindingFragmentFragment = {
     taskId: string;
+    index: number;
     title: string;
     severity: Severity;
+    severityUpdated: boolean;
+    originalSeverity?: Severity | null;
+    originalCvss?: number | null;
     cvss?: number | null;
     cve?: string | null;
     affectedUrls?: Array<string> | null;
@@ -1878,6 +1904,26 @@ export type UserPreferencesFragmentFragment = { id: string; favoriteFlows: Array
 export type SettingsUserQueryVariables = Exact<{ [key: string]: never }>;
 
 export type SettingsUserQuery = { settingsUser: UserPreferencesFragmentFragment };
+
+export type UpdateFindingCvssMutationVariables = Exact<{
+    taskId?: InputMaybe<Scalars['ID']['input']>;
+    assistantId?: InputMaybe<Scalars['ID']['input']>;
+    index: Scalars['Int']['input'];
+    expectedTitle: Scalars['String']['input'];
+    cvss: Scalars['Float']['input'];
+}>;
+
+export type UpdateFindingCvssMutation = { updateFindingCvss: ResultType };
+
+export type UpdateFindingSeverityMutationVariables = Exact<{
+    taskId?: InputMaybe<Scalars['ID']['input']>;
+    assistantId?: InputMaybe<Scalars['ID']['input']>;
+    index: Scalars['Int']['input'];
+    expectedTitle: Scalars['String']['input'];
+    severity: Severity;
+}>;
+
+export type UpdateFindingSeverityMutation = { updateFindingSeverity: ResultType };
 
 export type AddFavoriteFlowMutationVariables = Exact<{
     flowId: Scalars['ID']['input'];
@@ -2436,8 +2482,12 @@ export const ProviderFragmentFragmentDoc = gql`
 export const FindingFragmentFragmentDoc = gql`
     fragment findingFragment on Finding {
         taskId
+        index
         title
         severity
+        severityUpdated
+        originalSeverity
+        originalCvss
         cvss
         cve
         affectedUrls
@@ -4998,6 +5048,116 @@ export type SettingsUserQueryHookResult = ReturnType<typeof useSettingsUserQuery
 export type SettingsUserLazyQueryHookResult = ReturnType<typeof useSettingsUserLazyQuery>;
 export type SettingsUserSuspenseQueryHookResult = ReturnType<typeof useSettingsUserSuspenseQuery>;
 export type SettingsUserQueryResult = Apollo.QueryResult<SettingsUserQuery, SettingsUserQueryVariables>;
+export const UpdateFindingCvssDocument = gql`
+    mutation updateFindingCvss($taskId: ID, $assistantId: ID, $index: Int!, $expectedTitle: String!, $cvss: Float!) {
+        updateFindingCvss(
+            taskId: $taskId
+            assistantId: $assistantId
+            index: $index
+            expectedTitle: $expectedTitle
+            cvss: $cvss
+        )
+    }
+`;
+export type UpdateFindingCvssMutationFn = Apollo.MutationFunction<
+    UpdateFindingCvssMutation,
+    UpdateFindingCvssMutationVariables
+>;
+
+/**
+ * __useUpdateFindingCvssMutation__
+ *
+ * To run a mutation, you first call `useUpdateFindingCvssMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFindingCvssMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFindingCvssMutation, { data, loading, error }] = useUpdateFindingCvssMutation({
+ *   variables: {
+ *      taskId: // value for 'taskId'
+ *      assistantId: // value for 'assistantId'
+ *      index: // value for 'index'
+ *      expectedTitle: // value for 'expectedTitle'
+ *      cvss: // value for 'cvss'
+ *   },
+ * });
+ */
+export function useUpdateFindingCvssMutation(
+    baseOptions?: Apollo.MutationHookOptions<UpdateFindingCvssMutation, UpdateFindingCvssMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<UpdateFindingCvssMutation, UpdateFindingCvssMutationVariables>(
+        UpdateFindingCvssDocument,
+        options,
+    );
+}
+export type UpdateFindingCvssMutationHookResult = ReturnType<typeof useUpdateFindingCvssMutation>;
+export type UpdateFindingCvssMutationResult = Apollo.MutationResult<UpdateFindingCvssMutation>;
+export type UpdateFindingCvssMutationOptions = Apollo.BaseMutationOptions<
+    UpdateFindingCvssMutation,
+    UpdateFindingCvssMutationVariables
+>;
+export const UpdateFindingSeverityDocument = gql`
+    mutation updateFindingSeverity(
+        $taskId: ID
+        $assistantId: ID
+        $index: Int!
+        $expectedTitle: String!
+        $severity: Severity!
+    ) {
+        updateFindingSeverity(
+            taskId: $taskId
+            assistantId: $assistantId
+            index: $index
+            expectedTitle: $expectedTitle
+            severity: $severity
+        )
+    }
+`;
+export type UpdateFindingSeverityMutationFn = Apollo.MutationFunction<
+    UpdateFindingSeverityMutation,
+    UpdateFindingSeverityMutationVariables
+>;
+
+/**
+ * __useUpdateFindingSeverityMutation__
+ *
+ * To run a mutation, you first call `useUpdateFindingSeverityMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFindingSeverityMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFindingSeverityMutation, { data, loading, error }] = useUpdateFindingSeverityMutation({
+ *   variables: {
+ *      taskId: // value for 'taskId'
+ *      assistantId: // value for 'assistantId'
+ *      index: // value for 'index'
+ *      expectedTitle: // value for 'expectedTitle'
+ *      severity: // value for 'severity'
+ *   },
+ * });
+ */
+export function useUpdateFindingSeverityMutation(
+    baseOptions?: Apollo.MutationHookOptions<UpdateFindingSeverityMutation, UpdateFindingSeverityMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<UpdateFindingSeverityMutation, UpdateFindingSeverityMutationVariables>(
+        UpdateFindingSeverityDocument,
+        options,
+    );
+}
+export type UpdateFindingSeverityMutationHookResult = ReturnType<typeof useUpdateFindingSeverityMutation>;
+export type UpdateFindingSeverityMutationResult = Apollo.MutationResult<UpdateFindingSeverityMutation>;
+export type UpdateFindingSeverityMutationOptions = Apollo.BaseMutationOptions<
+    UpdateFindingSeverityMutation,
+    UpdateFindingSeverityMutationVariables
+>;
 export const AddFavoriteFlowDocument = gql`
     mutation addFavoriteFlow($flowId: ID!) {
         addFavoriteFlow(flowId: $flowId)

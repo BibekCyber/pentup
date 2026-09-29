@@ -235,16 +235,17 @@ export const buildAssistantReportModel = (
 
     // The assistant "Conversation" log was dropped from the deliverable; the report
     // is now the fixed section set only.
+    // Contents of the on-screen report. Scope & Methodology and the Appendix are fixed
+    // boilerplate that only the exported PDF renders, so listing them here would be a link
+    // to nothing; the PDF carries its own structure.
     const toc: ReportTocEntry[] = [
         { id: 'executive-summary', level: 1, title: 'Executive Summary' },
-        { id: 'scope', level: 1, title: 'Scope & Methodology' },
         ...(hasFindings
             ? ([
                   { id: 'findings-summary', level: 1, title: 'Finding Summary' },
                   { id: 'detailed-findings', level: 1, title: 'Detailed Findings' },
               ] as ReportTocEntry[])
             : []),
-        { id: 'appendix', level: 1, title: 'Appendix' },
     ];
 
     const summaryTarget = assistant?.title ? `with the ${assistant.title}` : 'session';

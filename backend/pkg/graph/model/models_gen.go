@@ -220,18 +220,22 @@ type Domain struct {
 }
 
 type Finding struct {
-	TaskID           int64    `json:"taskId"`
-	Title            string   `json:"title"`
-	Severity         Severity `json:"severity"`
-	Cvss             *float64 `json:"cvss,omitempty"`
-	Cve              *string  `json:"cve,omitempty"`
-	AffectedUrls     []string `json:"affectedUrls,omitempty"`
-	Description      *string  `json:"description,omitempty"`
-	Evidence         *string  `json:"evidence,omitempty"`
-	Impact           []string `json:"impact,omitempty"`
-	StepsToReproduce []string `json:"stepsToReproduce,omitempty"`
-	Recommendation   *string  `json:"recommendation,omitempty"`
-	References       []string `json:"references,omitempty"`
+	TaskID           int64     `json:"taskId"`
+	Index            int       `json:"index"`
+	Title            string    `json:"title"`
+	Severity         Severity  `json:"severity"`
+	SeverityUpdated  bool      `json:"severityUpdated"`
+	OriginalSeverity *Severity `json:"originalSeverity,omitempty"`
+	OriginalCvss     *float64  `json:"originalCvss,omitempty"`
+	Cvss             *float64  `json:"cvss,omitempty"`
+	Cve              *string   `json:"cve,omitempty"`
+	AffectedUrls     []string  `json:"affectedUrls,omitempty"`
+	Description      *string   `json:"description,omitempty"`
+	Evidence         *string   `json:"evidence,omitempty"`
+	Impact           []string  `json:"impact,omitempty"`
+	StepsToReproduce []string  `json:"stepsToReproduce,omitempty"`
+	Recommendation   *string   `json:"recommendation,omitempty"`
+	References       []string  `json:"references,omitempty"`
 }
 
 type Flow struct {

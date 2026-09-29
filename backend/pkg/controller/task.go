@@ -268,6 +268,16 @@ func (tw *taskWorker) SetFindings(ctx context.Context, findings []tools.Finding)
 		findings = []tools.Finding{}
 	}
 
+	// The model may not assert an analyst override, and this regeneration may not erase
+	// one. Read the row at write time so an edit made while the reporter ran is included.
+	if task, err := tw.taskCtx.DB.GetTask(ctx, tw.taskCtx.TaskID); err == nil {
+		var stored []tools.Finding
+		_ = json.Unmarshal(task.Findings, &stored)
+		findings = tools.PrepareFindingsForStorage(stored, findings)
+	} else {
+		findings = tools.PrepareFindingsForStorage(nil, findings)
+	}
+
 	blob, err := json.Marshal(findings)
 	if err != nil {
 		return fmt.Errorf("failed to marshal task %d findings: %w", tw.taskCtx.TaskID, err)

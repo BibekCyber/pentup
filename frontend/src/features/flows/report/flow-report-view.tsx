@@ -1,6 +1,6 @@
 import { ArrowLeft, ChevronDown, Clipboard, Download, FileText, Loader2 } from 'lucide-react';
 
-import type { ReportModel } from '@/lib/report-model';
+import type { Finding, ReportModel, Severity } from '@/lib/report-model';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,6 @@ import { getEngagementLabel } from '@/lib/target-type-colors';
 import FlowReportExecutiveSummary from './flow-report-executive-summary';
 import FlowReportFindingsDetail from './flow-report-findings-detail';
 import FlowReportFindingsSummary from './flow-report-findings-summary';
-import FlowReportSection from './flow-report-section';
 import FlowReportToc from './flow-report-toc';
 
 export interface FlowReportActions {
@@ -30,6 +29,10 @@ interface FlowReportViewProps extends FlowReportActions {
     model: ReportModel;
     onBackToFlow?: () => void;
     onClientNameChange?: (value: string) => void;
+    onCvssChange?: (finding: Finding, cvss: number) => void;
+    onCvssOutOfRange?: (severity: string, min: number, max: number) => void;
+    onSeverityChange?: (finding: Finding, severity: Severity) => void;
+    severityPending?: boolean;
 }
 
 const FlowReportView = ({
@@ -38,9 +41,13 @@ const FlowReportView = ({
     onBackToFlow,
     onClientNameChange,
     onCopyMarkdown,
+    onCvssChange,
+    onCvssOutOfRange,
     onDownloadMarkdown,
     onDownloadPdf,
+    onSeverityChange,
     pdfGenerating,
+    severityPending,
 }: FlowReportViewProps) => {
     const isEmpty = model.sections.length === 0 && model.findings.length === 0;
     // Report states the engagement class (Web / Cloud) rather than the raw flow
@@ -189,22 +196,14 @@ const FlowReportView = ({
                     </aside>
                     <main className="min-w-0 space-y-10">
                         <FlowReportExecutiveSummary model={model} />
-                        <FlowReportFindingsSummary findings={model.findings} />
+                        <FlowReportFindingsSummary
+                            findings={model.findings}
+                            onCvssChange={onCvssChange}
+                            onCvssOutOfRange={onCvssOutOfRange}
+                            onSeverityChange={onSeverityChange}
+                            severityPending={severityPending}
+                        />
                         <FlowReportFindingsDetail findings={model.findings} />
-                        {model.sectionsTitle && model.sections.length > 0 && (
-                            <h2
-                                className="text-foreground scroll-mt-24 border-b pb-2 text-xl font-semibold"
-                                id="methodology"
-                            >
-                                {model.sectionsTitle}
-                            </h2>
-                        )}
-                        {model.sections.map((section) => (
-                            <FlowReportSection
-                                key={section.id}
-                                section={section}
-                            />
-                        ))}
                     </main>
                 </div>
             )}

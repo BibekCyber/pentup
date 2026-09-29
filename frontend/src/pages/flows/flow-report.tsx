@@ -2,21 +2,39 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import type { ReportModel } from '@/lib/report-model';
+import type { Finding, ReportModel, Severity } from '@/lib/report-model';
 
 import Logo from '@/components/icons/logo';
 import FlowReportView from '@/features/flows/report/flow-report-view';
-import { useAssistantLogsQuery, useAssistantsQuery, useDomainsQuery, useFlowReportQuery } from '@/graphql/types';
+import {
+    Severity as GqlSeverity,
+    useAssistantLogsQuery,
+    useAssistantsQuery,
+    useDomainsQuery,
+    useFlowReportQuery,
+    useUpdateFindingCvssMutation,
+    useUpdateFindingSeverityMutation,
+} from '@/graphql/types';
 import { assistantSampleReportModel } from '@/lib/assistant-report-sample';
 import { buildAssistantReportModel } from '@/lib/build-assistant-report-model';
 import { buildReportMarkdown } from '@/lib/build-report-markdown';
 import { buildReportModel, mapFindings } from '@/lib/build-report-model';
 import { Log } from '@/lib/log';
 import { copyToClipboard, downloadTextFile, generateFileName } from '@/lib/report';
+import { isSeverityChangeMeaningful } from '@/lib/report-model';
 import { generateReportPdf } from '@/lib/report-pdf';
 import { sampleReportModel } from '@/lib/report-sample';
 
 type ReportState = 'content' | 'error' | 'generating' | 'loading';
+
+// Report severities are the renderer's lowercase union; the API takes the GraphQL enum.
+const GQL_SEVERITY: Record<Severity, GqlSeverity> = {
+    critical: GqlSeverity.Critical,
+    high: GqlSeverity.High,
+    informational: GqlSeverity.Informational,
+    low: GqlSeverity.Low,
+    medium: GqlSeverity.Medium,
+};
 
 const FlowReport = () => {
     const { flowId } = useParams<{ flowId: string }>();
@@ -109,12 +127,15 @@ const FlowReport = () => {
             return buildReportModel(data.flow, tasks, findings, { targetType });
         }
 
-        if (assistantsLoading) {
+        // Gate on the FIRST load only. A severity edit refetches these queries, and treating
+        // any in-flight request as "no model yet" would replace the whole report with the
+        // loading splash on every re-rate.
+        if (assistantsLoading && !assistantsData) {
             return null;
         }
 
         if (assistants.length > 0) {
-            return logsLoading
+            return logsLoading && !logsData
                 ? null
                 : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], {
                       findings: mapFindings(assistants[0]?.findings),
@@ -129,10 +150,11 @@ const FlowReport = () => {
         data,
         isAutomation,
         tasks,
+        assistantsData,
         assistantsLoading,
         assistants,
-        logsLoading,
         logsData,
+        logsLoading,
         targetType,
     ]);
 
@@ -142,6 +164,92 @@ const FlowReport = () => {
         () => (baseModel ? { ...baseModel, clientName: clientName.trim() || baseModel.clientName } : null),
         [baseModel, clientName],
     );
+
+    // ── Finding triage ────────────────────────────────────────────────────────
+    // Severity is the only stored value; counts, colours, ordering, the executive
+    // summary and the PDF all recompute from it, so refetching the report after a
+    // change is enough to keep every part consistent.
+    const [updateFindingSeverity, { loading: severityUpdating }] = useUpdateFindingSeverityMutation();
+    const [updateFindingCvss, { loading: cvssUpdating }] = useUpdateFindingCvssMutation();
+    const canTriage = !sample && !assistantSample && Boolean(flowId);
+
+    // Automation findings are addressed by their task; assistant-mode findings have no task
+    // and are addressed by the assistant that produced them.
+    const addressOf = (finding: Finding) => {
+        const taskId = finding.taskId && finding.taskId !== '0' ? finding.taskId : undefined;
+
+        return { assistantId: taskId ? undefined : primaryAssistantId, taskId };
+    };
+
+    const reportEditError = (error: unknown, fallback: string) => {
+        Log.error(fallback, error);
+
+        // The server refuses an edit when the finding at that position is no longer the one
+        // on screen, so say what to do rather than only that it failed.
+        const changed = error instanceof Error && error.message.includes('reload');
+        toast.error(changed ? 'This report changed — reload and try again' : fallback);
+    };
+
+    const handleCvssOutOfRange = (severity: string, min: number, max: number) => {
+        toast.error(`A ${severity} finding scores between ${min.toFixed(1)} and ${max.toFixed(1)}`, {
+            description: 'Change the severity first to use a score outside this range.',
+        });
+    };
+
+    const handleCvssChange = async (finding: Finding, cvss: number) => {
+        const { assistantId, taskId } = addressOf(finding);
+        const { index } = finding;
+
+        if (index === undefined || (!taskId && !assistantId)) {
+            return;
+        }
+
+        try {
+            await updateFindingCvss({
+                awaitRefetchQueries: true,
+                refetchQueries: taskId ? ['flowReport'] : ['assistants'],
+                variables: { assistantId, cvss, expectedTitle: finding.title, index, taskId },
+            });
+            toast.success(`CVSS set to ${cvss.toFixed(1)}`);
+        } catch (error) {
+            reportEditError(error, 'Could not update the CVSS score');
+        }
+    };
+
+    const handleSeverityChange = async (finding: Finding, severity: Severity) => {
+        const { index } = finding;
+
+        if (index === undefined || !isSeverityChangeMeaningful(finding, severity)) {
+            return;
+        }
+
+        const { assistantId, taskId } = addressOf(finding);
+
+        if (!taskId && !assistantId) {
+            return;
+        }
+
+        try {
+            await updateFindingSeverity({
+                awaitRefetchQueries: true,
+                // Refetch only the query that actually sourced these findings; naming an
+                // inactive query makes Apollo warn on every edit.
+                refetchQueries: taskId ? ['flowReport'] : ['assistants'],
+                variables: {
+                    assistantId,
+                    // Pins the edit to the finding on screen: findings are regenerated
+                    // wholesale, so an index alone could address a different one.
+                    expectedTitle: finding.title,
+                    index,
+                    severity: GQL_SEVERITY[severity],
+                    taskId,
+                },
+            });
+            toast.success(`Severity updated to ${severity}`);
+        } catch (error) {
+            reportEditError(error, 'Could not update the severity');
+        }
+    };
 
     const fileBaseName = useMemo(
         () =>
@@ -260,9 +368,13 @@ const FlowReport = () => {
             onBackToFlow={!sample && flowId ? () => navigate(`/flows/${flowId}`) : undefined}
             onClientNameChange={setClientName}
             onCopyMarkdown={handleCopyMarkdown}
+            onCvssChange={canTriage ? handleCvssChange : undefined}
+            onCvssOutOfRange={canTriage ? handleCvssOutOfRange : undefined}
             onDownloadMarkdown={handleDownloadMarkdown}
             onDownloadPdf={handleDownloadPdf}
+            onSeverityChange={canTriage ? handleSeverityChange : undefined}
             pdfGenerating={pdfGenerating}
+            severityPending={severityUpdating || cvssUpdating}
         />
     );
 };

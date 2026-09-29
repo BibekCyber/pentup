@@ -32,8 +32,8 @@ func parseFindings(blob json.RawMessage, taskID int64) []*model.Finding {
 	}
 
 	findings := make([]*model.Finding, 0, len(parsed))
-	for _, finding := range parsed {
-		findings = append(findings, convertFinding(taskID, finding))
+	for index, finding := range parsed {
+		findings = append(findings, convertFinding(taskID, index, finding))
 	}
 
 	return findings
@@ -84,7 +84,7 @@ func findingCVSS(f *model.Finding) float64 {
 	return *f.Cvss
 }
 
-func convertFinding(taskID int64, finding tools.Finding) *model.Finding {
+func convertFinding(taskID int64, index int, finding tools.Finding) *model.Finding {
 	severity := model.Severity(strings.ToLower(strings.TrimSpace(finding.Severity)))
 	if !severity.IsValid() {
 		severity = model.SeverityInformational
@@ -92,8 +92,10 @@ func convertFinding(taskID int64, finding tools.Finding) *model.Finding {
 
 	converted := &model.Finding{
 		TaskID:           taskID,
+		Index:            index,
 		Title:            finding.Title,
 		Severity:         severity,
+		SeverityUpdated:  finding.SeverityUpdated,
 		Cvss:             finding.CVSS,
 		AffectedUrls:     finding.AffectedURLs,
 		Impact:           finding.Impact,
@@ -101,6 +103,10 @@ func convertFinding(taskID int64, finding tools.Finding) *model.Finding {
 		References:       finding.References,
 	}
 
+	if original := model.Severity(strings.ToLower(strings.TrimSpace(finding.OriginalSeverity))); original.IsValid() {
+		converted.OriginalSeverity = &original
+	}
+	converted.OriginalCvss = finding.OriginalCVSS
 	if finding.CVE != "" {
 		converted.Cve = &finding.CVE
 	}

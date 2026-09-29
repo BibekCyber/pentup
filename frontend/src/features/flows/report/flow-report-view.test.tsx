@@ -20,7 +20,10 @@ describe('FlowReportView', () => {
         expect(html).toContain('Executive Summary');
         expect(html).toContain('Findings Summary');
         expect(html).toContain('Insecure Direct Object Reference (IDOR) via Predictable User ID');
-        expect(html).toContain('Reconnaissance &amp; Infrastructure Assessment');
+
+        // The per-task narrative was dropped from the deliverable, so the on-screen report
+        // must not render it either — the two views describe the same report.
+        expect(html).not.toContain('Reconnaissance &amp; Infrastructure Assessment');
         expect(html.length).toBeGreaterThan(5000);
     });
 
@@ -29,7 +32,9 @@ describe('FlowReportView', () => {
 
         expect(html).toContain('Executive Summary');
         expect(html).toContain('conversation');
-        expect(html).toContain('Strict-Transport-Security');
+
+        // Assistant reports render their findings, not the transcript sections.
+        expect(html).not.toContain('Strict-Transport-Security');
         expect(html.length).toBeGreaterThan(3000);
     });
 

@@ -8,6 +8,7 @@ import type { Finding } from './report-model';
 
 import { buildReportMarkdown } from './build-report-markdown';
 import { buildReportModel, deriveScopeTargets, deriveSummaryNarrative, mapFindings } from './build-report-model';
+import { isSeverityChangeMeaningful } from './report-model';
 import { sampleFindings, sampleReportModel } from './report-sample';
 import { getSeverityStyle, getStatusStyle } from './severity-palette';
 
@@ -39,8 +40,9 @@ describe('buildReportModel', () => {
         expect(model.findings).toHaveLength(0);
         expect(model.summary.tasksTotal).toBe(0);
         expect(model.summary.findingsTotal).toBe(0);
-        // Scope & Methodology and the Appendix are fixed sections that always render.
-        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary', 'scope', 'appendix']);
+        // Contents list only what the on-screen report actually contains; Scope and the
+        // Appendix are PDF-only boilerplate, so linking to them here would go nowhere.
+        expect(model.toc.map((entry) => entry.id)).toEqual(['executive-summary']);
     });
 
     it('handles a missing flow gracefully', () => {
@@ -149,15 +151,38 @@ describe('mapFindings + buildReportModel (backend findings drive a coherent repo
         {
             cvss: 9.1,
             description: 'Logout keeps tokens valid',
+            index: 0,
             recommendation: 'Add a Redis token denylist',
             references: ['https://owasp.org/Top10/'],
             severity: Severity.Critical,
+            severityUpdated: false,
             taskId: '9',
             title: 'Token Revocation Failure',
         },
-        { cvss: 9, severity: Severity.Critical, taskId: '9', title: 'Missing Rate Limiting' },
-        { cvss: 6.1, severity: Severity.Medium, taskId: '9', title: 'CORS Misconfiguration' },
-        { cvss: 5.3, severity: Severity.Medium, taskId: '9', title: 'Missing Security Headers' },
+        {
+            cvss: 9,
+            index: 1,
+            severity: Severity.Critical,
+            severityUpdated: false,
+            taskId: '9',
+            title: 'Missing Rate Limiting',
+        },
+        {
+            cvss: 6.1,
+            index: 2,
+            severity: Severity.Medium,
+            severityUpdated: false,
+            taskId: '9',
+            title: 'CORS Misconfiguration',
+        },
+        {
+            cvss: 5.3,
+            index: 3,
+            severity: Severity.Medium,
+            severityUpdated: false,
+            taskId: '9',
+            title: 'Missing Security Headers',
+        },
     ];
 
     const flow = {
@@ -216,7 +241,7 @@ describe('mapFindings + buildReportModel (backend findings drive a coherent repo
 });
 
 describe('deriveScopeTargets', () => {
-    const withUrls = (urls: string[]): Finding[] => [{ ...sampleFindings[0], affectedUrls: urls }];
+    const withUrls = (urls: string[]): Finding[] => [{ ...(sampleFindings[0] as Finding), affectedUrls: urls }];
 
     it('collapses the same host reached over http and https into one https entry', () => {
         expect(deriveScopeTargets(withUrls(['http://example.com/a', 'https://example.com/b']))).toEqual([
@@ -247,5 +272,30 @@ describe('deriveScopeTargets', () => {
 
     it('falls back to the flow target when no findings carry URLs', () => {
         expect(deriveScopeTargets([], 'acme.test')).toEqual(['acme.test']);
+    });
+});
+
+describe('isSeverityChangeMeaningful', () => {
+    const base: Finding = { id: 'f', index: 0, severity: 'high', title: 'A' };
+
+    it('sends a genuine re-rating', () => {
+        expect(isSeverityChangeMeaningful(base, 'low')).toBe(true);
+    });
+
+    it('ignores picking the severity a finding already has', () => {
+        expect(isSeverityChangeMeaningful(base, 'high')).toBe(false);
+    });
+
+    // Regression: after a CVSS-only edit the original severity equals the current one, so
+    // "Reset to original" asks for the same severity. A plain equality guard swallowed it
+    // and the reset silently did nothing.
+    it('still sends the reset when an override is in force but the severity matches', () => {
+        const cvssOnlyEdit: Finding = { ...base, originalSeverity: 'high', severityUpdated: true };
+
+        expect(isSeverityChangeMeaningful(cvssOnlyEdit, 'high')).toBe(true);
+    });
+
+    it('ignores findings with no storage address', () => {
+        expect(isSeverityChangeMeaningful({ ...base, index: undefined }, 'low')).toBe(false);
     });
 });

@@ -40,3 +40,8 @@ data/*
 # OS
 Thumbs.db
 
+# Compiled helper binaries from backend/cmd/* (go build drops them in backend/)
+backend/reportregen
+
+# Incremental TypeScript build state (tsc -b)
+frontend/tsconfig.app.tsbuildinfo

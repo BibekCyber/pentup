@@ -556,6 +556,21 @@ func (aw *assistantWorker) refreshFindings(ctx context.Context) {
 		findings = []tools.Finding{}
 	}
 
+	// A re-extraction may not silently discard an analyst's triage decision.
+	//
+	// Re-read the row rather than reusing the copy loaded before ExtractFindings: that call
+	// is a full LLM round-trip, and an analyst can re-rate a finding while it is in flight.
+	// Merging against the pre-call snapshot would silently drop exactly that edit.
+	current, err := aw.db.GetAssistant(ctx, aw.id)
+	if err != nil {
+		aw.logger.WithError(err).Warn("failed to reload assistant before merging findings")
+		return
+	}
+
+	var stored []tools.Finding
+	_ = json.Unmarshal(current.Findings, &stored)
+	findings = tools.PrepareFindingsForStorage(stored, findings)
+
 	blob, err := json.Marshal(findings)
 	if err != nil {
 		aw.logger.WithError(err).Warn("failed to marshal assistant findings")
