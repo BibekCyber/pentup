@@ -126,6 +126,24 @@ func (fp *flowProvider) performAgentChain(
 				),
 			}
 		} else {
+			// Proactively cap the chain to the model's configured context window
+			// before the call. Without this, a call that inherits a large context
+			// (e.g. a subtask's first turn carrying the whole task history) is sent
+			// whole — the single biggest cost driver. compactChainForWindow is a
+			// no-op when the chain already fits the window; otherwise it summarizes
+			// (not truncates) down to a window-derived budget.
+			if summarizer != nil {
+				if compacted, done := compactChainForWindow(
+					ctx, fp, optAgentType, chain, executor.Tools(), summarizerHandler, fp.tcIDTemplate,
+				); done {
+					chain = compacted
+					if err := fp.updateMsgChain(ctx, optAgentType, chainID, chain, rollLastUpdateTime()); err != nil {
+						logger.WithError(err).Error("failed to update msg chain after window compaction")
+						return err
+					}
+				}
+			}
+
 			result, err = fp.callWithRetries(ctx, optAgentType, chainID, taskID, subtaskID, chain, executor, executionContext)
 			if err != nil {
 				logger.WithError(err).Error("failed to call agent chain")
