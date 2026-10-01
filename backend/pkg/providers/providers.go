@@ -196,7 +196,7 @@ func NewProviderController(
 		defaultConfigs[provider.ProviderGemini] = config
 	}
 
-	if config, err := bedrock.DefaultProviderConfig(); err != nil {
+	if config, err := bedrock.DefaultProviderConfig(cfg); err != nil {
 		return nil, fmt.Errorf("failed to create bedrock provider config: %w", err)
 	} else {
 		defaultConfigs[provider.ProviderBedrock] = config
@@ -287,7 +287,7 @@ func NewProviderController(
 	}
 
 	if cfg.LLMServerURL != "" && (cfg.LLMServerModel != "" || cfg.LLMServerConfig != "") {
-		p, err := custom.New(cfg, provider.DefaultProviderNameCustom, defaultConfigs[provider.ProviderCustom])
+		p, err := custom.New(cfg, provider.DefaultProviderNameCustom, defaultConfigs[provider.ProviderCustom], nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create custom provider: %w", err)
 		}
@@ -810,7 +810,7 @@ func (pc *providerController) NewProvider(prv database.Provider) (provider.Provi
 		if err != nil {
 			return nil, fmt.Errorf("failed to build custom provider config: %w", err)
 		}
-		return custom.New(pc.cfg, providerName, customConfig)
+		return custom.New(pc.cfg, providerName, customConfig, nil)
 	case provider.ProviderDeepSeek:
 		deepseekConfig, err := deepseek.BuildProviderConfig(prv.Config)
 		if err != nil {
@@ -1238,7 +1238,7 @@ func (pc *providerController) buildProviderFromConfig(
 	case provider.ProviderAnthropic:
 		return anthropic.New(pc.cfg, prvname, config)
 	case provider.ProviderCustom:
-		return custom.New(pc.cfg, prvname, config)
+		return custom.New(pc.cfg, prvname, config, nil)
 	case provider.ProviderGemini:
 		return gemini.New(pc.cfg, prvname, config)
 	case provider.ProviderBedrock:

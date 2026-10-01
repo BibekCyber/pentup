@@ -99,7 +99,7 @@ func TestCustomProviderUsageModes(t *testing.T) {
 				t.Fatalf("Failed to create provider config: %v", err)
 			}
 
-			prov, err := New(cfg, provider.DefaultProviderNameCustom, providerConfig)
+			prov, err := New(cfg, provider.DefaultProviderNameCustom, providerConfig, nil)
 			if err != nil {
 				t.Fatalf("Failed to create provider: %v", err)
 			}
@@ -183,7 +183,7 @@ func TestCustomProviderConfigValidation(t *testing.T) {
 				t.Fatalf("Unexpected error for %s: %v", tt.description, err)
 			}
 
-			prov, err := New(tt.config, provider.DefaultProviderNameCustom, providerConfig)
+			prov, err := New(tt.config, provider.DefaultProviderNameCustom, providerConfig, nil)
 			if err != nil {
 				t.Fatalf("Failed to create provider for %s: %v", tt.description, err)
 			}

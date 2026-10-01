@@ -62,6 +62,13 @@ type Config struct {
 	// === LLM Provider: Anthropic ===
 	AnthropicAPIKey    string `env:"ANTHROPIC_API_KEY"`
 	AnthropicServerURL string `env:"ANTHROPIC_SERVER_URL" envDefault:"https://api.anthropic.com/v1"`
+	// Anthropic workload-identity federation (optional; used by anthropic/federation.go).
+	AnthropicFederationRuleID  string `env:"ANTHROPIC_FEDERATION_RULE_ID"`
+	AnthropicWorkspaceID       string `env:"ANTHROPIC_WORKSPACE_ID"`
+	AnthropicOrganizationID    string `env:"ANTHROPIC_ORGANIZATION_ID"`
+	AnthropicServiceAccountID  string `env:"ANTHROPIC_SERVICE_ACCOUNT_ID"`
+	AnthropicIdentityTokenFile string `env:"ANTHROPIC_IDENTITY_TOKEN_FILE"`
+	AnthropicIdentityToken     string `env:"ANTHROPIC_IDENTITY_TOKEN"`
 
 	// === Vector Embedding Configuration ===
 	EmbeddingURL           string `env:"EMBEDDING_URL"`
@@ -89,6 +96,8 @@ type Config struct {
 	LLMServerConfig            string `env:"LLM_SERVER_CONFIG_PATH"`
 	LLMServerLegacyReasoning   bool   `env:"LLM_SERVER_LEGACY_REASONING" envDefault:"false"`
 	LLMServerPreserveReasoning bool   `env:"LLM_SERVER_PRESERVE_REASONING" envDefault:"false"`
+	LLMServerAPIType           string `env:"LLM_SERVER_API_TYPE"`
+	LLMServerAPIVersion        string `env:"LLM_SERVER_API_VERSION" envDefault:"2024-10-21"`
 
 	// === LLM Provider: Ollama (Local/Remote) ===
 	OllamaServerURL               string `env:"OLLAMA_SERVER_URL"`
@@ -111,6 +120,7 @@ type Config struct {
 	BedrockSecretKey    string `env:"BEDROCK_SECRET_ACCESS_KEY"`
 	BedrockSessionToken string `env:"BEDROCK_SESSION_TOKEN"`
 	BedrockServerURL    string `env:"BEDROCK_SERVER_URL"`
+	BedrockConfig       string `env:"BEDROCK_CONFIG_PATH"`
 
 	// === LLM Provider: DeepSeek ===
 	DeepSeekAPIKey    string `env:"DEEPSEEK_API_KEY"`
@@ -131,6 +141,21 @@ type Config struct {
 	QwenAPIKey    string `env:"QWEN_API_KEY"`
 	QwenServerURL string `env:"QWEN_SERVER_URL" envDefault:"https://dashscope-us.aliyuncs.com/compatible-mode/v1"`
 	QwenProvider  string `env:"QWEN_PROVIDER"`
+
+	// === LLM Provider: xAI (Grok) ===
+	XAIAPIKey    string `env:"XAI_API_KEY"`
+	XAIServerURL string `env:"XAI_SERVER_URL" envDefault:"https://api.x.ai/v1"`
+	XAIProvider  string `env:"XAI_PROVIDER"`
+
+	// === LLM Provider: Mistral ===
+	MistralAPIKey    string `env:"MISTRAL_API_KEY"`
+	MistralServerURL string `env:"MISTRAL_SERVER_URL" envDefault:"https://api.mistral.ai/v1"`
+	MistralProvider  string `env:"MISTRAL_PROVIDER"`
+
+	// === LLM Provider: MiniMax ===
+	MiniMaxAPIKey    string `env:"MINIMAX_API_KEY"`
+	MiniMaxServerURL string `env:"MINIMAX_SERVER_URL" envDefault:"https://api.minimax.io/v1"`
+	MiniMaxProvider  string `env:"MINIMAX_PROVIDER"`
 
 	// === Search Engine: DuckDuckGo ===
 	DuckDuckGoEnabled    bool   `env:"DUCKDUCKGO_ENABLED" envDefault:"true"`
