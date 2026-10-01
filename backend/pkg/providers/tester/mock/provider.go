@@ -23,6 +23,7 @@ type Provider struct {
 	responses      map[string]interface{} // key -> response mapping
 	defaultResp    string
 	streamingDelay time.Duration
+	models         pconfig.ModelsConfig
 }
 
 // ResponseConfig configures mock responses
@@ -85,9 +86,15 @@ func (p *Provider) GetUsage(info map[string]any) pconfig.CallUsage {
 	return pconfig.CallUsage{Input: 100, Output: 50} // Mock token counts
 }
 
+// SetModels configures the model catalog the mock reports (e.g. to give a model
+// a ContextWindow for window-compaction tests).
+func (p *Provider) SetModels(models pconfig.ModelsConfig) {
+	p.models = models
+}
+
 // GetModels implements provider.Provider
 func (p *Provider) GetModels() pconfig.ModelsConfig {
-	return pconfig.ModelsConfig{}
+	return p.models
 }
 
 // GetToolCallIDTemplate implements provider.Provider
