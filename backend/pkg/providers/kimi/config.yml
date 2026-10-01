@@ -57,15 +57,19 @@ simple:
 # already runs this ceiling on these models. A ceiling is not a target — short reports
 # still cost only the tokens they actually use.
 reporter:
-  model: "kimi-k2-turbo-preview"
-  temperature: 0.3
+  model: kimi-k2.6
+  temperature: 0.6
+  top_p: 0.95
   n: 1
   max_tokens: 32768
+  reasoning:
+    mode: "off"
   extra_body:
-    tool_choice: "auto"
+    tool_choice: auto
   price:
-    input: 1.15
-    output: 8.0
+    input: 0.95
+    output: 4.00
+    cache_read: 0.16
 
 simple_json:
   model: kimi-k2.6
