@@ -213,6 +213,19 @@ func (p *Provider) CallWithTools(
 	return p.handleContentResponse(respInterface)
 }
 
+// CallWithExtraOptions implements provider.Provider. The mock ignores the extra
+// CallOptions (they only tune the real wire request) and reuses CallWithTools.
+func (p *Provider) CallWithExtraOptions(
+	ctx context.Context,
+	opt pconfig.ProviderOptionsType,
+	chain []llms.MessageContent,
+	tools []llms.Tool,
+	streamCb streaming.Callback,
+	extra ...llms.CallOption,
+) (*llms.ContentResponse, error) {
+	return p.CallWithTools(ctx, opt, chain, tools, streamCb)
+}
+
 // GetRawConfig implements provider.Provider
 func (p *Provider) GetRawConfig() []byte {
 	return []byte(`{"mock": true}`)
