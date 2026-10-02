@@ -187,7 +187,11 @@ const NewEngagement = () => {
 
     const availableTemplates = useMemo(() => {
         if (targetClass === 'cloud' && cloudProvider) {
-            return templates.filter((t) => t.targetTypes.includes(TargetType.Cloud));
+            // Show templates tagged for the chosen provider (AWS/Azure/GCP)
+            // plus generic Cloud templates that apply to any provider.
+            return templates.filter(
+                (t) => t.targetTypes.includes(cloudProvider) || t.targetTypes.includes(TargetType.Cloud),
+            );
         }
 
         if (targetClass === 'web') {
