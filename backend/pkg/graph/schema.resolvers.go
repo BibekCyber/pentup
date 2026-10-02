@@ -1381,6 +1381,11 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 	// engagements; the controller enforces the same gate defensively.
 	var credential *controller.ScanCredentialSpec
 	if (scope == string(model.ScanScopeInternal) || box == string(model.ScanBoxGrey)) && input.Credential != nil {
+		// Shape/format validation mirrors the wizard's client checks; the client
+		// can be bypassed, so this is the authoritative gate.
+		if err := validateScanCredential(input.Credential.Kind, input.Credential.Value); err != nil {
+			return nil, fmt.Errorf("invalid credential: %w", err)
+		}
 		credential = &controller.ScanCredentialSpec{
 			Kind:  string(input.Credential.Kind),
 			Value: input.Credential.Value,
