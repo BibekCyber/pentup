@@ -1828,3 +1828,15 @@
     color: var(--ink-3);
     margin-top: 6px;
 }
+.field-error {
+    font-size: 11.5px;
+    color: var(--destructive);
+    margin-top: 6px;
+}
+/* Invalid credential/form inputs get a danger outline for a clear signal. */
+[aria-invalid='true'] {
+    border-color: var(--destructive);
+}
+[aria-invalid='true']:focus-visible {
+    outline-color: var(--destructive);
+}
