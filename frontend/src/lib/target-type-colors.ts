@@ -52,8 +52,24 @@ export const TARGET_TYPE_META: Record<TargetType, TargetTypeMeta> = {
     },
 };
 
-/** Ordered list of all target types, used to render pickers/filters. */
-export const ALL_TARGET_TYPES: TargetType[] = [TargetType.WebApp, TargetType.Cloud];
+/**
+ * Ordered list of target types offered in pickers/filters (template editor,
+ * templates-page filter bar). Grouped web -> cloud -> other so the cloud
+ * providers sit next to the generic Cloud tag. `Cloud` is the generic
+ * cloud tag: a template tagged `Cloud` applies to every provider, while an
+ * `Aws`/`Azure`/`Gcp` tag scopes it to that one provider.
+ */
+export const ALL_TARGET_TYPES: TargetType[] = [
+    TargetType.WebApp,
+    TargetType.Api,
+    TargetType.Aws,
+    TargetType.Azure,
+    TargetType.Gcp,
+    TargetType.Cloud,
+    TargetType.Network,
+    TargetType.MobileBackend,
+    TargetType.General,
+];
 
 /** Returns the display metadata for a target type, falling back to General. */
 export const getTargetTypeMeta = (type: TargetType): TargetTypeMeta =>
