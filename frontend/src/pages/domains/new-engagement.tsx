@@ -510,7 +510,7 @@ const NewEngagement = () => {
                                 {currentKey === 'target' ? (
                                     <div className="flex flex-col gap-5">
                                         <StepHead
-                                            desc="Name the target and pick its class. This determines the playbooks you can choose from."
+                                            desc="Enter the target and choose its type. This filters the test templates down to the ones that apply."
                                             over={`Step ${currentNum} · Target`}
                                             title="What are we assessing?"
                                         />
@@ -526,7 +526,7 @@ const NewEngagement = () => {
                                             />
                                         </Field>
                                         <div className="flex flex-col gap-2">
-                                            <label className="field-label">Target class</label>
+                                            <label className="field-label">What type of target is it?</label>
                                             <div className="flex flex-col gap-3 sm:flex-row">
                                                 <ChoiceCard
                                                     description="GCP, AWS, or Azure infrastructure."
@@ -640,7 +640,7 @@ const NewEngagement = () => {
                                         <StepHead
                                             desc="Each selected template becomes its own isolated flow against the target. Tune the run mode per template."
                                             over={`Step ${currentNum} · Templates`}
-                                            title="Choose playbooks"
+                                            title="Choose templates"
                                         />
                                         <div className="flex max-h-[30rem] flex-col gap-3 overflow-y-auto">
                                             {availableTemplates.length === 0 ? (

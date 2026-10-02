@@ -88,7 +88,7 @@ const Templates = () => {
     const [view, setView] = useState<'grid' | 'list'>('grid');
     const [page, setPage] = useState(1);
 
-    // Header context line — total playbooks split into system / custom.
+    // Header context line — total templates split into system / custom.
     const systemCount = templates.filter((t) => t.systemOwned).length;
     const customCount = templates.length - systemCount;
 
@@ -273,7 +273,7 @@ const Templates = () => {
             ctx={
                 templates.length ? (
                     <>
-                        <span className="text-foreground font-semibold">{templates.length}</span> playbooks
+                        <span className="text-foreground font-semibold">{templates.length}</span> templates
                         <span className="text-muted-foreground/50">·</span>
                         {systemCount} system
                         <span className="text-muted-foreground/50">·</span>
