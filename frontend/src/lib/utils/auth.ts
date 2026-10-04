@@ -5,7 +5,7 @@
  */
 export const getReturnUrlParam = (currentPath: string): string => {
     // Don't save default route as return URL
-    if (currentPath === '/flows/new' || currentPath === '/login') {
+    if (currentPath === '/' || currentPath === '/login') {
         return '';
     }
 

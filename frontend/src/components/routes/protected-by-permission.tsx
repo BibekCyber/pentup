@@ -10,7 +10,7 @@ interface ProtectedByPermissionProps {
     permission: string;
 }
 
-const ProtectedByPermission = ({ children, fallback = '/flows', permission }: ProtectedByPermissionProps) => {
+const ProtectedByPermission = ({ children, fallback = '/scans', permission }: ProtectedByPermissionProps) => {
     const { isLoading } = useUser();
     const allowed = usePermission(permission);
 

@@ -6,20 +6,18 @@ import {
     KeyRound,
     LayoutDashboard,
     LogOut,
+    MessageSquare,
     Moon,
     Plus,
     Settings,
     Settings2,
-    Star,
     Sun,
     Target,
     UserIcon,
-    Workflow,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useMatch, useParams } from 'react-router-dom';
+import { Link, useMatch } from 'react-router-dom';
 
-import type { Flow } from '@/providers/sidebar-flows-provider';
 import type { Theme } from '@/providers/theme-provider';
 
 import Logo from '@/components/icons/logo';
@@ -49,10 +47,16 @@ import {
 } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PasswordChangeForm } from '@/features/authentication/password-change-form';
+import {
+    type DomainFragmentFragment,
+    DomainStatusType,
+    useDomainCreatedSubscription,
+    useDomainDeletedSubscription,
+    useDomainsQuery,
+    useDomainUpdatedSubscription,
+} from '@/graphql/types';
 import { usePermission } from '@/hooks/use-permission';
 import { useTheme } from '@/hooks/use-theme';
-import { useFavorites } from '@/providers/favorites-provider';
-import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
 import { useTemplates } from '@/providers/templates-provider';
 import { useUser } from '@/providers/user-provider';
 
@@ -80,50 +84,52 @@ const RailCollapse = () => {
     );
 };
 
-interface FlowMenuItemProps {
-    activeFlowId: null | number;
-    flow: Flow;
-    isFavorite: boolean;
-    onToggleFavorite: (flowId: string) => void;
+const RECENT_SCANS_LIMIT = 5;
+
+// Scan status → EMBER status-ramp dot (literal classes so Tailwind keeps them).
+const SCAN_STATUS_DOT: Record<DomainStatusType, string> = {
+    [DomainStatusType.Classifying]: 'bg-st-classifying animate-pulse',
+    [DomainStatusType.Created]: 'bg-st-created',
+    [DomainStatusType.Failed]: 'bg-st-failed',
+    [DomainStatusType.Finished]: 'bg-st-finished',
+    [DomainStatusType.Running]: 'bg-st-running animate-pulse',
+    [DomainStatusType.Waiting]: 'bg-st-waiting animate-pulse',
+};
+
+interface ScanMenuItemProps {
+    isActive: boolean;
+    scan: DomainFragmentFragment;
 }
 
-const FlowMenuItem = ({ activeFlowId, flow, isFavorite, onToggleFavorite }: FlowMenuItemProps) => {
-    return (
-        <SidebarMenuItem>
-            <SidebarMenuButton
-                asChild
-                className={navActiveAccent}
-                isActive={activeFlowId === Number(flow.id)}
+const ScanMenuItem = ({ isActive, scan }: ScanMenuItemProps) => (
+    <SidebarMenuItem>
+        <SidebarMenuButton
+            asChild
+            className={navActiveAccent}
+            isActive={isActive}
+        >
+            <Link
+                title={scan.name}
+                to={`/scans/${scan.id}`}
             >
-                <Link to={`/flows/${flow.id}`}>
-                    <span className="-mx-2 w-8 shrink-0 text-center font-mono text-xs group-data-[state=expanded]:hidden">
-                        {flow.id}
-                    </span>
-                    <span className="text-muted-foreground bg-well border-border -my-0.5 -ml-0.5 h-5 min-w-5 shrink-0 rounded-md border px-px py-0.5 text-center font-mono text-[11px] group-data-[state=collapsed]:hidden">
-                        {flow.id}
-                    </span>
-                    <span className="truncate">{flow.title}</span>
-                </Link>
-            </SidebarMenuButton>
-            <SidebarMenuAction
-                className="data-[state=open]:bg-accent rounded-sm"
-                onClick={() => onToggleFavorite(flow.id)}
-                showOnHover
-            >
-                <Star className={isFavorite ? 'fill-yellow-500 stroke-yellow-500' : ''} />
-            </SidebarMenuAction>
-        </SidebarMenuItem>
-    );
-};
+                <span
+                    aria-hidden
+                    className={`size-1.5 shrink-0 rounded-full ${SCAN_STATUS_DOT[scan.status] ?? 'bg-st-created'}`}
+                />
+                <span className="truncate">{scan.name}</span>
+            </Link>
+        </SidebarMenuButton>
+    </SidebarMenuItem>
+);
 
 export const MainSidebar = () => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const isDashboardActive = useMatch('/dashboard');
+    const isChatActive = useMatch('/chat/*');
     const isDomainsActive = useMatch('/scans/*');
-    const isFlowsActive = useMatch('/flows/*');
+    const scanMatch = useMatch('/scans/:domainId');
     const isTemplatesActive = useMatch('/templates/*');
     const isSettingsActive = useMatch('/settings/*');
-    const { flowId: flowIdParam } = useParams<{ flowId: string }>();
 
     const { authInfo, logout } = useUser();
     const user = authInfo?.user;
@@ -137,26 +143,21 @@ export const MainSidebar = () => {
     const canSeeDashboard = usePermission('usage.view');
     const { isTemplateAdmin, pendingRequestsCount } = useTemplates();
     const { setTheme, theme } = useTheme();
-    const { addFavoriteFlow, favoriteFlowIds, removeFavoriteFlow } = useFavorites();
-    const { flows } = useSidebarFlows();
+    const canUseChat = usePermission('chat.use');
 
-    const flowId = useMemo(() => (flowIdParam ? Number(flowIdParam) : null), [flowIdParam]);
+    // Shares the scans page's cache entry; subscriptions keep it live everywhere.
+    const { data: domainsData } = useDomainsQuery({ fetchPolicy: 'cache-first', nextFetchPolicy: 'cache-first' });
+    useDomainCreatedSubscription();
+    useDomainUpdatedSubscription();
+    useDomainDeletedSubscription();
 
-    const favoriteFlows = useMemo(
+    const activeScanId = scanMatch?.params.domainId;
+    const recentScans = useMemo(
         () =>
-            flows
-                .filter((flow) => favoriteFlowIds.includes(Number(flow.id)))
-                .sort((a, b) => Number(b.id) - Number(a.id)),
-        [flows, favoriteFlowIds],
-    );
-
-    const recentFlows = useMemo(
-        () =>
-            flows
-                .filter((flow) => !favoriteFlowIds.includes(Number(flow.id)))
+            [...(domainsData?.domains ?? [])]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 5),
-        [flows, favoriteFlowIds],
+                .slice(0, RECENT_SCANS_LIMIT),
+        [domainsData?.domains],
     );
 
     return (
@@ -210,6 +211,21 @@ export const MainSidebar = () => {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             )}
+                            {canUseChat && (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className={`${navActiveAccent} h-9`}
+                                        isActive={!!isChatActive}
+                                        tooltip="Ask AI"
+                                    >
+                                        <Link to="/chat">
+                                            <MessageSquare />
+                                            Ask AI
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
@@ -228,28 +244,6 @@ export const MainSidebar = () => {
                                     showOnHover
                                 >
                                     <Link to="/scans/new">
-                                        <Plus />
-                                    </Link>
-                                </SidebarMenuAction>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    asChild
-                                    className={`${navActiveAccent} h-9`}
-                                    isActive={!!isFlowsActive}
-                                    tooltip="Flows"
-                                >
-                                    <Link to="/flows">
-                                        <Workflow />
-                                        Flows
-                                    </Link>
-                                </SidebarMenuButton>
-                                <SidebarMenuAction
-                                    asChild
-                                    className="data-[state=open]:bg-accent rounded-sm"
-                                    showOnHover
-                                >
-                                    <Link to="/flows/new">
                                         <Plus />
                                     </Link>
                                 </SidebarMenuAction>
@@ -286,43 +280,19 @@ export const MainSidebar = () => {
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                {recentFlows.length > 0 && (
-                    <SidebarGroup>
+                {recentScans.length > 0 && (
+                    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
                         <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
                             <Clock />
-                            Recent Flows
+                            Recent Scans
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {recentFlows.map((flow) => (
-                                    <FlowMenuItem
-                                        activeFlowId={flowId}
-                                        flow={flow}
-                                        isFavorite={false}
-                                        key={flow.id}
-                                        onToggleFavorite={addFavoriteFlow}
-                                    />
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                )}
-
-                {favoriteFlows.length > 0 && (
-                    <SidebarGroup>
-                        <SidebarGroupLabel className="text-muted-foreground flex items-center gap-2 font-mono text-[10.5px] tracking-[0.1em] uppercase">
-                            <Star />
-                            Favorite Flows
-                        </SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {favoriteFlows.map((flow) => (
-                                    <FlowMenuItem
-                                        activeFlowId={flowId}
-                                        flow={flow}
-                                        isFavorite
-                                        key={flow.id}
-                                        onToggleFavorite={removeFavoriteFlow}
+                                {recentScans.map((scan) => (
+                                    <ScanMenuItem
+                                        isActive={String(scan.id) === activeScanId}
+                                        key={scan.id}
+                                        scan={scan}
                                     />
                                 ))}
                             </SidebarMenu>

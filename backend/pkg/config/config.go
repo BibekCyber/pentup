@@ -211,6 +211,16 @@ type Config struct {
 	AssistantSummarizerMaxQABytes     int  `env:"ASSISTANT_SUMMARIZER_MAX_QA_BYTES" envDefault:"76800"`
 	AssistantSummarizerKeepQASections int  `env:"ASSISTANT_SUMMARIZER_KEEP_QA_SECTIONS" envDefault:"3"`
 
+	// === Pentest Chat Limits ===
+	// Per user. 0 disables the message limit or the token budget.
+	ChatMaxMessagesPerHour int `env:"CHAT_MAX_MESSAGES_PER_HOUR" envDefault:"20"`
+	ChatDailyTokenBudget   int `env:"CHAT_DAILY_TOKEN_BUDGET" envDefault:"200000"`
+	ChatMaxInputChars      int `env:"CHAT_MAX_INPUT_CHARS" envDefault:"8000"`
+	// Upper bound on a reply; the provider's own assistant max_tokens wins when lower.
+	ChatMaxOutputTokens int `env:"CHAT_MAX_OUTPUT_TOKENS" envDefault:"8192"`
+	// History sent per call; older turns are folded into a rolling summary.
+	ChatContextTokens int `env:"CHAT_CONTEXT_TOKENS" envDefault:"24000"`
+
 	// === Network Proxy Settings ===
 	ProxyURL string `env:"PROXY_URL"`
 

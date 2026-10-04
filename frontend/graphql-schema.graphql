@@ -1470,3 +1470,119 @@ subscription domainDeleted {
         ...domainFragment
     }
 }
+
+# ==================== Pentest Chat ====================
+
+fragment chatSessionFragment on ChatSession {
+    id
+    title
+    providerName
+    createdAt
+    updatedAt
+}
+
+fragment chatMessageFragment on ChatMessage {
+    id
+    sessionId
+    role
+    status
+    content
+    providerName
+    model
+    createdAt
+    updatedAt
+}
+
+fragment chatQuotaFragment on ChatQuota {
+    messagesUsed
+    messagesLimit
+    messagesResetAt
+    tokensUsed
+    tokensLimit
+    tokensResetAt
+    maxInputChars
+}
+
+query chatSessions {
+    chatSessions {
+        ...chatSessionFragment
+    }
+}
+
+query chatSession($sessionId: ID!) {
+    chatSession(sessionId: $sessionId) {
+        ...chatSessionFragment
+    }
+}
+
+query chatMessages($sessionId: ID!) {
+    chatMessages(sessionId: $sessionId) {
+        ...chatMessageFragment
+    }
+}
+
+query chatQuota {
+    chatQuota {
+        ...chatQuotaFragment
+    }
+}
+
+mutation sendChatMessage($sessionId: ID, $providerName: String!, $content: String!) {
+    sendChatMessage(sessionId: $sessionId, providerName: $providerName, content: $content) {
+        session {
+            ...chatSessionFragment
+        }
+        userMessage {
+            ...chatMessageFragment
+        }
+        assistantMessage {
+            ...chatMessageFragment
+        }
+    }
+}
+
+mutation stopChatMessage($messageId: ID!) {
+    stopChatMessage(messageId: $messageId) {
+        ...chatMessageFragment
+    }
+}
+
+mutation renameChatSession($sessionId: ID!, $title: String!) {
+    renameChatSession(sessionId: $sessionId, title: $title) {
+        ...chatSessionFragment
+    }
+}
+
+mutation deleteChatSession($sessionId: ID!) {
+    deleteChatSession(sessionId: $sessionId)
+}
+
+subscription chatSessionCreated {
+    chatSessionCreated {
+        ...chatSessionFragment
+    }
+}
+
+subscription chatSessionUpdated {
+    chatSessionUpdated {
+        ...chatSessionFragment
+    }
+}
+
+subscription chatSessionDeleted {
+    chatSessionDeleted {
+        ...chatSessionFragment
+    }
+}
+
+subscription chatMessageAdded($sessionId: ID!) {
+    chatMessageAdded(sessionId: $sessionId) {
+        ...chatMessageFragment
+    }
+}
+
+subscription chatMessageUpdated($sessionId: ID!) {
+    chatMessageUpdated(sessionId: $sessionId) {
+        ...chatMessageFragment
+    }
+}

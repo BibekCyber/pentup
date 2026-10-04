@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"pentagi/pkg/chat"
 	"pentagi/pkg/controller"
 	"pentagi/pkg/database"
 	"pentagi/pkg/database/converter"
@@ -1716,6 +1717,69 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 	return converter.ConvertDomain(result.Domain, result.Flows), nil
 }
 
+// SendChatMessage is the resolver for the sendChatMessage field.
+func (r *mutationResolver) SendChatMessage(ctx context.Context, sessionID *int64, providerName string, content string) (*model.ChatSendResult, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.Chat.Send(ctx, uid, sessionID, providerName, content)
+	if err != nil {
+		return nil, r.chatError(err, "send message")
+	}
+
+	return &model.ChatSendResult{
+		Session:          converter.ConvertChatSession(res.Session),
+		UserMessage:      converter.ConvertChatMessage(res.UserMessage),
+		AssistantMessage: converter.ConvertChatMessage(res.AssistantMessage),
+	}, nil
+}
+
+// StopChatMessage is the resolver for the stopChatMessage field.
+func (r *mutationResolver) StopChatMessage(ctx context.Context, messageID int64) (*model.ChatMessage, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := r.Chat.Stop(ctx, uid, messageID)
+	if err != nil {
+		return nil, r.chatError(err, "stop reply")
+	}
+
+	return converter.ConvertChatMessage(msg), nil
+}
+
+// RenameChatSession is the resolver for the renameChatSession field.
+func (r *mutationResolver) RenameChatSession(ctx context.Context, sessionID int64, title string) (*model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	session, err := r.Chat.RenameSession(ctx, uid, sessionID, title)
+	if err != nil {
+		return nil, r.chatError(err, "rename chat")
+	}
+
+	return converter.ConvertChatSession(session), nil
+}
+
+// DeleteChatSession is the resolver for the deleteChatSession field.
+func (r *mutationResolver) DeleteChatSession(ctx context.Context, sessionID int64) (model.ResultType, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return model.ResultTypeError, err
+	}
+
+	if err := r.Chat.DeleteSession(ctx, uid, sessionID); err != nil {
+		return model.ResultTypeError, r.chatError(err, "delete chat")
+	}
+
+	return model.ResultTypeSuccess, nil
+}
+
 // Providers is the resolver for the providers field.
 func (r *queryResolver) Providers(ctx context.Context) ([]*model.Provider, error) {
 	uid, _, err := validatePermission(ctx, "providers.view")
@@ -2931,6 +2995,68 @@ func (r *queryResolver) QuotaUsage(ctx context.Context) (*model.QuotaUsage, erro
 	}, nil
 }
 
+// ChatSessions is the resolver for the chatSessions field.
+func (r *queryResolver) ChatSessions(ctx context.Context) ([]*model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sessions, err := r.Chat.ListSessions(ctx, uid)
+	if err != nil {
+		return nil, r.chatError(err, "load chats")
+	}
+
+	return converter.ConvertChatSessions(sessions), nil
+}
+
+// ChatSession is the resolver for the chatSession field.
+func (r *queryResolver) ChatSession(ctx context.Context, sessionID int64) (*model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	session, err := r.Chat.GetSession(ctx, uid, sessionID)
+	if errors.Is(err, chat.ErrNotFound) {
+		return nil, nil
+	} else if err != nil {
+		return nil, r.chatError(err, "load chat")
+	}
+
+	return converter.ConvertChatSession(session), nil
+}
+
+// ChatMessages is the resolver for the chatMessages field.
+func (r *queryResolver) ChatMessages(ctx context.Context, sessionID int64) ([]*model.ChatMessage, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	messages, err := r.Chat.ListMessages(ctx, uid, sessionID)
+	if err != nil {
+		return nil, r.chatError(err, "load messages")
+	}
+
+	return converter.ConvertChatMessages(messages), nil
+}
+
+// ChatQuota is the resolver for the chatQuota field.
+func (r *queryResolver) ChatQuota(ctx context.Context) (*model.ChatQuota, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	quota, err := r.Chat.Quota(ctx, uid)
+	if err != nil {
+		return nil, r.chatError(err, "load chat limits")
+	}
+
+	return convertChatQuota(quota), nil
+}
+
 // FlowCreated is the resolver for the flowCreated field.
 func (r *subscriptionResolver) FlowCreated(ctx context.Context) (<-chan *model.Flow, error) {
 	uid, admin, err := validatePermission(ctx, "flows.subscribe")
@@ -3325,6 +3451,66 @@ func (r *subscriptionResolver) DomainDeleted(ctx context.Context) (<-chan *model
 	}
 
 	return subscriber.DomainDeleted(ctx)
+}
+
+// ChatSessionCreated is the resolver for the chatSessionCreated field.
+func (r *subscriptionResolver) ChatSessionCreated(ctx context.Context) (<-chan *model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Subscriptions.NewChatSubscriber(uid).ChatSessionCreated(ctx)
+}
+
+// ChatSessionUpdated is the resolver for the chatSessionUpdated field.
+func (r *subscriptionResolver) ChatSessionUpdated(ctx context.Context) (<-chan *model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Subscriptions.NewChatSubscriber(uid).ChatSessionUpdated(ctx)
+}
+
+// ChatSessionDeleted is the resolver for the chatSessionDeleted field.
+func (r *subscriptionResolver) ChatSessionDeleted(ctx context.Context) (<-chan *model.ChatSession, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Subscriptions.NewChatSubscriber(uid).ChatSessionDeleted(ctx)
+}
+
+// ChatMessageAdded is the resolver for the chatMessageAdded field.
+func (r *subscriptionResolver) ChatMessageAdded(ctx context.Context, sessionID int64) (<-chan *model.ChatMessage, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// message events are keyed by session: only its owner may subscribe
+	if _, err := r.Chat.GetSession(ctx, uid, sessionID); err != nil {
+		return nil, r.chatError(err, "subscribe to chat")
+	}
+
+	return r.Subscriptions.NewChatSubscriber(uid).ChatMessageAdded(ctx, sessionID)
+}
+
+// ChatMessageUpdated is the resolver for the chatMessageUpdated field.
+func (r *subscriptionResolver) ChatMessageUpdated(ctx context.Context, sessionID int64) (<-chan *model.ChatMessage, error) {
+	uid, err := validateChatSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// message events are keyed by session: only its owner may subscribe
+	if _, err := r.Chat.GetSession(ctx, uid, sessionID); err != nil {
+		return nil, r.chatError(err, "subscribe to chat")
+	}
+
+	return r.Subscriptions.NewChatSubscriber(uid).ChatMessageUpdated(ctx, sessionID)
 }
 
 // Assistant returns AssistantResolver implementation.

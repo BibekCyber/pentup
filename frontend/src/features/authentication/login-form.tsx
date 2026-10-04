@@ -35,7 +35,7 @@ interface LoginFormProps {
     returnUrl?: string;
 }
 
-const LoginForm = ({ returnUrl = '/flows/new' }: LoginFormProps) => {
+const LoginForm = ({ returnUrl = '/' }: LoginFormProps) => {
     const form = useForm<z.infer<typeof formSchema>>({
         defaultValues: {
             mail: '',

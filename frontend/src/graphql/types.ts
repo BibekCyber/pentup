@@ -212,6 +212,55 @@ export type AssistantLog = {
     type: MessageLogType;
 };
 
+export type ChatMessage = {
+    content: Scalars['String']['output'];
+    createdAt: Scalars['Time']['output'];
+    id: Scalars['ID']['output'];
+    model: Scalars['String']['output'];
+    providerName: Scalars['String']['output'];
+    role: ChatMessageRole;
+    sessionId: Scalars['ID']['output'];
+    status: ChatMessageStatus;
+    updatedAt: Scalars['Time']['output'];
+};
+
+export enum ChatMessageRole {
+    Assistant = 'assistant',
+    User = 'user',
+}
+
+export enum ChatMessageStatus {
+    Done = 'done',
+    Error = 'error',
+    Refused = 'refused',
+    Stopped = 'stopped',
+    Streaming = 'streaming',
+}
+
+export type ChatQuota = {
+    maxInputChars: Scalars['Int']['output'];
+    messagesLimit: Scalars['Int']['output'];
+    messagesResetAt?: Maybe<Scalars['Time']['output']>;
+    messagesUsed: Scalars['Int']['output'];
+    tokensLimit: Scalars['Int']['output'];
+    tokensResetAt?: Maybe<Scalars['Time']['output']>;
+    tokensUsed: Scalars['Int']['output'];
+};
+
+export type ChatSendResult = {
+    assistantMessage: ChatMessage;
+    session: ChatSession;
+    userMessage: ChatMessage;
+};
+
+export type ChatSession = {
+    createdAt: Scalars['Time']['output'];
+    id: Scalars['ID']['output'];
+    providerName: Scalars['String']['output'];
+    title: Scalars['String']['output'];
+    updatedAt: Scalars['Time']['output'];
+};
+
 export type CreateApiTokenInput = {
     name?: InputMaybe<Scalars['String']['input']>;
     ttl: Scalars['Int']['input'];
@@ -474,6 +523,7 @@ export type Mutation = {
     createScan: Domain;
     deleteAPIToken: Scalars['Boolean']['output'];
     deleteAssistant: ResultType;
+    deleteChatSession: ResultType;
     deleteDomain: ResultType;
     deleteFavoriteFlow: ResultType;
     deleteFlow: ResultType;
@@ -483,9 +533,12 @@ export type Mutation = {
     finishFlow: ResultType;
     putUserInput: ResultType;
     rejectFlowTemplateRequest: FlowTemplateRequest;
+    renameChatSession: ChatSession;
     renameFlow: ResultType;
+    sendChatMessage: ChatSendResult;
     setDefaultProvider: ProviderConfig;
     stopAssistant: Assistant;
+    stopChatMessage: ChatMessage;
     stopFlow: ResultType;
     submitFlowTemplateRequest: FlowTemplateRequest;
     testAgent: AgentTestResult;
@@ -568,6 +621,10 @@ export type MutationDeleteAssistantArgs = {
     flowId: Scalars['ID']['input'];
 };
 
+export type MutationDeleteChatSessionArgs = {
+    sessionId: Scalars['ID']['input'];
+};
+
 export type MutationDeleteDomainArgs = {
     id: Scalars['ID']['input'];
 };
@@ -608,9 +665,20 @@ export type MutationRejectFlowTemplateRequestArgs = {
     revision: Scalars['Int']['input'];
 };
 
+export type MutationRenameChatSessionArgs = {
+    sessionId: Scalars['ID']['input'];
+    title: Scalars['String']['input'];
+};
+
 export type MutationRenameFlowArgs = {
     flowId: Scalars['ID']['input'];
     title: Scalars['String']['input'];
+};
+
+export type MutationSendChatMessageArgs = {
+    content: Scalars['String']['input'];
+    providerName: Scalars['String']['input'];
+    sessionId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type MutationSetDefaultProviderArgs = {
@@ -620,6 +688,10 @@ export type MutationSetDefaultProviderArgs = {
 export type MutationStopAssistantArgs = {
     assistantId: Scalars['ID']['input'];
     flowId: Scalars['ID']['input'];
+};
+
+export type MutationStopChatMessageArgs = {
+    messageId: Scalars['ID']['input'];
 };
 
 export type MutationStopFlowArgs = {
@@ -852,6 +924,10 @@ export type Query = {
     apiTokens: Array<ApiToken>;
     assistantLogs?: Maybe<Array<AssistantLog>>;
     assistants?: Maybe<Array<Assistant>>;
+    chatMessages: Array<ChatMessage>;
+    chatQuota: ChatQuota;
+    chatSession?: Maybe<ChatSession>;
+    chatSessions: Array<ChatSession>;
     domain?: Maybe<Domain>;
     domains: Array<Domain>;
     flow: Flow;
@@ -906,6 +982,14 @@ export type QueryAssistantLogsArgs = {
 
 export type QueryAssistantsArgs = {
     flowId: Scalars['ID']['input'];
+};
+
+export type QueryChatMessagesArgs = {
+    sessionId: Scalars['ID']['input'];
+};
+
+export type QueryChatSessionArgs = {
+    sessionId: Scalars['ID']['input'];
 };
 
 export type QueryDomainArgs = {
@@ -1110,6 +1194,11 @@ export type Subscription = {
     assistantLogAdded: AssistantLog;
     assistantLogUpdated: AssistantLog;
     assistantUpdated: Assistant;
+    chatMessageAdded: ChatMessage;
+    chatMessageUpdated: ChatMessage;
+    chatSessionCreated: ChatSession;
+    chatSessionDeleted: ChatSession;
+    chatSessionUpdated: ChatSession;
     domainCreated: Domain;
     domainDeleted: Domain;
     domainUpdated: Domain;
@@ -1157,6 +1246,14 @@ export type SubscriptionAssistantLogUpdatedArgs = {
 
 export type SubscriptionAssistantUpdatedArgs = {
     flowId: Scalars['ID']['input'];
+};
+
+export type SubscriptionChatMessageAddedArgs = {
+    sessionId: Scalars['ID']['input'];
+};
+
+export type SubscriptionChatMessageUpdatedArgs = {
+    sessionId: Scalars['ID']['input'];
 };
 
 export type SubscriptionMessageLogAddedArgs = {
@@ -2521,6 +2618,113 @@ export type DomainDeletedSubscriptionVariables = Exact<{ [key: string]: never }>
 
 export type DomainDeletedSubscription = { domainDeleted: DomainFragmentFragment };
 
+export type ChatSessionFragmentFragment = {
+    id: string;
+    title: string;
+    providerName: string;
+    createdAt: any;
+    updatedAt: any;
+};
+
+export type ChatMessageFragmentFragment = {
+    id: string;
+    sessionId: string;
+    role: ChatMessageRole;
+    status: ChatMessageStatus;
+    content: string;
+    providerName: string;
+    model: string;
+    createdAt: any;
+    updatedAt: any;
+};
+
+export type ChatQuotaFragmentFragment = {
+    messagesUsed: number;
+    messagesLimit: number;
+    messagesResetAt?: any | null;
+    tokensUsed: number;
+    tokensLimit: number;
+    tokensResetAt?: any | null;
+    maxInputChars: number;
+};
+
+export type ChatSessionsQueryVariables = Exact<{ [key: string]: never }>;
+
+export type ChatSessionsQuery = { chatSessions: Array<ChatSessionFragmentFragment> };
+
+export type ChatSessionQueryVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+}>;
+
+export type ChatSessionQuery = { chatSession?: ChatSessionFragmentFragment | null };
+
+export type ChatMessagesQueryVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+}>;
+
+export type ChatMessagesQuery = { chatMessages: Array<ChatMessageFragmentFragment> };
+
+export type ChatQuotaQueryVariables = Exact<{ [key: string]: never }>;
+
+export type ChatQuotaQuery = { chatQuota: ChatQuotaFragmentFragment };
+
+export type SendChatMessageMutationVariables = Exact<{
+    sessionId?: InputMaybe<Scalars['ID']['input']>;
+    providerName: Scalars['String']['input'];
+    content: Scalars['String']['input'];
+}>;
+
+export type SendChatMessageMutation = {
+    sendChatMessage: {
+        session: ChatSessionFragmentFragment;
+        userMessage: ChatMessageFragmentFragment;
+        assistantMessage: ChatMessageFragmentFragment;
+    };
+};
+
+export type StopChatMessageMutationVariables = Exact<{
+    messageId: Scalars['ID']['input'];
+}>;
+
+export type StopChatMessageMutation = { stopChatMessage: ChatMessageFragmentFragment };
+
+export type RenameChatSessionMutationVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+    title: Scalars['String']['input'];
+}>;
+
+export type RenameChatSessionMutation = { renameChatSession: ChatSessionFragmentFragment };
+
+export type DeleteChatSessionMutationVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+}>;
+
+export type DeleteChatSessionMutation = { deleteChatSession: ResultType };
+
+export type ChatSessionCreatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type ChatSessionCreatedSubscription = { chatSessionCreated: ChatSessionFragmentFragment };
+
+export type ChatSessionUpdatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type ChatSessionUpdatedSubscription = { chatSessionUpdated: ChatSessionFragmentFragment };
+
+export type ChatSessionDeletedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type ChatSessionDeletedSubscription = { chatSessionDeleted: ChatSessionFragmentFragment };
+
+export type ChatMessageAddedSubscriptionVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+}>;
+
+export type ChatMessageAddedSubscription = { chatMessageAdded: ChatMessageFragmentFragment };
+
+export type ChatMessageUpdatedSubscriptionVariables = Exact<{
+    sessionId: Scalars['ID']['input'];
+}>;
+
+export type ChatMessageUpdatedSubscription = { chatMessageUpdated: ChatMessageFragmentFragment };
+
 export const SettingsFragmentFragmentDoc = gql`
     fragment settingsFragment on Settings {
         debug
@@ -3115,6 +3319,39 @@ export const DomainFragmentFragmentDoc = gql`
         }
     }
     ${FlowFragmentFragmentDoc}
+`;
+export const ChatSessionFragmentFragmentDoc = gql`
+    fragment chatSessionFragment on ChatSession {
+        id
+        title
+        providerName
+        createdAt
+        updatedAt
+    }
+`;
+export const ChatMessageFragmentFragmentDoc = gql`
+    fragment chatMessageFragment on ChatMessage {
+        id
+        sessionId
+        role
+        status
+        content
+        providerName
+        model
+        createdAt
+        updatedAt
+    }
+`;
+export const ChatQuotaFragmentFragmentDoc = gql`
+    fragment chatQuotaFragment on ChatQuota {
+        messagesUsed
+        messagesLimit
+        messagesResetAt
+        tokensUsed
+        tokensLimit
+        tokensResetAt
+        maxInputChars
+    }
 `;
 export const FlowsDocument = gql`
     query flows {
@@ -8543,3 +8780,597 @@ export function useDomainDeletedSubscription(
 }
 export type DomainDeletedSubscriptionHookResult = ReturnType<typeof useDomainDeletedSubscription>;
 export type DomainDeletedSubscriptionResult = Apollo.SubscriptionResult<DomainDeletedSubscription>;
+export const ChatSessionsDocument = gql`
+    query chatSessions {
+        chatSessions {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatSessionsQuery__
+ *
+ * To run a query within a React component, call `useChatSessionsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useChatSessionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatSessionsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useChatSessionsQuery(
+    baseOptions?: Apollo.QueryHookOptions<ChatSessionsQuery, ChatSessionsQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<ChatSessionsQuery, ChatSessionsQueryVariables>(ChatSessionsDocument, options);
+}
+export function useChatSessionsLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<ChatSessionsQuery, ChatSessionsQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<ChatSessionsQuery, ChatSessionsQueryVariables>(ChatSessionsDocument, options);
+}
+// @ts-ignore
+export function useChatSessionsSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<ChatSessionsQuery, ChatSessionsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatSessionsQuery, ChatSessionsQueryVariables>;
+export function useChatSessionsSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatSessionsQuery, ChatSessionsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatSessionsQuery | undefined, ChatSessionsQueryVariables>;
+export function useChatSessionsSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatSessionsQuery, ChatSessionsQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<ChatSessionsQuery, ChatSessionsQueryVariables>(ChatSessionsDocument, options);
+}
+export type ChatSessionsQueryHookResult = ReturnType<typeof useChatSessionsQuery>;
+export type ChatSessionsLazyQueryHookResult = ReturnType<typeof useChatSessionsLazyQuery>;
+export type ChatSessionsSuspenseQueryHookResult = ReturnType<typeof useChatSessionsSuspenseQuery>;
+export type ChatSessionsQueryResult = Apollo.QueryResult<ChatSessionsQuery, ChatSessionsQueryVariables>;
+export const ChatSessionDocument = gql`
+    query chatSession($sessionId: ID!) {
+        chatSession(sessionId: $sessionId) {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatSessionQuery__
+ *
+ * To run a query within a React component, call `useChatSessionQuery` and pass it any options that fit your needs.
+ * When your component renders, `useChatSessionQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatSessionQuery({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *   },
+ * });
+ */
+export function useChatSessionQuery(
+    baseOptions: Apollo.QueryHookOptions<ChatSessionQuery, ChatSessionQueryVariables> &
+        ({ variables: ChatSessionQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<ChatSessionQuery, ChatSessionQueryVariables>(ChatSessionDocument, options);
+}
+export function useChatSessionLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<ChatSessionQuery, ChatSessionQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<ChatSessionQuery, ChatSessionQueryVariables>(ChatSessionDocument, options);
+}
+// @ts-ignore
+export function useChatSessionSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<ChatSessionQuery, ChatSessionQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatSessionQuery, ChatSessionQueryVariables>;
+export function useChatSessionSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatSessionQuery, ChatSessionQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatSessionQuery | undefined, ChatSessionQueryVariables>;
+export function useChatSessionSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatSessionQuery, ChatSessionQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<ChatSessionQuery, ChatSessionQueryVariables>(ChatSessionDocument, options);
+}
+export type ChatSessionQueryHookResult = ReturnType<typeof useChatSessionQuery>;
+export type ChatSessionLazyQueryHookResult = ReturnType<typeof useChatSessionLazyQuery>;
+export type ChatSessionSuspenseQueryHookResult = ReturnType<typeof useChatSessionSuspenseQuery>;
+export type ChatSessionQueryResult = Apollo.QueryResult<ChatSessionQuery, ChatSessionQueryVariables>;
+export const ChatMessagesDocument = gql`
+    query chatMessages($sessionId: ID!) {
+        chatMessages(sessionId: $sessionId) {
+            ...chatMessageFragment
+        }
+    }
+    ${ChatMessageFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatMessagesQuery__
+ *
+ * To run a query within a React component, call `useChatMessagesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useChatMessagesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatMessagesQuery({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *   },
+ * });
+ */
+export function useChatMessagesQuery(
+    baseOptions: Apollo.QueryHookOptions<ChatMessagesQuery, ChatMessagesQueryVariables> &
+        ({ variables: ChatMessagesQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<ChatMessagesQuery, ChatMessagesQueryVariables>(ChatMessagesDocument, options);
+}
+export function useChatMessagesLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<ChatMessagesQuery, ChatMessagesQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<ChatMessagesQuery, ChatMessagesQueryVariables>(ChatMessagesDocument, options);
+}
+// @ts-ignore
+export function useChatMessagesSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<ChatMessagesQuery, ChatMessagesQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatMessagesQuery, ChatMessagesQueryVariables>;
+export function useChatMessagesSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatMessagesQuery, ChatMessagesQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatMessagesQuery | undefined, ChatMessagesQueryVariables>;
+export function useChatMessagesSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatMessagesQuery, ChatMessagesQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<ChatMessagesQuery, ChatMessagesQueryVariables>(ChatMessagesDocument, options);
+}
+export type ChatMessagesQueryHookResult = ReturnType<typeof useChatMessagesQuery>;
+export type ChatMessagesLazyQueryHookResult = ReturnType<typeof useChatMessagesLazyQuery>;
+export type ChatMessagesSuspenseQueryHookResult = ReturnType<typeof useChatMessagesSuspenseQuery>;
+export type ChatMessagesQueryResult = Apollo.QueryResult<ChatMessagesQuery, ChatMessagesQueryVariables>;
+export const ChatQuotaDocument = gql`
+    query chatQuota {
+        chatQuota {
+            ...chatQuotaFragment
+        }
+    }
+    ${ChatQuotaFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatQuotaQuery__
+ *
+ * To run a query within a React component, call `useChatQuotaQuery` and pass it any options that fit your needs.
+ * When your component renders, `useChatQuotaQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatQuotaQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useChatQuotaQuery(baseOptions?: Apollo.QueryHookOptions<ChatQuotaQuery, ChatQuotaQueryVariables>) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<ChatQuotaQuery, ChatQuotaQueryVariables>(ChatQuotaDocument, options);
+}
+export function useChatQuotaLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<ChatQuotaQuery, ChatQuotaQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<ChatQuotaQuery, ChatQuotaQueryVariables>(ChatQuotaDocument, options);
+}
+// @ts-ignore
+export function useChatQuotaSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<ChatQuotaQuery, ChatQuotaQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatQuotaQuery, ChatQuotaQueryVariables>;
+export function useChatQuotaSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatQuotaQuery, ChatQuotaQueryVariables>,
+): Apollo.UseSuspenseQueryResult<ChatQuotaQuery | undefined, ChatQuotaQueryVariables>;
+export function useChatQuotaSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ChatQuotaQuery, ChatQuotaQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<ChatQuotaQuery, ChatQuotaQueryVariables>(ChatQuotaDocument, options);
+}
+export type ChatQuotaQueryHookResult = ReturnType<typeof useChatQuotaQuery>;
+export type ChatQuotaLazyQueryHookResult = ReturnType<typeof useChatQuotaLazyQuery>;
+export type ChatQuotaSuspenseQueryHookResult = ReturnType<typeof useChatQuotaSuspenseQuery>;
+export type ChatQuotaQueryResult = Apollo.QueryResult<ChatQuotaQuery, ChatQuotaQueryVariables>;
+export const SendChatMessageDocument = gql`
+    mutation sendChatMessage($sessionId: ID, $providerName: String!, $content: String!) {
+        sendChatMessage(sessionId: $sessionId, providerName: $providerName, content: $content) {
+            session {
+                ...chatSessionFragment
+            }
+            userMessage {
+                ...chatMessageFragment
+            }
+            assistantMessage {
+                ...chatMessageFragment
+            }
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+    ${ChatMessageFragmentFragmentDoc}
+`;
+export type SendChatMessageMutationFn = Apollo.MutationFunction<
+    SendChatMessageMutation,
+    SendChatMessageMutationVariables
+>;
+
+/**
+ * __useSendChatMessageMutation__
+ *
+ * To run a mutation, you first call `useSendChatMessageMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSendChatMessageMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [sendChatMessageMutation, { data, loading, error }] = useSendChatMessageMutation({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *      providerName: // value for 'providerName'
+ *      content: // value for 'content'
+ *   },
+ * });
+ */
+export function useSendChatMessageMutation(
+    baseOptions?: Apollo.MutationHookOptions<SendChatMessageMutation, SendChatMessageMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<SendChatMessageMutation, SendChatMessageMutationVariables>(
+        SendChatMessageDocument,
+        options,
+    );
+}
+export type SendChatMessageMutationHookResult = ReturnType<typeof useSendChatMessageMutation>;
+export type SendChatMessageMutationResult = Apollo.MutationResult<SendChatMessageMutation>;
+export type SendChatMessageMutationOptions = Apollo.BaseMutationOptions<
+    SendChatMessageMutation,
+    SendChatMessageMutationVariables
+>;
+export const StopChatMessageDocument = gql`
+    mutation stopChatMessage($messageId: ID!) {
+        stopChatMessage(messageId: $messageId) {
+            ...chatMessageFragment
+        }
+    }
+    ${ChatMessageFragmentFragmentDoc}
+`;
+export type StopChatMessageMutationFn = Apollo.MutationFunction<
+    StopChatMessageMutation,
+    StopChatMessageMutationVariables
+>;
+
+/**
+ * __useStopChatMessageMutation__
+ *
+ * To run a mutation, you first call `useStopChatMessageMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useStopChatMessageMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [stopChatMessageMutation, { data, loading, error }] = useStopChatMessageMutation({
+ *   variables: {
+ *      messageId: // value for 'messageId'
+ *   },
+ * });
+ */
+export function useStopChatMessageMutation(
+    baseOptions?: Apollo.MutationHookOptions<StopChatMessageMutation, StopChatMessageMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<StopChatMessageMutation, StopChatMessageMutationVariables>(
+        StopChatMessageDocument,
+        options,
+    );
+}
+export type StopChatMessageMutationHookResult = ReturnType<typeof useStopChatMessageMutation>;
+export type StopChatMessageMutationResult = Apollo.MutationResult<StopChatMessageMutation>;
+export type StopChatMessageMutationOptions = Apollo.BaseMutationOptions<
+    StopChatMessageMutation,
+    StopChatMessageMutationVariables
+>;
+export const RenameChatSessionDocument = gql`
+    mutation renameChatSession($sessionId: ID!, $title: String!) {
+        renameChatSession(sessionId: $sessionId, title: $title) {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+export type RenameChatSessionMutationFn = Apollo.MutationFunction<
+    RenameChatSessionMutation,
+    RenameChatSessionMutationVariables
+>;
+
+/**
+ * __useRenameChatSessionMutation__
+ *
+ * To run a mutation, you first call `useRenameChatSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRenameChatSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [renameChatSessionMutation, { data, loading, error }] = useRenameChatSessionMutation({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *      title: // value for 'title'
+ *   },
+ * });
+ */
+export function useRenameChatSessionMutation(
+    baseOptions?: Apollo.MutationHookOptions<RenameChatSessionMutation, RenameChatSessionMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<RenameChatSessionMutation, RenameChatSessionMutationVariables>(
+        RenameChatSessionDocument,
+        options,
+    );
+}
+export type RenameChatSessionMutationHookResult = ReturnType<typeof useRenameChatSessionMutation>;
+export type RenameChatSessionMutationResult = Apollo.MutationResult<RenameChatSessionMutation>;
+export type RenameChatSessionMutationOptions = Apollo.BaseMutationOptions<
+    RenameChatSessionMutation,
+    RenameChatSessionMutationVariables
+>;
+export const DeleteChatSessionDocument = gql`
+    mutation deleteChatSession($sessionId: ID!) {
+        deleteChatSession(sessionId: $sessionId)
+    }
+`;
+export type DeleteChatSessionMutationFn = Apollo.MutationFunction<
+    DeleteChatSessionMutation,
+    DeleteChatSessionMutationVariables
+>;
+
+/**
+ * __useDeleteChatSessionMutation__
+ *
+ * To run a mutation, you first call `useDeleteChatSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteChatSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteChatSessionMutation, { data, loading, error }] = useDeleteChatSessionMutation({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *   },
+ * });
+ */
+export function useDeleteChatSessionMutation(
+    baseOptions?: Apollo.MutationHookOptions<DeleteChatSessionMutation, DeleteChatSessionMutationVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<DeleteChatSessionMutation, DeleteChatSessionMutationVariables>(
+        DeleteChatSessionDocument,
+        options,
+    );
+}
+export type DeleteChatSessionMutationHookResult = ReturnType<typeof useDeleteChatSessionMutation>;
+export type DeleteChatSessionMutationResult = Apollo.MutationResult<DeleteChatSessionMutation>;
+export type DeleteChatSessionMutationOptions = Apollo.BaseMutationOptions<
+    DeleteChatSessionMutation,
+    DeleteChatSessionMutationVariables
+>;
+export const ChatSessionCreatedDocument = gql`
+    subscription chatSessionCreated {
+        chatSessionCreated {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatSessionCreatedSubscription__
+ *
+ * To run a query within a React component, call `useChatSessionCreatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useChatSessionCreatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatSessionCreatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useChatSessionCreatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<
+        ChatSessionCreatedSubscription,
+        ChatSessionCreatedSubscriptionVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<ChatSessionCreatedSubscription, ChatSessionCreatedSubscriptionVariables>(
+        ChatSessionCreatedDocument,
+        options,
+    );
+}
+export type ChatSessionCreatedSubscriptionHookResult = ReturnType<typeof useChatSessionCreatedSubscription>;
+export type ChatSessionCreatedSubscriptionResult = Apollo.SubscriptionResult<ChatSessionCreatedSubscription>;
+export const ChatSessionUpdatedDocument = gql`
+    subscription chatSessionUpdated {
+        chatSessionUpdated {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatSessionUpdatedSubscription__
+ *
+ * To run a query within a React component, call `useChatSessionUpdatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useChatSessionUpdatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatSessionUpdatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useChatSessionUpdatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<
+        ChatSessionUpdatedSubscription,
+        ChatSessionUpdatedSubscriptionVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<ChatSessionUpdatedSubscription, ChatSessionUpdatedSubscriptionVariables>(
+        ChatSessionUpdatedDocument,
+        options,
+    );
+}
+export type ChatSessionUpdatedSubscriptionHookResult = ReturnType<typeof useChatSessionUpdatedSubscription>;
+export type ChatSessionUpdatedSubscriptionResult = Apollo.SubscriptionResult<ChatSessionUpdatedSubscription>;
+export const ChatSessionDeletedDocument = gql`
+    subscription chatSessionDeleted {
+        chatSessionDeleted {
+            ...chatSessionFragment
+        }
+    }
+    ${ChatSessionFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatSessionDeletedSubscription__
+ *
+ * To run a query within a React component, call `useChatSessionDeletedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useChatSessionDeletedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatSessionDeletedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useChatSessionDeletedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<
+        ChatSessionDeletedSubscription,
+        ChatSessionDeletedSubscriptionVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<ChatSessionDeletedSubscription, ChatSessionDeletedSubscriptionVariables>(
+        ChatSessionDeletedDocument,
+        options,
+    );
+}
+export type ChatSessionDeletedSubscriptionHookResult = ReturnType<typeof useChatSessionDeletedSubscription>;
+export type ChatSessionDeletedSubscriptionResult = Apollo.SubscriptionResult<ChatSessionDeletedSubscription>;
+export const ChatMessageAddedDocument = gql`
+    subscription chatMessageAdded($sessionId: ID!) {
+        chatMessageAdded(sessionId: $sessionId) {
+            ...chatMessageFragment
+        }
+    }
+    ${ChatMessageFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatMessageAddedSubscription__
+ *
+ * To run a query within a React component, call `useChatMessageAddedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useChatMessageAddedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatMessageAddedSubscription({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *   },
+ * });
+ */
+export function useChatMessageAddedSubscription(
+    baseOptions: Apollo.SubscriptionHookOptions<ChatMessageAddedSubscription, ChatMessageAddedSubscriptionVariables> &
+        ({ variables: ChatMessageAddedSubscriptionVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<ChatMessageAddedSubscription, ChatMessageAddedSubscriptionVariables>(
+        ChatMessageAddedDocument,
+        options,
+    );
+}
+export type ChatMessageAddedSubscriptionHookResult = ReturnType<typeof useChatMessageAddedSubscription>;
+export type ChatMessageAddedSubscriptionResult = Apollo.SubscriptionResult<ChatMessageAddedSubscription>;
+export const ChatMessageUpdatedDocument = gql`
+    subscription chatMessageUpdated($sessionId: ID!) {
+        chatMessageUpdated(sessionId: $sessionId) {
+            ...chatMessageFragment
+        }
+    }
+    ${ChatMessageFragmentFragmentDoc}
+`;
+
+/**
+ * __useChatMessageUpdatedSubscription__
+ *
+ * To run a query within a React component, call `useChatMessageUpdatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useChatMessageUpdatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useChatMessageUpdatedSubscription({
+ *   variables: {
+ *      sessionId: // value for 'sessionId'
+ *   },
+ * });
+ */
+export function useChatMessageUpdatedSubscription(
+    baseOptions: Apollo.SubscriptionHookOptions<
+        ChatMessageUpdatedSubscription,
+        ChatMessageUpdatedSubscriptionVariables
+    > &
+        ({ variables: ChatMessageUpdatedSubscriptionVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<ChatMessageUpdatedSubscription, ChatMessageUpdatedSubscriptionVariables>(
+        ChatMessageUpdatedDocument,
+        options,
+    );
+}
+export type ChatMessageUpdatedSubscriptionHookResult = ReturnType<typeof useChatMessageUpdatedSubscription>;
+export type ChatMessageUpdatedSubscriptionResult = Apollo.SubscriptionResult<ChatMessageUpdatedSubscription>;

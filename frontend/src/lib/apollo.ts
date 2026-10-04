@@ -97,6 +97,11 @@ const subscriptionToCacheFieldMap: Record<string, string> = {
     assistantLogAdded: 'assistantLogs',
     assistantLogUpdated: 'assistantLogs',
     assistantUpdated: 'assistants',
+    chatMessageAdded: 'chatMessages',
+    chatMessageUpdated: 'chatMessages',
+    chatSessionCreated: 'chatSessions',
+    chatSessionDeleted: 'chatSessions',
+    chatSessionUpdated: 'chatSessions',
     domainCreated: 'domains',
     domainDeleted: 'domains',
     domainUpdated: 'domains',
@@ -493,6 +498,8 @@ const createApolloClient = () => {
                     apiTokens: { ...replaceWithIncoming },
                     assistantLogs: { keyArgs: ['flowId', 'assistantId'], ...replaceWithIncoming },
                     assistants: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    chatMessages: { keyArgs: ['sessionId'], ...replaceWithIncoming },
+                    chatSessions: { ...replaceWithIncoming },
                     flow: {
                         read(existing, { args, toReference }) {
                             if (!args?.flowId) {

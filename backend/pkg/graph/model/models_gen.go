@@ -138,6 +138,42 @@ type AssistantLog struct {
 	CreatedAt    time.Time      `json:"createdAt"`
 }
 
+type ChatMessage struct {
+	ID           int64             `json:"id"`
+	SessionID    int64             `json:"sessionId"`
+	Role         ChatMessageRole   `json:"role"`
+	Status       ChatMessageStatus `json:"status"`
+	Content      string            `json:"content"`
+	ProviderName string            `json:"providerName"`
+	Model        string            `json:"model"`
+	CreatedAt    time.Time         `json:"createdAt"`
+	UpdatedAt    time.Time         `json:"updatedAt"`
+}
+
+type ChatQuota struct {
+	MessagesUsed    int        `json:"messagesUsed"`
+	MessagesLimit   int        `json:"messagesLimit"`
+	MessagesResetAt *time.Time `json:"messagesResetAt,omitempty"`
+	TokensUsed      int        `json:"tokensUsed"`
+	TokensLimit     int        `json:"tokensLimit"`
+	TokensResetAt   *time.Time `json:"tokensResetAt,omitempty"`
+	MaxInputChars   int        `json:"maxInputChars"`
+}
+
+type ChatSendResult struct {
+	Session          *ChatSession `json:"session"`
+	UserMessage      *ChatMessage `json:"userMessage"`
+	AssistantMessage *ChatMessage `json:"assistantMessage"`
+}
+
+type ChatSession struct {
+	ID           int64     `json:"id"`
+	Title        string    `json:"title"`
+	ProviderName string    `json:"providerName"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
 type CreateAPITokenInput struct {
 	Name *string `json:"name,omitempty"`
 	TTL  int     `json:"ttl"`
@@ -764,6 +800,94 @@ func (e *AgentType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AgentType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ChatMessageRole string
+
+const (
+	ChatMessageRoleUser      ChatMessageRole = "user"
+	ChatMessageRoleAssistant ChatMessageRole = "assistant"
+)
+
+var AllChatMessageRole = []ChatMessageRole{
+	ChatMessageRoleUser,
+	ChatMessageRoleAssistant,
+}
+
+func (e ChatMessageRole) IsValid() bool {
+	switch e {
+	case ChatMessageRoleUser, ChatMessageRoleAssistant:
+		return true
+	}
+	return false
+}
+
+func (e ChatMessageRole) String() string {
+	return string(e)
+}
+
+func (e *ChatMessageRole) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ChatMessageRole(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ChatMessageRole", str)
+	}
+	return nil
+}
+
+func (e ChatMessageRole) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ChatMessageStatus string
+
+const (
+	ChatMessageStatusStreaming ChatMessageStatus = "streaming"
+	ChatMessageStatusDone      ChatMessageStatus = "done"
+	ChatMessageStatusRefused   ChatMessageStatus = "refused"
+	ChatMessageStatusError     ChatMessageStatus = "error"
+	ChatMessageStatusStopped   ChatMessageStatus = "stopped"
+)
+
+var AllChatMessageStatus = []ChatMessageStatus{
+	ChatMessageStatusStreaming,
+	ChatMessageStatusDone,
+	ChatMessageStatusRefused,
+	ChatMessageStatusError,
+	ChatMessageStatusStopped,
+}
+
+func (e ChatMessageStatus) IsValid() bool {
+	switch e {
+	case ChatMessageStatusStreaming, ChatMessageStatusDone, ChatMessageStatusRefused, ChatMessageStatusError, ChatMessageStatusStopped:
+		return true
+	}
+	return false
+}
+
+func (e ChatMessageStatus) String() string {
+	return string(e)
+}
+
+func (e *ChatMessageStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ChatMessageStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ChatMessageStatus", str)
+	}
+	return nil
+}
+
+func (e ChatMessageStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

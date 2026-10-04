@@ -1275,3 +1275,45 @@ func ConvertDailyFlowsStatsQuarter(stats []database.GetFlowsStatsByDayLast3Month
 }
 
 // ==================== Flows/Tasks/Subtasks Execution Time Converters ====================
+
+func ConvertChatSession(session database.ChatSession) *model.ChatSession {
+	return &model.ChatSession{
+		ID:           session.ID,
+		Title:        session.Title,
+		ProviderName: session.ProviderName,
+		CreatedAt:    session.CreatedAt,
+		UpdatedAt:    session.UpdatedAt,
+	}
+}
+
+func ConvertChatSessions(sessions []database.ChatSession) []*model.ChatSession {
+	result := make([]*model.ChatSession, 0, len(sessions))
+	for _, session := range sessions {
+		result = append(result, ConvertChatSession(session))
+	}
+
+	return result
+}
+
+func ConvertChatMessage(message database.ChatMessage) *model.ChatMessage {
+	return &model.ChatMessage{
+		ID:           message.ID,
+		SessionID:    message.SessionID,
+		Role:         model.ChatMessageRole(message.Role),
+		Status:       model.ChatMessageStatus(message.Status),
+		Content:      message.Content,
+		ProviderName: message.ProviderName,
+		Model:        message.Model,
+		CreatedAt:    message.CreatedAt,
+		UpdatedAt:    message.UpdatedAt,
+	}
+}
+
+func ConvertChatMessages(messages []database.ChatMessage) []*model.ChatMessage {
+	result := make([]*model.ChatMessage, 0, len(messages))
+	for _, message := range messages {
+		result = append(result, ConvertChatMessage(message))
+	}
+
+	return result
+}

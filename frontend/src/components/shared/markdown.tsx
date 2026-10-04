@@ -47,6 +47,9 @@ lowlight.register('xml', xml);
 lowlight.register('yaml', yaml);
 
 interface MarkdownProps {
+    // Render images as links instead of loading them. For model output: an
+    // auto-loading image URL could carry conversation data to a third party.
+    blockRemoteImages?: boolean;
     children: string;
     className?: string;
     disableHeadingIds?: boolean;
@@ -97,7 +100,7 @@ const escapeRegExp = (string: string): string => {
     return string.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-const Markdown = ({ children, className, disableHeadingIds, searchValue }: MarkdownProps) => {
+const Markdown = ({ blockRemoteImages, children, className, disableHeadingIds, searchValue }: MarkdownProps) => {
     // Memoize the escaped search value to avoid recalculating regex
     const processedSearch = useMemo(() => {
         const trimmedSearch = searchValue?.trim();
@@ -235,8 +238,21 @@ const Markdown = ({ children, className, disableHeadingIds, searchValue }: Markd
             };
         }
 
+        if (blockRemoteImages) {
+            components.img = ({ alt, src }: { alt?: string; src?: string }) =>
+                src ? (
+                    <a
+                        href={src}
+                        rel="noopener noreferrer nofollow"
+                        target="_blank"
+                    >
+                        {alt || 'image'} (image link)
+                    </a>
+                ) : null;
+        }
+
         return components;
-    }, [processedSearch, createComponentRenderer]);
+    }, [blockRemoteImages, processedSearch, createComponentRenderer]);
 
     return (
         <div className={`prose prose-sm dark:prose-invert max-w-none ${className || ''}`}>

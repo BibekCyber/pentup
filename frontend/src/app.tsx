@@ -18,7 +18,6 @@ import { DomainProvider } from '@/providers/domain-provider';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
 import { ProvidersProvider } from '@/providers/providers-provider';
-import { SidebarFlowsProvider } from '@/providers/sidebar-flows-provider';
 import { TemplatesProvider } from '@/providers/templates-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { UserProvider } from '@/providers/user-provider';
@@ -36,6 +35,8 @@ const Flow = lazy(() => import('@/pages/flows/flow'));
 const FlowReport = lazy(() => import('@/pages/flows/flow-report'));
 const Flows = lazy(() => import('@/pages/flows/flows'));
 const NewFlow = lazy(() => import('@/pages/flows/new-flow'));
+const Chat = lazy(() => import('@/pages/chat/chat'));
+const ChatLayout = lazy(() => import('@/pages/chat/chat').then((module) => ({ default: module.ChatLayout })));
 const Login = lazy(() => import('@/pages/login'));
 const Template = lazy(() => import('@/pages/templates/template'));
 const TemplateRequest = lazy(() => import('@/pages/templates/template-request'));
@@ -55,7 +56,7 @@ const DefaultLanding = () => {
     return (
         <Navigate
             replace
-            to={canSeeDashboard ? '/dashboard' : '/flows'}
+            to={canSeeDashboard ? '/dashboard' : '/chat'}
         />
     );
 };
@@ -65,9 +66,7 @@ const App = () => {
         <ProtectedRoute>
             <SystemSettingsProvider>
                 <ProvidersProvider>
-                    <SidebarFlowsProvider>
-                        <AppLayout />
-                    </SidebarFlowsProvider>
+                    <AppLayout />
                 </ProvidersProvider>
             </SystemSettingsProvider>
         </ProtectedRoute>
@@ -101,6 +100,28 @@ const App = () => {
                                                     }
                                                     path="dashboard"
                                                 />
+
+                                                {/* Pentest chat */}
+                                                <Route
+                                                    element={
+                                                        <ProtectedByPermission
+                                                            fallback="/scans"
+                                                            permission="chat.use"
+                                                        >
+                                                            <ChatLayout />
+                                                        </ProtectedByPermission>
+                                                    }
+                                                    path="chat"
+                                                >
+                                                    <Route
+                                                        element={<Chat />}
+                                                        index
+                                                    />
+                                                    <Route
+                                                        element={<Chat />}
+                                                        path=":sessionId"
+                                                    />
+                                                </Route>
 
                                                 {/* Flows section with FlowsProvider */}
                                                 <Route element={<FlowsLayout />}>
