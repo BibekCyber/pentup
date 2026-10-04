@@ -18,7 +18,6 @@ import { DomainProvider } from '@/providers/domain-provider';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
 import { ProvidersProvider } from '@/providers/providers-provider';
-import { SidebarFlowsProvider } from '@/providers/sidebar-flows-provider';
 import { TemplatesProvider } from '@/providers/templates-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { UserProvider } from '@/providers/user-provider';
@@ -57,7 +56,7 @@ const DefaultLanding = () => {
     return (
         <Navigate
             replace
-            to={canSeeDashboard ? '/dashboard' : '/flows'}
+            to={canSeeDashboard ? '/dashboard' : '/chat'}
         />
     );
 };
@@ -67,9 +66,7 @@ const App = () => {
         <ProtectedRoute>
             <SystemSettingsProvider>
                 <ProvidersProvider>
-                    <SidebarFlowsProvider>
-                        <AppLayout />
-                    </SidebarFlowsProvider>
+                    <AppLayout />
                 </ProvidersProvider>
             </SystemSettingsProvider>
         </ProtectedRoute>
