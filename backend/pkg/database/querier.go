@@ -11,9 +11,23 @@ import (
 
 type Querier interface {
 	AddFavoriteFlow(ctx context.Context, arg AddFavoriteFlowParams) (UserPreference, error)
+	// Approving a new template: mark the request approved and publish the
+	// template atomically. The template id is drawn up front so the request can
+	// link to the template it produced within the same statement.
+	ApproveCreateFlowTemplateRequest(ctx context.Context, arg ApproveCreateFlowTemplateRequestParams) (FlowTemplate, error)
+	// Approving an edit: the template is written first, guarded on its version
+	// (re-checked by Postgres after any row-lock wait), and the request is marked
+	// approved only if that write happened. A concurrent admin edit, archive,
+	// requester edit or second reviewer therefore makes this a no-op, never a
+	// half-applied approval.
+	ApproveUpdateFlowTemplateRequest(ctx context.Context, arg ApproveUpdateFlowTemplateRequestParams) (ApproveUpdateFlowTemplateRequestRow, error)
+	// Archiving also closes the template's open edit request in the same
+	// statement, so no pending edit can outlive (or be approved onto) it.
+	ArchiveFlowTemplate(ctx context.Context, arg ArchiveFlowTemplateParams) (ArchiveFlowTemplateRow, error)
 	ClearDefaultProviders(ctx context.Context, userID int64) error
 	CountActiveDomainsForUser(ctx context.Context, userID int64) (int64, error)
 	CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error)
+	CountPendingFlowTemplateRequestsByRequester(ctx context.Context, requesterID int64) (int64, error)
 	CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error)
 	CreateAgentLog(ctx context.Context, arg CreateAgentLogParams) (Agentlog, error)
 	CreateAssistant(ctx context.Context, arg CreateAssistantParams) (Assistant, error)
@@ -22,6 +36,7 @@ type Querier interface {
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
 	CreateFlow(ctx context.Context, arg CreateFlowParams) (Flow, error)
 	CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplateParams) (FlowTemplate, error)
+	CreateFlowTemplateRequest(ctx context.Context, arg CreateFlowTemplateRequestParams) (FlowTemplateRequest, error)
 	CreateMsgChain(ctx context.Context, arg CreateMsgChainParams) (Msgchain, error)
 	CreateMsgLog(ctx context.Context, arg CreateMsgLogParams) (Msglog, error)
 	CreateProvider(ctx context.Context, arg CreateProviderParams) (Provider, error)
@@ -46,7 +61,6 @@ type Querier interface {
 	DeleteFavoriteFlow(ctx context.Context, arg DeleteFavoriteFlowParams) (UserPreference, error)
 	DeleteFlow(ctx context.Context, id int64) (Flow, error)
 	DeleteFlowAssistantLog(ctx context.Context, id int64) error
-	DeleteFlowTemplate(ctx context.Context, arg DeleteFlowTemplateParams) error
 	DeletePrompt(ctx context.Context, id int64) error
 	DeleteProvider(ctx context.Context, id int64) (Provider, error)
 	DeleteScanCredentialsForDomain(ctx context.Context, domainID int64) error
@@ -72,6 +86,8 @@ type Querier interface {
 	GetCallToolcall(ctx context.Context, callID string) (Toolcall, error)
 	GetContainerTermLogs(ctx context.Context, containerID int64) ([]Termlog, error)
 	GetContainers(ctx context.Context) ([]Container, error)
+	// Auto-detect only spawns the platform templates plus the caller's own, so a
+	// template another user published never runs on someone's scan unselected.
 	GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
 	GetDefaultProvider(ctx context.Context, userID int64) (Provider, error)
 	GetDomain(ctx context.Context, id int64) (Domain, error)
@@ -100,9 +116,20 @@ type Querier interface {
 	GetFlowTaskSubtasks(ctx context.Context, arg GetFlowTaskSubtasksParams) ([]Subtask, error)
 	GetFlowTaskTypeLastMsgChain(ctx context.Context, arg GetFlowTaskTypeLastMsgChainParams) (Msgchain, error)
 	GetFlowTasks(ctx context.Context, flowID int64) ([]Task, error)
-	GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams) (FlowTemplate, error)
-	GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
-	GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([]FlowTemplate, error)
+	// Templates form one shared library: every live (non-archived) template is
+	// visible to every user. Only reviewed content is ever stored here; proposed
+	// content lives in flow_template_requests until an admin approves it.
+	GetFlowTemplate(ctx context.Context, id int64) (FlowTemplate, error)
+	// Template requests: a user's proposed new template or edit to their own
+	// template, waiting for admin review. Every state transition is a single
+	// conditional statement (status/revision/version guards in the WHERE clause),
+	// so concurrent reviewers or a requester editing mid-review can never apply a
+	// decision to content the reviewer did not see.
+	GetFlowTemplateRequest(ctx context.Context, id int64) (FlowTemplateRequestsView, error)
+	GetFlowTemplateRequests(ctx context.Context) ([]FlowTemplateRequestsView, error)
+	GetFlowTemplateRequestsByRequester(ctx context.Context, requesterID int64) ([]FlowTemplateRequestsView, error)
+	GetFlowTemplates(ctx context.Context) ([]FlowTemplate, error)
+	GetFlowTemplatesByTargetType(ctx context.Context, targetType TargetType) ([]FlowTemplate, error)
 	GetFlowTermLogs(ctx context.Context, flowID int64) ([]Termlog, error)
 	// ==================== Toolcalls Analytics Queries ====================
 	// Get total execution time and count of toolcalls for a specific flow
@@ -128,6 +155,7 @@ type Querier interface {
 	GetMsgChain(ctx context.Context, id int64) (Msgchain, error)
 	// Get all msgchains for a flow (including task and subtask level)
 	GetMsgchainsForFlow(ctx context.Context, flowID int64) ([]GetMsgchainsForFlowRow, error)
+	GetPendingFlowTemplateRequestByTemplate(ctx context.Context, templateID sql.NullInt64) (FlowTemplateRequestsView, error)
 	GetPrompts(ctx context.Context) ([]Prompt, error)
 	GetProvider(ctx context.Context, id int64) (Provider, error)
 	GetProviders(ctx context.Context) ([]Provider, error)
@@ -230,6 +258,7 @@ type Querier interface {
 	GetUserTotalToolcallsStats(ctx context.Context, userID int64) (GetUserTotalToolcallsStatsRow, error)
 	GetUserTotalUsageStats(ctx context.Context, userID int64) (GetUserTotalUsageStatsRow, error)
 	GetUsers(ctx context.Context) ([]GetUsersRow, error)
+	RejectFlowTemplateRequest(ctx context.Context, arg RejectFlowTemplateRequestParams) (FlowTemplateRequest, error)
 	SetDefaultProvider(ctx context.Context, arg SetDefaultProviderParams) (Provider, error)
 	SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
@@ -254,6 +283,8 @@ type Querier interface {
 	UpdateFlowLanguage(ctx context.Context, arg UpdateFlowLanguageParams) (Flow, error)
 	UpdateFlowProvider(ctx context.Context, arg UpdateFlowProviderParams) (Flow, error)
 	UpdateFlowStatus(ctx context.Context, arg UpdateFlowStatusParams) (Flow, error)
+	// expected_version is optional: when given, the write only applies if nobody
+	// changed the template since the editor loaded it.
 	UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplateParams) (FlowTemplate, error)
 	UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateFlowTemplateTargetTypesParams) (FlowTemplate, error)
 	UpdateFlowTitle(ctx context.Context, arg UpdateFlowTitleParams) (Flow, error)
@@ -261,6 +292,7 @@ type Querier interface {
 	UpdateMsgChain(ctx context.Context, arg UpdateMsgChainParams) (Msgchain, error)
 	UpdateMsgChainUsage(ctx context.Context, arg UpdateMsgChainUsageParams) (Msgchain, error)
 	UpdateMsgLogResult(ctx context.Context, arg UpdateMsgLogResultParams) (Msglog, error)
+	UpdatePendingFlowTemplateRequest(ctx context.Context, arg UpdatePendingFlowTemplateRequestParams) (FlowTemplateRequest, error)
 	UpdatePrompt(ctx context.Context, arg UpdatePromptParams) (Prompt, error)
 	UpdateProvider(ctx context.Context, arg UpdateProviderParams) (Provider, error)
 	UpdateSubtaskContext(ctx context.Context, arg UpdateSubtaskContextParams) (Subtask, error)
@@ -287,6 +319,7 @@ type Querier interface {
 	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (User, error)
 	UpsertUserPreferences(ctx context.Context, arg UpsertUserPreferencesParams) (UserPreference, error)
+	WithdrawFlowTemplateRequest(ctx context.Context, arg WithdrawFlowTemplateRequestParams) (FlowTemplateRequest, error)
 }
 
 var _ Querier = (*Queries)(nil)

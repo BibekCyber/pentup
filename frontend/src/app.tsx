@@ -38,6 +38,8 @@ const Flows = lazy(() => import('@/pages/flows/flows'));
 const NewFlow = lazy(() => import('@/pages/flows/new-flow'));
 const Login = lazy(() => import('@/pages/login'));
 const Template = lazy(() => import('@/pages/templates/template'));
+const TemplateRequest = lazy(() => import('@/pages/templates/template-request'));
+const TemplateRequests = lazy(() => import('@/pages/templates/template-requests'));
 const Templates = lazy(() => import('@/pages/templates/templates'));
 const OAuthResult = lazy(() => import('@/pages/oauth-result'));
 const SettingsAPITokens = lazy(() => import('@/pages/settings/settings-api-tokens'));
@@ -176,6 +178,29 @@ const App = () => {
                                                 <Route
                                                     element={<Template />}
                                                     path="templates/:templateId"
+                                                />
+                                                <Route
+                                                    element={
+                                                        <ProtectedByPermission
+                                                            fallback="/templates"
+                                                            permission="templates.admin"
+                                                        >
+                                                            <TemplateRequests scope="review" />
+                                                        </ProtectedByPermission>
+                                                    }
+                                                    path="templates/review"
+                                                />
+                                                <Route
+                                                    element={<TemplateRequests scope="submissions" />}
+                                                    path="templates/submissions"
+                                                />
+                                                <Route
+                                                    element={<TemplateRequest />}
+                                                    path="templates/requests/:requestId"
+                                                />
+                                                <Route
+                                                    element={<Template />}
+                                                    path="templates/requests/:requestId/edit"
                                                 />
 
                                                 {/* Settings with nested routes —

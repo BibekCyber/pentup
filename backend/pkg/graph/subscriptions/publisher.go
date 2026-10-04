@@ -132,16 +132,32 @@ func (p *flowPublisher) SettingsUserUpdated(ctx context.Context, userPreferences
 	p.ctrl.settingsUserUpdated.Publish(ctx, p.userID, converter.ConvertUserPreferences(userPreferences))
 }
 
+// Templates are one shared library, so every template change reaches every
+// subscriber, not just the author.
 func (p *flowPublisher) FlowTemplateCreated(ctx context.Context, template database.FlowTemplate) {
-	p.ctrl.flowTemplateCreated.Publish(ctx, p.userID, converter.ConvertFlowTemplate(template))
+	p.ctrl.flowTemplateCreated.Broadcast(ctx, converter.ConvertFlowTemplate(template))
 }
 
 func (p *flowPublisher) FlowTemplateUpdated(ctx context.Context, template database.FlowTemplate) {
-	p.ctrl.flowTemplateUpdated.Publish(ctx, p.userID, converter.ConvertFlowTemplate(template))
+	p.ctrl.flowTemplateUpdated.Broadcast(ctx, converter.ConvertFlowTemplate(template))
 }
 
 func (p *flowPublisher) FlowTemplateDeleted(ctx context.Context, template database.FlowTemplate) {
-	p.ctrl.flowTemplateDeleted.Publish(ctx, p.userID, converter.ConvertFlowTemplate(template))
+	p.ctrl.flowTemplateDeleted.Broadcast(ctx, converter.ConvertFlowTemplate(template))
+}
+
+// Template request events go to the requester (the publisher's userID) and to
+// every admin reviewer.
+func (p *flowPublisher) FlowTemplateRequestCreated(ctx context.Context, request database.FlowTemplateRequestsView) {
+	requestModel := converter.ConvertFlowTemplateRequest(request)
+	p.ctrl.flowTemplateRequestCreated.Publish(ctx, p.userID, requestModel)
+	p.ctrl.flowTemplateRequestCreatedAdmin.Broadcast(ctx, requestModel)
+}
+
+func (p *flowPublisher) FlowTemplateRequestUpdated(ctx context.Context, request database.FlowTemplateRequestsView) {
+	requestModel := converter.ConvertFlowTemplateRequest(request)
+	p.ctrl.flowTemplateRequestUpdated.Publish(ctx, p.userID, requestModel)
+	p.ctrl.flowTemplateRequestUpdatedAdmin.Broadcast(ctx, requestModel)
 }
 
 func (p *flowPublisher) DomainCreated(ctx context.Context, domain database.Domain, flows []database.Flow) {

@@ -9,6 +9,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type AssistantStatus string
@@ -699,6 +700,93 @@ func (ns NullTaskStatus) Value() (driver.Value, error) {
 	return string(ns.TaskStatus), nil
 }
 
+type TemplateRequestKind string
+
+const (
+	TemplateRequestKindCreate TemplateRequestKind = "create"
+	TemplateRequestKindUpdate TemplateRequestKind = "update"
+)
+
+func (e *TemplateRequestKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TemplateRequestKind(s)
+	case string:
+		*e = TemplateRequestKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TemplateRequestKind: %T", src)
+	}
+	return nil
+}
+
+type NullTemplateRequestKind struct {
+	TemplateRequestKind TemplateRequestKind `json:"template_request_kind"`
+	Valid               bool                `json:"valid"` // Valid is true if TemplateRequestKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTemplateRequestKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.TemplateRequestKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TemplateRequestKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTemplateRequestKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TemplateRequestKind), nil
+}
+
+type TemplateRequestStatus string
+
+const (
+	TemplateRequestStatusPending   TemplateRequestStatus = "pending"
+	TemplateRequestStatusApproved  TemplateRequestStatus = "approved"
+	TemplateRequestStatusRejected  TemplateRequestStatus = "rejected"
+	TemplateRequestStatusWithdrawn TemplateRequestStatus = "withdrawn"
+	TemplateRequestStatusClosed    TemplateRequestStatus = "closed"
+)
+
+func (e *TemplateRequestStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TemplateRequestStatus(s)
+	case string:
+		*e = TemplateRequestStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TemplateRequestStatus: %T", src)
+	}
+	return nil
+}
+
+type NullTemplateRequestStatus struct {
+	TemplateRequestStatus TemplateRequestStatus `json:"template_request_status"`
+	Valid                 bool                  `json:"valid"` // Valid is true if TemplateRequestStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTemplateRequestStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.TemplateRequestStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TemplateRequestStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTemplateRequestStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TemplateRequestStatus), nil
+}
+
 type TermlogType string
 
 const (
@@ -1060,14 +1148,54 @@ type Flow struct {
 }
 
 type FlowTemplate struct {
-	ID          int64        `json:"id"`
-	UserID      int64        `json:"user_id"`
-	Title       string       `json:"title"`
-	Text        string       `json:"text"`
-	CreatedAt   sql.NullTime `json:"created_at"`
-	UpdatedAt   sql.NullTime `json:"updated_at"`
-	TargetTypes []TargetType `json:"target_types"`
-	SystemOwned bool         `json:"system_owned"`
+	ID          int64         `json:"id"`
+	UserID      sql.NullInt64 `json:"user_id"`
+	Title       string        `json:"title"`
+	Text        string        `json:"text"`
+	CreatedAt   sql.NullTime  `json:"created_at"`
+	UpdatedAt   sql.NullTime  `json:"updated_at"`
+	TargetTypes []TargetType  `json:"target_types"`
+	SystemOwned bool          `json:"system_owned"`
+	Version     int32         `json:"version"`
+	ArchivedAt  sql.NullTime  `json:"archived_at"`
+}
+
+type FlowTemplateRequest struct {
+	ID          int64                 `json:"id"`
+	Kind        TemplateRequestKind   `json:"kind"`
+	Status      TemplateRequestStatus `json:"status"`
+	TemplateID  sql.NullInt64         `json:"template_id"`
+	RequesterID int64                 `json:"requester_id"`
+	Title       string                `json:"title"`
+	Text        string                `json:"text"`
+	TargetTypes []TargetType          `json:"target_types"`
+	Revision    int32                 `json:"revision"`
+	BaseVersion sql.NullInt32         `json:"base_version"`
+	ReviewNote  sql.NullString        `json:"review_note"`
+	ReviewedBy  sql.NullInt64         `json:"reviewed_by"`
+	ReviewedAt  sql.NullTime          `json:"reviewed_at"`
+	CreatedAt   time.Time             `json:"created_at"`
+	UpdatedAt   time.Time             `json:"updated_at"`
+}
+
+type FlowTemplateRequestsView struct {
+	ID            int64                 `json:"id"`
+	Kind          TemplateRequestKind   `json:"kind"`
+	Status        TemplateRequestStatus `json:"status"`
+	TemplateID    sql.NullInt64         `json:"template_id"`
+	RequesterID   int64                 `json:"requester_id"`
+	Title         string                `json:"title"`
+	Text          string                `json:"text"`
+	TargetTypes   []TargetType          `json:"target_types"`
+	Revision      int32                 `json:"revision"`
+	BaseVersion   sql.NullInt32         `json:"base_version"`
+	ReviewNote    sql.NullString        `json:"review_note"`
+	ReviewedBy    sql.NullInt64         `json:"reviewed_by"`
+	ReviewedAt    sql.NullTime          `json:"reviewed_at"`
+	CreatedAt     time.Time             `json:"created_at"`
+	UpdatedAt     time.Time             `json:"updated_at"`
+	RequesterName string                `json:"requester_name"`
+	ReviewerName  string                `json:"reviewer_name"`
 }
 
 type Msgchain struct {

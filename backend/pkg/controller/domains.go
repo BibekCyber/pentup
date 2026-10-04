@@ -230,8 +230,8 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 
 		if len(templateIDs) == 0 {
 			defaults, err := dc.db.GetDefaultFlowTemplatesByTargetType(ctx, database.GetDefaultFlowTemplatesByTargetTypeParams{
-				UserID:  params.UserID,
-				Column2: database.TargetType(detected),
+				UserID:     params.UserID,
+				TargetType: database.TargetType(detected),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to load default templates for target type %s: %w", detected, err)

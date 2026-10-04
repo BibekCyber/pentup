@@ -185,11 +185,15 @@ enum TargetType {
 
 type FlowTemplate {
   id: ID!
-  userId: ID!
+  # Author; null when the author's account was deleted.
+  userId: ID
   title: String!
   text: String!
   targetTypes: [TargetType!]!
   systemOwned: Boolean!
+  # Bumped on every content change; pass it back to guard against overwriting
+  # someone else's change.
+  version: Int!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -203,6 +207,57 @@ input CreateFlowTemplateInput {
 input UpdateFlowTemplateInput {
   title: String!
   text: String!
+  # Omitted keeps the current target types.
+  targetTypes: [TargetType!]
+  # When set, the update is refused if the template changed since this version.
+  version: Int
+}
+
+# ==================== Flow Template Request Types ====================
+
+# Non-admin users publish templates through admin-reviewed requests.
+enum TemplateRequestKind {
+  create
+  update
+}
+
+enum TemplateRequestStatus {
+  pending
+  approved
+  rejected
+  withdrawn
+  # Closed by the system, e.g. the template it edits was deleted.
+  closed
+}
+
+type FlowTemplateRequest {
+  id: ID!
+  kind: TemplateRequestKind!
+  status: TemplateRequestStatus!
+  # Template being edited (update), or the template an approved create produced.
+  templateId: ID
+  requesterId: ID!
+  requesterName: String!
+  title: String!
+  text: String!
+  targetTypes: [TargetType!]!
+  # Bumped each time the requester edits a pending request; reviews must pass
+  # the revision they looked at.
+  revision: Int!
+  # Template version the edit was written against (update only).
+  baseVersion: Int
+  reviewNote: String
+  reviewedBy: ID
+  reviewerName: String
+  reviewedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input FlowTemplateRequestInput {
+  title: String!
+  text: String!
+  targetTypes: [TargetType!]
 }
 
 # ==================== Domain Orchestration Types ====================
@@ -1009,6 +1064,10 @@ type Query {
   flowTemplates: [FlowTemplate!]!
   flowTemplatesByTargetType(targetType: TargetType!): [FlowTemplate!]!
 
+  # Flow Template Requests: admins see every request, users their own
+  flowTemplateRequest(requestId: ID!): FlowTemplateRequest
+  flowTemplateRequests: [FlowTemplateRequest!]!
+
   # Domain orchestration
   domains: [Domain!]!
   domain(id: ID!): Domain
@@ -1082,6 +1141,13 @@ type Mutation {
   updateFlowTemplateTargetTypes(templateId: ID!, targetTypes: [TargetType!]!): FlowTemplate!
   deleteFlowTemplate(templateId: ID!): ResultType!
 
+  # Flow Template Requests (submit for approval / admin review)
+  submitFlowTemplateRequest(templateId: ID, input: FlowTemplateRequestInput!): FlowTemplateRequest!
+  updateFlowTemplateRequest(requestId: ID!, revision: Int!, input: FlowTemplateRequestInput!): FlowTemplateRequest!
+  withdrawFlowTemplateRequest(requestId: ID!): FlowTemplateRequest!
+  approveFlowTemplateRequest(requestId: ID!, revision: Int!, templateVersion: Int, note: String): FlowTemplateRequest!
+  rejectFlowTemplateRequest(requestId: ID!, revision: Int!, note: String!): FlowTemplateRequest!
+
   # Domain orchestration
   createDomain(input: CreateDomainInput!): Domain!
   deleteDomain(id: ID!): ResultType!
@@ -1132,6 +1198,10 @@ type Subscription {
   flowTemplateCreated: FlowTemplate!
   flowTemplateUpdated: FlowTemplate!
   flowTemplateDeleted: FlowTemplate!
+
+  # Flow template request events (admins: all requests, users: their own)
+  flowTemplateRequestCreated: FlowTemplateRequest!
+  flowTemplateRequestUpdated: FlowTemplateRequest!
 
   # Domain events
   domainCreated: Domain!

@@ -271,13 +271,40 @@ type FlowStats struct {
 
 type FlowTemplate struct {
 	ID          int64        `json:"id"`
-	UserID      int64        `json:"userId"`
+	UserID      *int64       `json:"userId,omitempty"`
 	Title       string       `json:"title"`
 	Text        string       `json:"text"`
 	TargetTypes []TargetType `json:"targetTypes"`
 	SystemOwned bool         `json:"systemOwned"`
+	Version     int          `json:"version"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
+}
+
+type FlowTemplateRequest struct {
+	ID            int64                 `json:"id"`
+	Kind          TemplateRequestKind   `json:"kind"`
+	Status        TemplateRequestStatus `json:"status"`
+	TemplateID    *int64                `json:"templateId,omitempty"`
+	RequesterID   int64                 `json:"requesterId"`
+	RequesterName string                `json:"requesterName"`
+	Title         string                `json:"title"`
+	Text          string                `json:"text"`
+	TargetTypes   []TargetType          `json:"targetTypes"`
+	Revision      int                   `json:"revision"`
+	BaseVersion   *int                  `json:"baseVersion,omitempty"`
+	ReviewNote    *string               `json:"reviewNote,omitempty"`
+	ReviewedBy    *int64                `json:"reviewedBy,omitempty"`
+	ReviewerName  *string               `json:"reviewerName,omitempty"`
+	ReviewedAt    *time.Time            `json:"reviewedAt,omitempty"`
+	CreatedAt     time.Time             `json:"createdAt"`
+	UpdatedAt     time.Time             `json:"updatedAt"`
+}
+
+type FlowTemplateRequestInput struct {
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	TargetTypes []TargetType `json:"targetTypes,omitempty"`
 }
 
 type FlowsStats struct {
@@ -568,8 +595,10 @@ type UpdateAPITokenInput struct {
 }
 
 type UpdateFlowTemplateInput struct {
-	Title string `json:"title"`
-	Text  string `json:"text"`
+	Title       string       `json:"title"`
+	Text        string       `json:"text"`
+	TargetTypes []TargetType `json:"targetTypes,omitempty"`
+	Version     *int         `json:"version,omitempty"`
 }
 
 type UsageStats struct {
@@ -1506,6 +1535,94 @@ func (e *TargetType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e TargetType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type TemplateRequestKind string
+
+const (
+	TemplateRequestKindCreate TemplateRequestKind = "create"
+	TemplateRequestKindUpdate TemplateRequestKind = "update"
+)
+
+var AllTemplateRequestKind = []TemplateRequestKind{
+	TemplateRequestKindCreate,
+	TemplateRequestKindUpdate,
+}
+
+func (e TemplateRequestKind) IsValid() bool {
+	switch e {
+	case TemplateRequestKindCreate, TemplateRequestKindUpdate:
+		return true
+	}
+	return false
+}
+
+func (e TemplateRequestKind) String() string {
+	return string(e)
+}
+
+func (e *TemplateRequestKind) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TemplateRequestKind(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TemplateRequestKind", str)
+	}
+	return nil
+}
+
+func (e TemplateRequestKind) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type TemplateRequestStatus string
+
+const (
+	TemplateRequestStatusPending   TemplateRequestStatus = "pending"
+	TemplateRequestStatusApproved  TemplateRequestStatus = "approved"
+	TemplateRequestStatusRejected  TemplateRequestStatus = "rejected"
+	TemplateRequestStatusWithdrawn TemplateRequestStatus = "withdrawn"
+	TemplateRequestStatusClosed    TemplateRequestStatus = "closed"
+)
+
+var AllTemplateRequestStatus = []TemplateRequestStatus{
+	TemplateRequestStatusPending,
+	TemplateRequestStatusApproved,
+	TemplateRequestStatusRejected,
+	TemplateRequestStatusWithdrawn,
+	TemplateRequestStatusClosed,
+}
+
+func (e TemplateRequestStatus) IsValid() bool {
+	switch e {
+	case TemplateRequestStatusPending, TemplateRequestStatusApproved, TemplateRequestStatusRejected, TemplateRequestStatusWithdrawn, TemplateRequestStatusClosed:
+		return true
+	}
+	return false
+}
+
+func (e TemplateRequestStatus) String() string {
+	return string(e)
+}
+
+func (e *TemplateRequestStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TemplateRequestStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TemplateRequestStatus", str)
+	}
+	return nil
+}
+
+func (e TemplateRequestStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

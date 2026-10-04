@@ -362,6 +362,27 @@ fragment flowTemplateFragment on FlowTemplate {
     text
     targetTypes
     systemOwned
+    version
+    createdAt
+    updatedAt
+}
+
+fragment flowTemplateRequestFragment on FlowTemplateRequest {
+    id
+    kind
+    status
+    templateId
+    requesterId
+    requesterName
+    title
+    text
+    targetTypes
+    revision
+    baseVersion
+    reviewNote
+    reviewedBy
+    reviewerName
+    reviewedAt
     createdAt
     updatedAt
 }
@@ -1015,6 +1036,55 @@ mutation deleteFlowTemplate($templateId: ID!) {
     deleteFlowTemplate(templateId: $templateId)
 }
 
+# ==================== Flow Template Requests ====================
+
+query flowTemplateRequests {
+    flowTemplateRequests {
+        ...flowTemplateRequestFragment
+    }
+}
+
+query flowTemplateRequest($requestId: ID!) {
+    flowTemplateRequest(requestId: $requestId) {
+        ...flowTemplateRequestFragment
+    }
+}
+
+mutation submitFlowTemplateRequest($templateId: ID, $input: FlowTemplateRequestInput!) {
+    submitFlowTemplateRequest(templateId: $templateId, input: $input) {
+        ...flowTemplateRequestFragment
+    }
+}
+
+mutation updateFlowTemplateRequest($requestId: ID!, $revision: Int!, $input: FlowTemplateRequestInput!) {
+    updateFlowTemplateRequest(requestId: $requestId, revision: $revision, input: $input) {
+        ...flowTemplateRequestFragment
+    }
+}
+
+mutation withdrawFlowTemplateRequest($requestId: ID!) {
+    withdrawFlowTemplateRequest(requestId: $requestId) {
+        ...flowTemplateRequestFragment
+    }
+}
+
+mutation approveFlowTemplateRequest($requestId: ID!, $revision: Int!, $templateVersion: Int, $note: String) {
+    approveFlowTemplateRequest(
+        requestId: $requestId
+        revision: $revision
+        templateVersion: $templateVersion
+        note: $note
+    ) {
+        ...flowTemplateRequestFragment
+    }
+}
+
+mutation rejectFlowTemplateRequest($requestId: ID!, $revision: Int!, $note: String!) {
+    rejectFlowTemplateRequest(requestId: $requestId, revision: $revision, note: $note) {
+        ...flowTemplateRequestFragment
+    }
+}
+
 # ==================== Flows ====================
 
 mutation createFlow($modelProvider: String!, $input: String!) {
@@ -1307,6 +1377,18 @@ subscription flowTemplateUpdated {
 subscription flowTemplateDeleted {
     flowTemplateDeleted {
         ...flowTemplateFragment
+    }
+}
+
+subscription flowTemplateRequestCreated {
+    flowTemplateRequestCreated {
+        ...flowTemplateRequestFragment
+    }
+}
+
+subscription flowTemplateRequestUpdated {
+    flowTemplateRequestUpdated {
+        ...flowTemplateRequestFragment
     }
 }
 

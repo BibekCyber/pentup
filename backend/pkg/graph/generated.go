@@ -292,6 +292,27 @@ type ComplexityRoot struct {
 		Title       func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 		UserID      func(childComplexity int) int
+		Version     func(childComplexity int) int
+	}
+
+	FlowTemplateRequest struct {
+		BaseVersion   func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Kind          func(childComplexity int) int
+		RequesterID   func(childComplexity int) int
+		RequesterName func(childComplexity int) int
+		ReviewNote    func(childComplexity int) int
+		ReviewedAt    func(childComplexity int) int
+		ReviewedBy    func(childComplexity int) int
+		ReviewerName  func(childComplexity int) int
+		Revision      func(childComplexity int) int
+		Status        func(childComplexity int) int
+		TargetTypes   func(childComplexity int) int
+		TemplateID    func(childComplexity int) int
+		Text          func(childComplexity int) int
+		Title         func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
 	}
 
 	FlowsStats struct {
@@ -345,6 +366,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddFavoriteFlow               func(childComplexity int, flowID int64) int
+		ApproveFlowTemplateRequest    func(childComplexity int, requestID int64, revision int, templateVersion *int, note *string) int
 		CallAssistant                 func(childComplexity int, flowID int64, assistantID int64, input string, useAgents bool) int
 		CreateAPIToken                func(childComplexity int, input model.CreateAPITokenInput) int
 		CreateAssistant               func(childComplexity int, flowID int64, modelProvider string, input string, useAgents bool) int
@@ -364,20 +386,24 @@ type ComplexityRoot struct {
 		DeleteProvider                func(childComplexity int, providerID int64) int
 		FinishFlow                    func(childComplexity int, flowID int64) int
 		PutUserInput                  func(childComplexity int, flowID int64, input string, modelProvider *string) int
+		RejectFlowTemplateRequest     func(childComplexity int, requestID int64, revision int, note string) int
 		RenameFlow                    func(childComplexity int, flowID int64, title string) int
 		SetDefaultProvider            func(childComplexity int, providerID int64) int
 		StopAssistant                 func(childComplexity int, flowID int64, assistantID int64) int
 		StopFlow                      func(childComplexity int, flowID int64) int
+		SubmitFlowTemplateRequest     func(childComplexity int, templateID *int64, input model.FlowTemplateRequestInput) int
 		TestAgent                     func(childComplexity int, typeArg model.ProviderType, agentType model.AgentConfigType, agent model.AgentConfig) int
 		TestProvider                  func(childComplexity int, typeArg model.ProviderType, agents model.AgentsConfig) int
 		UpdateAPIToken                func(childComplexity int, tokenID string, input model.UpdateAPITokenInput) int
 		UpdateFindingCvss             func(childComplexity int, taskID *int64, assistantID *int64, index int, expectedTitle string, cvss float64) int
 		UpdateFindingSeverity         func(childComplexity int, taskID *int64, assistantID *int64, index int, expectedTitle string, severity model.Severity) int
 		UpdateFlowTemplate            func(childComplexity int, templateID int64, input model.UpdateFlowTemplateInput) int
+		UpdateFlowTemplateRequest     func(childComplexity int, requestID int64, revision int, input model.FlowTemplateRequestInput) int
 		UpdateFlowTemplateTargetTypes func(childComplexity int, templateID int64, targetTypes []model.TargetType) int
 		UpdatePrompt                  func(childComplexity int, promptID int64, template string) int
 		UpdateProvider                func(childComplexity int, providerID int64, name string, agents model.AgentsConfig) int
 		ValidatePrompt                func(childComplexity int, typeArg model.PromptType, template string) int
+		WithdrawFlowTemplateRequest   func(childComplexity int, requestID int64) int
 	}
 
 	PromptValidationResult struct {
@@ -474,6 +500,8 @@ type ComplexityRoot struct {
 		Flow                            func(childComplexity int, flowID int64) int
 		FlowStatsByFlow                 func(childComplexity int, flowID int64) int
 		FlowTemplate                    func(childComplexity int, templateID int64) int
+		FlowTemplateRequest             func(childComplexity int, requestID int64) int
+		FlowTemplateRequests            func(childComplexity int) int
 		FlowTemplates                   func(childComplexity int) int
 		FlowTemplatesByTargetType       func(childComplexity int, targetType model.TargetType) int
 		Flows                           func(childComplexity int) int
@@ -550,36 +578,38 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		APITokenCreated     func(childComplexity int) int
-		APITokenDeleted     func(childComplexity int) int
-		APITokenUpdated     func(childComplexity int) int
-		AgentLogAdded       func(childComplexity int, flowID int64) int
-		AssistantCreated    func(childComplexity int, flowID int64) int
-		AssistantDeleted    func(childComplexity int, flowID int64) int
-		AssistantLogAdded   func(childComplexity int, flowID int64) int
-		AssistantLogUpdated func(childComplexity int, flowID int64) int
-		AssistantUpdated    func(childComplexity int, flowID int64) int
-		DomainCreated       func(childComplexity int) int
-		DomainDeleted       func(childComplexity int) int
-		DomainUpdated       func(childComplexity int) int
-		FlowCreated         func(childComplexity int) int
-		FlowDeleted         func(childComplexity int) int
-		FlowTemplateCreated func(childComplexity int) int
-		FlowTemplateDeleted func(childComplexity int) int
-		FlowTemplateUpdated func(childComplexity int) int
-		FlowUpdated         func(childComplexity int) int
-		MessageLogAdded     func(childComplexity int, flowID int64) int
-		MessageLogUpdated   func(childComplexity int, flowID int64) int
-		ProviderCreated     func(childComplexity int) int
-		ProviderDeleted     func(childComplexity int) int
-		ProviderUpdated     func(childComplexity int) int
-		ScreenshotAdded     func(childComplexity int, flowID int64) int
-		SearchLogAdded      func(childComplexity int, flowID int64) int
-		SettingsUserUpdated func(childComplexity int) int
-		TaskCreated         func(childComplexity int, flowID int64) int
-		TaskUpdated         func(childComplexity int, flowID int64) int
-		TerminalLogAdded    func(childComplexity int, flowID int64) int
-		VectorStoreLogAdded func(childComplexity int, flowID int64) int
+		APITokenCreated            func(childComplexity int) int
+		APITokenDeleted            func(childComplexity int) int
+		APITokenUpdated            func(childComplexity int) int
+		AgentLogAdded              func(childComplexity int, flowID int64) int
+		AssistantCreated           func(childComplexity int, flowID int64) int
+		AssistantDeleted           func(childComplexity int, flowID int64) int
+		AssistantLogAdded          func(childComplexity int, flowID int64) int
+		AssistantLogUpdated        func(childComplexity int, flowID int64) int
+		AssistantUpdated           func(childComplexity int, flowID int64) int
+		DomainCreated              func(childComplexity int) int
+		DomainDeleted              func(childComplexity int) int
+		DomainUpdated              func(childComplexity int) int
+		FlowCreated                func(childComplexity int) int
+		FlowDeleted                func(childComplexity int) int
+		FlowTemplateCreated        func(childComplexity int) int
+		FlowTemplateDeleted        func(childComplexity int) int
+		FlowTemplateRequestCreated func(childComplexity int) int
+		FlowTemplateRequestUpdated func(childComplexity int) int
+		FlowTemplateUpdated        func(childComplexity int) int
+		FlowUpdated                func(childComplexity int) int
+		MessageLogAdded            func(childComplexity int, flowID int64) int
+		MessageLogUpdated          func(childComplexity int, flowID int64) int
+		ProviderCreated            func(childComplexity int) int
+		ProviderDeleted            func(childComplexity int) int
+		ProviderUpdated            func(childComplexity int) int
+		ScreenshotAdded            func(childComplexity int, flowID int64) int
+		SearchLogAdded             func(childComplexity int, flowID int64) int
+		SettingsUserUpdated        func(childComplexity int) int
+		TaskCreated                func(childComplexity int, flowID int64) int
+		TaskUpdated                func(childComplexity int, flowID int64) int
+		TerminalLogAdded           func(childComplexity int, flowID int64) int
+		VectorStoreLogAdded        func(childComplexity int, flowID int64) int
 	}
 
 	Subtask struct {
@@ -745,6 +775,11 @@ type MutationResolver interface {
 	UpdateFlowTemplate(ctx context.Context, templateID int64, input model.UpdateFlowTemplateInput) (*model.FlowTemplate, error)
 	UpdateFlowTemplateTargetTypes(ctx context.Context, templateID int64, targetTypes []model.TargetType) (*model.FlowTemplate, error)
 	DeleteFlowTemplate(ctx context.Context, templateID int64) (model.ResultType, error)
+	SubmitFlowTemplateRequest(ctx context.Context, templateID *int64, input model.FlowTemplateRequestInput) (*model.FlowTemplateRequest, error)
+	UpdateFlowTemplateRequest(ctx context.Context, requestID int64, revision int, input model.FlowTemplateRequestInput) (*model.FlowTemplateRequest, error)
+	WithdrawFlowTemplateRequest(ctx context.Context, requestID int64) (*model.FlowTemplateRequest, error)
+	ApproveFlowTemplateRequest(ctx context.Context, requestID int64, revision int, templateVersion *int, note *string) (*model.FlowTemplateRequest, error)
+	RejectFlowTemplateRequest(ctx context.Context, requestID int64, revision int, note string) (*model.FlowTemplateRequest, error)
 	CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error)
 	DeleteDomain(ctx context.Context, id int64) (model.ResultType, error)
 	CreateScan(ctx context.Context, input model.CreateScanInput) (*model.Domain, error)
@@ -787,6 +822,8 @@ type QueryResolver interface {
 	FlowTemplate(ctx context.Context, templateID int64) (*model.FlowTemplate, error)
 	FlowTemplates(ctx context.Context) ([]*model.FlowTemplate, error)
 	FlowTemplatesByTargetType(ctx context.Context, targetType model.TargetType) ([]*model.FlowTemplate, error)
+	FlowTemplateRequest(ctx context.Context, requestID int64) (*model.FlowTemplateRequest, error)
+	FlowTemplateRequests(ctx context.Context) ([]*model.FlowTemplateRequest, error)
 	Domains(ctx context.Context) ([]*model.Domain, error)
 	Domain(ctx context.Context, id int64) (*model.Domain, error)
 	QuotaUsage(ctx context.Context) (*model.QuotaUsage, error)
@@ -819,6 +856,8 @@ type SubscriptionResolver interface {
 	FlowTemplateCreated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateUpdated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateDeleted(ctx context.Context) (<-chan *model.FlowTemplate, error)
+	FlowTemplateRequestCreated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
+	FlowTemplateRequestUpdated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
 	DomainCreated(ctx context.Context) (<-chan *model.Domain, error)
 	DomainUpdated(ctx context.Context) (<-chan *model.Domain, error)
 	DomainDeleted(ctx context.Context) (<-chan *model.Domain, error)
@@ -2012,6 +2051,132 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FlowTemplate.UserID(childComplexity), true
 
+	case "FlowTemplate.version":
+		if e.complexity.FlowTemplate.Version == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplate.Version(childComplexity), true
+
+	case "FlowTemplateRequest.baseVersion":
+		if e.complexity.FlowTemplateRequest.BaseVersion == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.BaseVersion(childComplexity), true
+
+	case "FlowTemplateRequest.createdAt":
+		if e.complexity.FlowTemplateRequest.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.CreatedAt(childComplexity), true
+
+	case "FlowTemplateRequest.id":
+		if e.complexity.FlowTemplateRequest.ID == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.ID(childComplexity), true
+
+	case "FlowTemplateRequest.kind":
+		if e.complexity.FlowTemplateRequest.Kind == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.Kind(childComplexity), true
+
+	case "FlowTemplateRequest.requesterId":
+		if e.complexity.FlowTemplateRequest.RequesterID == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.RequesterID(childComplexity), true
+
+	case "FlowTemplateRequest.requesterName":
+		if e.complexity.FlowTemplateRequest.RequesterName == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.RequesterName(childComplexity), true
+
+	case "FlowTemplateRequest.reviewNote":
+		if e.complexity.FlowTemplateRequest.ReviewNote == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.ReviewNote(childComplexity), true
+
+	case "FlowTemplateRequest.reviewedAt":
+		if e.complexity.FlowTemplateRequest.ReviewedAt == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.ReviewedAt(childComplexity), true
+
+	case "FlowTemplateRequest.reviewedBy":
+		if e.complexity.FlowTemplateRequest.ReviewedBy == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.ReviewedBy(childComplexity), true
+
+	case "FlowTemplateRequest.reviewerName":
+		if e.complexity.FlowTemplateRequest.ReviewerName == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.ReviewerName(childComplexity), true
+
+	case "FlowTemplateRequest.revision":
+		if e.complexity.FlowTemplateRequest.Revision == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.Revision(childComplexity), true
+
+	case "FlowTemplateRequest.status":
+		if e.complexity.FlowTemplateRequest.Status == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.Status(childComplexity), true
+
+	case "FlowTemplateRequest.targetTypes":
+		if e.complexity.FlowTemplateRequest.TargetTypes == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.TargetTypes(childComplexity), true
+
+	case "FlowTemplateRequest.templateId":
+		if e.complexity.FlowTemplateRequest.TemplateID == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.TemplateID(childComplexity), true
+
+	case "FlowTemplateRequest.text":
+		if e.complexity.FlowTemplateRequest.Text == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.Text(childComplexity), true
+
+	case "FlowTemplateRequest.title":
+		if e.complexity.FlowTemplateRequest.Title == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.Title(childComplexity), true
+
+	case "FlowTemplateRequest.updatedAt":
+		if e.complexity.FlowTemplateRequest.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.FlowTemplateRequest.UpdatedAt(childComplexity), true
+
 	case "FlowsStats.totalAssistantsCount":
 		if e.complexity.FlowsStats.TotalAssistantsCount == nil {
 			break
@@ -2241,6 +2406,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddFavoriteFlow(childComplexity, args["flowId"].(int64)), true
 
+	case "Mutation.approveFlowTemplateRequest":
+		if e.complexity.Mutation.ApproveFlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_approveFlowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ApproveFlowTemplateRequest(childComplexity, args["requestId"].(int64), args["revision"].(int), args["templateVersion"].(*int), args["note"].(*string)), true
+
 	case "Mutation.callAssistant":
 		if e.complexity.Mutation.CallAssistant == nil {
 			break
@@ -2469,6 +2646,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.PutUserInput(childComplexity, args["flowId"].(int64), args["input"].(string), args["modelProvider"].(*string)), true
 
+	case "Mutation.rejectFlowTemplateRequest":
+		if e.complexity.Mutation.RejectFlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_rejectFlowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RejectFlowTemplateRequest(childComplexity, args["requestId"].(int64), args["revision"].(int), args["note"].(string)), true
+
 	case "Mutation.renameFlow":
 		if e.complexity.Mutation.RenameFlow == nil {
 			break
@@ -2516,6 +2705,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.StopFlow(childComplexity, args["flowId"].(int64)), true
+
+	case "Mutation.submitFlowTemplateRequest":
+		if e.complexity.Mutation.SubmitFlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitFlowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitFlowTemplateRequest(childComplexity, args["templateId"].(*int64), args["input"].(model.FlowTemplateRequestInput)), true
 
 	case "Mutation.testAgent":
 		if e.complexity.Mutation.TestAgent == nil {
@@ -2589,6 +2790,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateFlowTemplate(childComplexity, args["templateId"].(int64), args["input"].(model.UpdateFlowTemplateInput)), true
 
+	case "Mutation.updateFlowTemplateRequest":
+		if e.complexity.Mutation.UpdateFlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFlowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFlowTemplateRequest(childComplexity, args["requestId"].(int64), args["revision"].(int), args["input"].(model.FlowTemplateRequestInput)), true
+
 	case "Mutation.updateFlowTemplateTargetTypes":
 		if e.complexity.Mutation.UpdateFlowTemplateTargetTypes == nil {
 			break
@@ -2636,6 +2849,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ValidatePrompt(childComplexity, args["type"].(model.PromptType), args["template"].(string)), true
+
+	case "Mutation.withdrawFlowTemplateRequest":
+		if e.complexity.Mutation.WithdrawFlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_withdrawFlowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WithdrawFlowTemplateRequest(childComplexity, args["requestId"].(int64)), true
 
 	case "PromptValidationResult.details":
 		if e.complexity.PromptValidationResult.Details == nil {
@@ -3138,6 +3363,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.FlowTemplate(childComplexity, args["templateId"].(int64)), true
+
+	case "Query.flowTemplateRequest":
+		if e.complexity.Query.FlowTemplateRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flowTemplateRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlowTemplateRequest(childComplexity, args["requestId"].(int64)), true
+
+	case "Query.flowTemplateRequests":
+		if e.complexity.Query.FlowTemplateRequests == nil {
+			break
+		}
+
+		return e.complexity.Query.FlowTemplateRequests(childComplexity), true
 
 	case "Query.flowTemplates":
 		if e.complexity.Query.FlowTemplates == nil {
@@ -3761,6 +4005,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.FlowTemplateDeleted(childComplexity), true
+
+	case "Subscription.flowTemplateRequestCreated":
+		if e.complexity.Subscription.FlowTemplateRequestCreated == nil {
+			break
+		}
+
+		return e.complexity.Subscription.FlowTemplateRequestCreated(childComplexity), true
+
+	case "Subscription.flowTemplateRequestUpdated":
+		if e.complexity.Subscription.FlowTemplateRequestUpdated == nil {
+			break
+		}
+
+		return e.complexity.Subscription.FlowTemplateRequestUpdated(childComplexity), true
 
 	case "Subscription.flowTemplateUpdated":
 		if e.complexity.Subscription.FlowTemplateUpdated == nil {
@@ -4509,6 +4767,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateDomainInput,
 		ec.unmarshalInputCreateFlowTemplateInput,
 		ec.unmarshalInputCreateScanInput,
+		ec.unmarshalInputFlowTemplateRequestInput,
 		ec.unmarshalInputModelPriceInput,
 		ec.unmarshalInputReasoningConfigInput,
 		ec.unmarshalInputScanCredentialInput,
@@ -4677,6 +4936,119 @@ func (ec *executionContext) field_Mutation_addFavoriteFlow_argsFlowID(
 	}
 
 	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_approveFlowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_approveFlowTemplateRequest_argsRequestID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["requestId"] = arg0
+	arg1, err := ec.field_Mutation_approveFlowTemplateRequest_argsRevision(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["revision"] = arg1
+	arg2, err := ec.field_Mutation_approveFlowTemplateRequest_argsTemplateVersion(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["templateVersion"] = arg2
+	arg3, err := ec.field_Mutation_approveFlowTemplateRequest_argsNote(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["note"] = arg3
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_approveFlowTemplateRequest_argsRequestID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["requestId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("requestId"))
+	if tmp, ok := rawArgs["requestId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_approveFlowTemplateRequest_argsRevision(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["revision"]
+	if !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("revision"))
+	if tmp, ok := rawArgs["revision"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_approveFlowTemplateRequest_argsTemplateVersion(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["templateVersion"]
+	if !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("templateVersion"))
+	if tmp, ok := rawArgs["templateVersion"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_approveFlowTemplateRequest_argsNote(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["note"]
+	if !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
+	if tmp, ok := rawArgs["note"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -5639,6 +6011,92 @@ func (ec *executionContext) field_Mutation_putUserInput_argsModelProvider(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_rejectFlowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_rejectFlowTemplateRequest_argsRequestID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["requestId"] = arg0
+	arg1, err := ec.field_Mutation_rejectFlowTemplateRequest_argsRevision(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["revision"] = arg1
+	arg2, err := ec.field_Mutation_rejectFlowTemplateRequest_argsNote(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["note"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_rejectFlowTemplateRequest_argsRequestID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["requestId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("requestId"))
+	if tmp, ok := rawArgs["requestId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_rejectFlowTemplateRequest_argsRevision(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["revision"]
+	if !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("revision"))
+	if tmp, ok := rawArgs["revision"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_rejectFlowTemplateRequest_argsNote(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["note"]
+	if !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
+	if tmp, ok := rawArgs["note"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_renameFlow_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5818,6 +6276,65 @@ func (ec *executionContext) field_Mutation_stopFlow_argsFlowID(
 	}
 
 	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_submitFlowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_submitFlowTemplateRequest_argsTemplateID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["templateId"] = arg0
+	arg1, err := ec.field_Mutation_submitFlowTemplateRequest_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_submitFlowTemplateRequest_argsTemplateID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["templateId"]
+	if !ok {
+		var zeroVal *int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("templateId"))
+	if tmp, ok := rawArgs["templateId"]; ok {
+		return ec.unmarshalOID2ᚖint64(ctx, tmp)
+	}
+
+	var zeroVal *int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_submitFlowTemplateRequest_argsInput(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (model.FlowTemplateRequestInput, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["input"]
+	if !ok {
+		var zeroVal model.FlowTemplateRequestInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalNFlowTemplateRequestInput2pentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequestInput(ctx, tmp)
+	}
+
+	var zeroVal model.FlowTemplateRequestInput
 	return zeroVal, nil
 }
 
@@ -6305,6 +6822,92 @@ func (ec *executionContext) field_Mutation_updateFindingSeverity_argsSeverity(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_updateFlowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_updateFlowTemplateRequest_argsRequestID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["requestId"] = arg0
+	arg1, err := ec.field_Mutation_updateFlowTemplateRequest_argsRevision(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["revision"] = arg1
+	arg2, err := ec.field_Mutation_updateFlowTemplateRequest_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateFlowTemplateRequest_argsRequestID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["requestId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("requestId"))
+	if tmp, ok := rawArgs["requestId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlowTemplateRequest_argsRevision(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["revision"]
+	if !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("revision"))
+	if tmp, ok := rawArgs["revision"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlowTemplateRequest_argsInput(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (model.FlowTemplateRequestInput, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["input"]
+	if !ok {
+		var zeroVal model.FlowTemplateRequestInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalNFlowTemplateRequestInput2pentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequestInput(ctx, tmp)
+	}
+
+	var zeroVal model.FlowTemplateRequestInput
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_updateFlowTemplateTargetTypes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -6627,6 +7230,38 @@ func (ec *executionContext) field_Mutation_validatePrompt_argsTemplate(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_withdrawFlowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_withdrawFlowTemplateRequest_argsRequestID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["requestId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_withdrawFlowTemplateRequest_argsRequestID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["requestId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("requestId"))
+	if tmp, ok := rawArgs["requestId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -6871,6 +7506,38 @@ func (ec *executionContext) field_Query_flowStatsByFlow_argsFlowID(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("flowId"))
 	if tmp, ok := rawArgs["flowId"]; ok {
+		return ec.unmarshalNID2int64(ctx, tmp)
+	}
+
+	var zeroVal int64
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_flowTemplateRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_flowTemplateRequest_argsRequestID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["requestId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_flowTemplateRequest_argsRequestID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (int64, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["requestId"]
+	if !ok {
+		var zeroVal int64
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("requestId"))
+	if tmp, ok := rawArgs["requestId"]; ok {
 		return ec.unmarshalNID2int64(ctx, tmp)
 	}
 
@@ -15795,14 +16462,11 @@ func (ec *executionContext) _FlowTemplate_userId(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(int64)
+	res := resTmp.(*int64)
 	fc.Result = res
-	return ec.marshalNID2int64(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖint64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_FlowTemplate_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15994,6 +16658,50 @@ func (ec *executionContext) fieldContext_FlowTemplate_systemOwned(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _FlowTemplate_version(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplate_version(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplate_version(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _FlowTemplate_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplate) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 	if err != nil {
@@ -16072,6 +16780,736 @@ func (ec *executionContext) _FlowTemplate_updatedAt(ctx context.Context, field g
 func (ec *executionContext) fieldContext_FlowTemplate_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FlowTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNID2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_kind(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Kind, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.TemplateRequestKind)
+	fc.Result = res
+	return ec.marshalNTemplateRequestKind2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestKind(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_kind(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TemplateRequestKind does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_status(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.TemplateRequestStatus)
+	fc.Result = res
+	return ec.marshalNTemplateRequestStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TemplateRequestStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_templateId(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TemplateID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOID2ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_templateId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_requesterId(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequesterID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNID2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_requesterId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_requesterName(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequesterName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_requesterName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_title(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_text(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Text, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_text(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_targetTypes(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetTypes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.TargetType)
+	fc.Result = res
+	return ec.marshalNTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_targetTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TargetType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_revision(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Revision, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_revision(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_baseVersion(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BaseVersion, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_baseVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_reviewNote(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReviewNote, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_reviewNote(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_reviewedBy(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReviewedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOID2ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_reviewedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_reviewerName(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReviewerName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_reviewerName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_reviewedAt(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReviewedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_reviewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FlowTemplateRequest_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.FlowTemplateRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FlowTemplateRequest_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FlowTemplateRequest",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -19187,6 +20625,8 @@ func (ec *executionContext) fieldContext_Mutation_createFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -19260,6 +20700,8 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplate(ctx context
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -19333,6 +20775,8 @@ func (ec *executionContext) fieldContext_Mutation_updateFlowTemplateTargetTypes(
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -19404,6 +20848,461 @@ func (ec *executionContext) fieldContext_Mutation_deleteFlowTemplate(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteFlowTemplate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_submitFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_submitFlowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SubmitFlowTemplateRequest(rctx, fc.Args["templateId"].(*int64), fc.Args["input"].(model.FlowTemplateRequestInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitFlowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateFlowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateFlowTemplateRequest(rctx, fc.Args["requestId"].(int64), fc.Args["revision"].(int), fc.Args["input"].(model.FlowTemplateRequestInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFlowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_withdrawFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_withdrawFlowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WithdrawFlowTemplateRequest(rctx, fc.Args["requestId"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_withdrawFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_withdrawFlowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_approveFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_approveFlowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ApproveFlowTemplateRequest(rctx, fc.Args["requestId"].(int64), fc.Args["revision"].(int), fc.Args["templateVersion"].(*int), fc.Args["note"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_approveFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_approveFlowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_rejectFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_rejectFlowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RejectFlowTemplateRequest(rctx, fc.Args["requestId"].(int64), fc.Args["revision"].(int), fc.Args["note"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_rejectFlowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_rejectFlowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24529,6 +26428,8 @@ func (ec *executionContext) fieldContext_Query_flowTemplate(ctx context.Context,
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -24602,6 +26503,8 @@ func (ec *executionContext) fieldContext_Query_flowTemplates(_ context.Context, 
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -24664,6 +26567,8 @@ func (ec *executionContext) fieldContext_Query_flowTemplatesByTargetType(ctx con
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -24682,6 +26587,174 @@ func (ec *executionContext) fieldContext_Query_flowTemplatesByTargetType(ctx con
 	if fc.Args, err = ec.field_Query_flowTemplatesByTargetType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flowTemplateRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flowTemplateRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlowTemplateRequest(rctx, fc.Args["requestId"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalOFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flowTemplateRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_flowTemplateRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flowTemplateRequests(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flowTemplateRequests(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlowTemplateRequests(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FlowTemplateRequest)
+	fc.Result = res
+	return ec.marshalNFlowTemplateRequest2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flowTemplateRequests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -28292,6 +30365,8 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateCreated(_ cont
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -28368,6 +30443,8 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateUpdated(_ cont
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
@@ -28444,12 +30521,202 @@ func (ec *executionContext) fieldContext_Subscription_flowTemplateDeleted(_ cont
 				return ec.fieldContext_FlowTemplate_targetTypes(ctx, field)
 			case "systemOwned":
 				return ec.fieldContext_FlowTemplate_systemOwned(ctx, field)
+			case "version":
+				return ec.fieldContext_FlowTemplate_version(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FlowTemplate_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_FlowTemplate_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FlowTemplate", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_flowTemplateRequestCreated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_flowTemplateRequestCreated(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().FlowTemplateRequestCreated(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.FlowTemplateRequest):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_flowTemplateRequestCreated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_flowTemplateRequestUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_flowTemplateRequestUpdated(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().FlowTemplateRequestUpdated(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.FlowTemplateRequest):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_flowTemplateRequestUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FlowTemplateRequest_id(ctx, field)
+			case "kind":
+				return ec.fieldContext_FlowTemplateRequest_kind(ctx, field)
+			case "status":
+				return ec.fieldContext_FlowTemplateRequest_status(ctx, field)
+			case "templateId":
+				return ec.fieldContext_FlowTemplateRequest_templateId(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_FlowTemplateRequest_requesterId(ctx, field)
+			case "requesterName":
+				return ec.fieldContext_FlowTemplateRequest_requesterName(ctx, field)
+			case "title":
+				return ec.fieldContext_FlowTemplateRequest_title(ctx, field)
+			case "text":
+				return ec.fieldContext_FlowTemplateRequest_text(ctx, field)
+			case "targetTypes":
+				return ec.fieldContext_FlowTemplateRequest_targetTypes(ctx, field)
+			case "revision":
+				return ec.fieldContext_FlowTemplateRequest_revision(ctx, field)
+			case "baseVersion":
+				return ec.fieldContext_FlowTemplateRequest_baseVersion(ctx, field)
+			case "reviewNote":
+				return ec.fieldContext_FlowTemplateRequest_reviewNote(ctx, field)
+			case "reviewedBy":
+				return ec.fieldContext_FlowTemplateRequest_reviewedBy(ctx, field)
+			case "reviewerName":
+				return ec.fieldContext_FlowTemplateRequest_reviewerName(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_FlowTemplateRequest_reviewedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FlowTemplateRequest_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FlowTemplateRequest_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FlowTemplateRequest", field.Name)
 		},
 	}
 	return fc, nil
@@ -34725,6 +36992,47 @@ func (ec *executionContext) unmarshalInputCreateScanInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFlowTemplateRequestInput(ctx context.Context, obj interface{}) (model.FlowTemplateRequestInput, error) {
+	var it model.FlowTemplateRequestInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"title", "text", "targetTypes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
+		case "targetTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTypes"))
+			data, err := ec.unmarshalOTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetTypes = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputModelPriceInput(ctx context.Context, obj interface{}) (model.ModelPrice, error) {
 	var it model.ModelPrice
 	asMap := map[string]interface{}{}
@@ -34916,7 +37224,7 @@ func (ec *executionContext) unmarshalInputUpdateFlowTemplateInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "text"}
+	fieldsInOrder := [...]string{"title", "text", "targetTypes", "version"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -34937,6 +37245,20 @@ func (ec *executionContext) unmarshalInputUpdateFlowTemplateInput(ctx context.Co
 				return it, err
 			}
 			it.Text = data
+		case "targetTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTypes"))
+			data, err := ec.unmarshalOTargetType2ᚕpentagiᚋpkgᚋgraphᚋmodelᚐTargetTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetTypes = data
+		case "version":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("version"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Version = data
 		}
 	}
 
@@ -36528,9 +38850,6 @@ func (ec *executionContext) _FlowTemplate(ctx context.Context, sel ast.Selection
 			}
 		case "userId":
 			out.Values[i] = ec._FlowTemplate_userId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "title":
 			out.Values[i] = ec._FlowTemplate_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -36551,6 +38870,11 @@ func (ec *executionContext) _FlowTemplate(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "version":
+			out.Values[i] = ec._FlowTemplate_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createdAt":
 			out.Values[i] = ec._FlowTemplate_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -36558,6 +38882,107 @@ func (ec *executionContext) _FlowTemplate(ctx context.Context, sel ast.Selection
 			}
 		case "updatedAt":
 			out.Values[i] = ec._FlowTemplate_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var flowTemplateRequestImplementors = []string{"FlowTemplateRequest"}
+
+func (ec *executionContext) _FlowTemplateRequest(ctx context.Context, sel ast.SelectionSet, obj *model.FlowTemplateRequest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, flowTemplateRequestImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FlowTemplateRequest")
+		case "id":
+			out.Values[i] = ec._FlowTemplateRequest_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "kind":
+			out.Values[i] = ec._FlowTemplateRequest_kind(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._FlowTemplateRequest_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "templateId":
+			out.Values[i] = ec._FlowTemplateRequest_templateId(ctx, field, obj)
+		case "requesterId":
+			out.Values[i] = ec._FlowTemplateRequest_requesterId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requesterName":
+			out.Values[i] = ec._FlowTemplateRequest_requesterName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._FlowTemplateRequest_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "text":
+			out.Values[i] = ec._FlowTemplateRequest_text(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetTypes":
+			out.Values[i] = ec._FlowTemplateRequest_targetTypes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revision":
+			out.Values[i] = ec._FlowTemplateRequest_revision(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baseVersion":
+			out.Values[i] = ec._FlowTemplateRequest_baseVersion(ctx, field, obj)
+		case "reviewNote":
+			out.Values[i] = ec._FlowTemplateRequest_reviewNote(ctx, field, obj)
+		case "reviewedBy":
+			out.Values[i] = ec._FlowTemplateRequest_reviewedBy(ctx, field, obj)
+		case "reviewerName":
+			out.Values[i] = ec._FlowTemplateRequest_reviewerName(ctx, field, obj)
+		case "reviewedAt":
+			out.Values[i] = ec._FlowTemplateRequest_reviewedAt(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._FlowTemplateRequest_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._FlowTemplateRequest_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -37154,6 +39579,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteFlowTemplate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteFlowTemplate(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "submitFlowTemplateRequest":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitFlowTemplateRequest(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFlowTemplateRequest":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFlowTemplateRequest(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "withdrawFlowTemplateRequest":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_withdrawFlowTemplateRequest(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "approveFlowTemplateRequest":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_approveFlowTemplateRequest(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "rejectFlowTemplateRequest":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_rejectFlowTemplateRequest(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -38546,6 +41006,47 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "flowTemplateRequest":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flowTemplateRequest(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "flowTemplateRequests":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flowTemplateRequests(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "domains":
 			field := field
 
@@ -38999,6 +41500,10 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_flowTemplateUpdated(ctx, fields[0])
 	case "flowTemplateDeleted":
 		return ec._Subscription_flowTemplateDeleted(ctx, fields[0])
+	case "flowTemplateRequestCreated":
+		return ec._Subscription_flowTemplateRequestCreated(ctx, fields[0])
+	case "flowTemplateRequestUpdated":
+		return ec._Subscription_flowTemplateRequestUpdated(ctx, fields[0])
 	case "domainCreated":
 		return ec._Subscription_domainCreated(ctx, fields[0])
 	case "domainUpdated":
@@ -41011,6 +43516,69 @@ func (ec *executionContext) marshalNFlowTemplate2ᚖpentagiᚋpkgᚋgraphᚋmode
 	return ec._FlowTemplate(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNFlowTemplateRequest2pentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx context.Context, sel ast.SelectionSet, v model.FlowTemplateRequest) graphql.Marshaler {
+	return ec._FlowTemplateRequest(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFlowTemplateRequest2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FlowTemplateRequest) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx context.Context, sel ast.SelectionSet, v *model.FlowTemplateRequest) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FlowTemplateRequest(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFlowTemplateRequestInput2pentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequestInput(ctx context.Context, v interface{}) (model.FlowTemplateRequestInput, error) {
+	res, err := ec.unmarshalInputFlowTemplateRequestInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNFlowsStats2pentagiᚋpkgᚋgraphᚋmodelᚐFlowsStats(ctx context.Context, sel ast.SelectionSet, v model.FlowsStats) graphql.Marshaler {
 	return ec._FlowsStats(ctx, sel, &v)
 }
@@ -41879,6 +44447,26 @@ func (ec *executionContext) marshalNTaskExecutionStats2ᚖpentagiᚋpkgᚋgraph�
 	return ec._TaskExecutionStats(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNTemplateRequestKind2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestKind(ctx context.Context, v interface{}) (model.TemplateRequestKind, error) {
+	var res model.TemplateRequestKind
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTemplateRequestKind2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestKind(ctx context.Context, sel ast.SelectionSet, v model.TemplateRequestKind) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNTemplateRequestStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestStatus(ctx context.Context, v interface{}) (model.TemplateRequestStatus, error) {
+	var res model.TemplateRequestStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTemplateRequestStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTemplateRequestStatus(ctx context.Context, sel ast.SelectionSet, v model.TemplateRequestStatus) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNTerminal2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTerminal(ctx context.Context, sel ast.SelectionSet, v *model.Terminal) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42614,6 +45202,13 @@ func (ec *executionContext) marshalOFlowTemplate2ᚖpentagiᚋpkgᚋgraphᚋmode
 		return graphql.Null
 	}
 	return ec._FlowTemplate(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOFlowTemplateRequest2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐFlowTemplateRequest(ctx context.Context, sel ast.SelectionSet, v *model.FlowTemplateRequest) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FlowTemplateRequest(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖint64(ctx context.Context, v interface{}) (*int64, error) {

@@ -42,6 +42,7 @@ import {
     SidebarHeader,
     SidebarMenu,
     SidebarMenuAction,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     useSidebar,
@@ -52,6 +53,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { useTheme } from '@/hooks/use-theme';
 import { useFavorites } from '@/providers/favorites-provider';
 import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
+import { useTemplates } from '@/providers/templates-provider';
 import { useUser } from '@/providers/user-provider';
 
 // EMBER nav active accent: left brand bar on top of the token-driven
@@ -133,6 +135,7 @@ export const MainSidebar = () => {
         .join('')
         .toUpperCase();
     const canSeeDashboard = usePermission('usage.view');
+    const { isTemplateAdmin, pendingRequestsCount } = useTemplates();
     const { setTheme, theme } = useTheme();
     const { addFavoriteFlow, favoriteFlowIds, removeFavoriteFlow } = useFavorites();
     const { flows } = useSidebarFlows();
@@ -263,6 +266,12 @@ export const MainSidebar = () => {
                                         Templates
                                     </Link>
                                 </SidebarMenuButton>
+                                {isTemplateAdmin && pendingRequestsCount > 0 ? (
+                                    // Requests waiting for review; makes way for the + action on hover.
+                                    <SidebarMenuBadge className="bg-primary/15 text-primary top-2 rounded-full transition-opacity group-hover/menu-item:opacity-0">
+                                        {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                                    </SidebarMenuBadge>
+                                ) : null}
                                 <SidebarMenuAction
                                     asChild
                                     className="data-[state=open]:bg-accent rounded-sm"

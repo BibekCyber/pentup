@@ -360,7 +360,34 @@ export type FlowTemplate = {
     text: Scalars['String']['output'];
     title: Scalars['String']['output'];
     updatedAt: Scalars['Time']['output'];
-    userId: Scalars['ID']['output'];
+    userId?: Maybe<Scalars['ID']['output']>;
+    version: Scalars['Int']['output'];
+};
+
+export type FlowTemplateRequest = {
+    baseVersion?: Maybe<Scalars['Int']['output']>;
+    createdAt: Scalars['Time']['output'];
+    id: Scalars['ID']['output'];
+    kind: TemplateRequestKind;
+    requesterId: Scalars['ID']['output'];
+    requesterName: Scalars['String']['output'];
+    reviewNote?: Maybe<Scalars['String']['output']>;
+    reviewedAt?: Maybe<Scalars['Time']['output']>;
+    reviewedBy?: Maybe<Scalars['ID']['output']>;
+    reviewerName?: Maybe<Scalars['String']['output']>;
+    revision: Scalars['Int']['output'];
+    status: TemplateRequestStatus;
+    targetTypes: Array<TargetType>;
+    templateId?: Maybe<Scalars['ID']['output']>;
+    text: Scalars['String']['output'];
+    title: Scalars['String']['output'];
+    updatedAt: Scalars['Time']['output'];
+};
+
+export type FlowTemplateRequestInput = {
+    targetTypes?: InputMaybe<Array<TargetType>>;
+    text: Scalars['String']['input'];
+    title: Scalars['String']['input'];
 };
 
 export type FlowsStats = {
@@ -435,6 +462,7 @@ export type ModelUsageStats = {
 
 export type Mutation = {
     addFavoriteFlow: ResultType;
+    approveFlowTemplateRequest: FlowTemplateRequest;
     callAssistant: ResultType;
     createAPIToken: ApiTokenWithSecret;
     createAssistant: FlowAssistant;
@@ -454,24 +482,35 @@ export type Mutation = {
     deleteProvider: ResultType;
     finishFlow: ResultType;
     putUserInput: ResultType;
+    rejectFlowTemplateRequest: FlowTemplateRequest;
     renameFlow: ResultType;
     setDefaultProvider: ProviderConfig;
     stopAssistant: Assistant;
     stopFlow: ResultType;
+    submitFlowTemplateRequest: FlowTemplateRequest;
     testAgent: AgentTestResult;
     testProvider: ProviderTestResult;
     updateAPIToken: ApiToken;
     updateFindingCvss: ResultType;
     updateFindingSeverity: ResultType;
     updateFlowTemplate: FlowTemplate;
+    updateFlowTemplateRequest: FlowTemplateRequest;
     updateFlowTemplateTargetTypes: FlowTemplate;
     updatePrompt: UserPrompt;
     updateProvider: ProviderConfig;
     validatePrompt: PromptValidationResult;
+    withdrawFlowTemplateRequest: FlowTemplateRequest;
 };
 
 export type MutationAddFavoriteFlowArgs = {
     flowId: Scalars['ID']['input'];
+};
+
+export type MutationApproveFlowTemplateRequestArgs = {
+    note?: InputMaybe<Scalars['String']['input']>;
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+    templateVersion?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type MutationCallAssistantArgs = {
@@ -563,6 +602,12 @@ export type MutationPutUserInputArgs = {
     modelProvider?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type MutationRejectFlowTemplateRequestArgs = {
+    note: Scalars['String']['input'];
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+};
+
 export type MutationRenameFlowArgs = {
     flowId: Scalars['ID']['input'];
     title: Scalars['String']['input'];
@@ -579,6 +624,11 @@ export type MutationStopAssistantArgs = {
 
 export type MutationStopFlowArgs = {
     flowId: Scalars['ID']['input'];
+};
+
+export type MutationSubmitFlowTemplateRequestArgs = {
+    input: FlowTemplateRequestInput;
+    templateId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type MutationTestAgentArgs = {
@@ -618,6 +668,12 @@ export type MutationUpdateFlowTemplateArgs = {
     templateId: Scalars['ID']['input'];
 };
 
+export type MutationUpdateFlowTemplateRequestArgs = {
+    input: FlowTemplateRequestInput;
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+};
+
 export type MutationUpdateFlowTemplateTargetTypesArgs = {
     targetTypes: Array<TargetType>;
     templateId: Scalars['ID']['input'];
@@ -637,6 +693,10 @@ export type MutationUpdateProviderArgs = {
 export type MutationValidatePromptArgs = {
     template: Scalars['String']['input'];
     type: PromptType;
+};
+
+export type MutationWithdrawFlowTemplateRequestArgs = {
+    requestId: Scalars['ID']['input'];
 };
 
 export enum PromptType {
@@ -797,6 +857,8 @@ export type Query = {
     flow: Flow;
     flowStatsByFlow: FlowStats;
     flowTemplate?: Maybe<FlowTemplate>;
+    flowTemplateRequest?: Maybe<FlowTemplateRequest>;
+    flowTemplateRequests: Array<FlowTemplateRequest>;
     flowTemplates: Array<FlowTemplate>;
     flowTemplatesByTargetType: Array<FlowTemplate>;
     flows?: Maybe<Array<Flow>>;
@@ -860,6 +922,10 @@ export type QueryFlowStatsByFlowArgs = {
 
 export type QueryFlowTemplateArgs = {
     templateId: Scalars['ID']['input'];
+};
+
+export type QueryFlowTemplateRequestArgs = {
+    requestId: Scalars['ID']['input'];
 };
 
 export type QueryFlowTemplatesByTargetTypeArgs = {
@@ -1051,6 +1117,8 @@ export type Subscription = {
     flowDeleted: Flow;
     flowTemplateCreated: FlowTemplate;
     flowTemplateDeleted: FlowTemplate;
+    flowTemplateRequestCreated: FlowTemplateRequest;
+    flowTemplateRequestUpdated: FlowTemplateRequest;
     flowTemplateUpdated: FlowTemplate;
     flowUpdated: Flow;
     messageLogAdded: MessageLog;
@@ -1173,6 +1241,19 @@ export type TaskExecutionStats = {
     totalToolcallsCount: Scalars['Int']['output'];
 };
 
+export enum TemplateRequestKind {
+    Create = 'create',
+    Update = 'update',
+}
+
+export enum TemplateRequestStatus {
+    Approved = 'approved',
+    Closed = 'closed',
+    Pending = 'pending',
+    Rejected = 'rejected',
+    Withdrawn = 'withdrawn',
+}
+
 export type Terminal = {
     connected: Scalars['Boolean']['output'];
     createdAt: Scalars['Time']['output'];
@@ -1246,8 +1327,10 @@ export type UpdateApiTokenInput = {
 };
 
 export type UpdateFlowTemplateInput = {
+    targetTypes?: InputMaybe<Array<TargetType>>;
     text: Scalars['String']['input'];
     title: Scalars['String']['input'];
+    version?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type UsageStats = {
@@ -1565,11 +1648,32 @@ export type ApiTokenWithSecretFragmentFragment = {
 
 export type FlowTemplateFragmentFragment = {
     id: string;
-    userId: string;
+    userId?: string | null;
     title: string;
     text: string;
     targetTypes: Array<TargetType>;
     systemOwned: boolean;
+    version: number;
+    createdAt: any;
+    updatedAt: any;
+};
+
+export type FlowTemplateRequestFragmentFragment = {
+    id: string;
+    kind: TemplateRequestKind;
+    status: TemplateRequestStatus;
+    templateId?: string | null;
+    requesterId: string;
+    requesterName: string;
+    title: string;
+    text: string;
+    targetTypes: Array<TargetType>;
+    revision: number;
+    baseVersion?: number | null;
+    reviewNote?: string | null;
+    reviewedBy?: string | null;
+    reviewerName?: string | null;
+    reviewedAt?: any | null;
     createdAt: any;
     updatedAt: any;
 };
@@ -1979,6 +2083,54 @@ export type DeleteFlowTemplateMutationVariables = Exact<{
 
 export type DeleteFlowTemplateMutation = { deleteFlowTemplate: ResultType };
 
+export type FlowTemplateRequestsQueryVariables = Exact<{ [key: string]: never }>;
+
+export type FlowTemplateRequestsQuery = { flowTemplateRequests: Array<FlowTemplateRequestFragmentFragment> };
+
+export type FlowTemplateRequestQueryVariables = Exact<{
+    requestId: Scalars['ID']['input'];
+}>;
+
+export type FlowTemplateRequestQuery = { flowTemplateRequest?: FlowTemplateRequestFragmentFragment | null };
+
+export type SubmitFlowTemplateRequestMutationVariables = Exact<{
+    templateId?: InputMaybe<Scalars['ID']['input']>;
+    input: FlowTemplateRequestInput;
+}>;
+
+export type SubmitFlowTemplateRequestMutation = { submitFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
+
+export type UpdateFlowTemplateRequestMutationVariables = Exact<{
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+    input: FlowTemplateRequestInput;
+}>;
+
+export type UpdateFlowTemplateRequestMutation = { updateFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
+
+export type WithdrawFlowTemplateRequestMutationVariables = Exact<{
+    requestId: Scalars['ID']['input'];
+}>;
+
+export type WithdrawFlowTemplateRequestMutation = { withdrawFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
+
+export type ApproveFlowTemplateRequestMutationVariables = Exact<{
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+    templateVersion?: InputMaybe<Scalars['Int']['input']>;
+    note?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+export type ApproveFlowTemplateRequestMutation = { approveFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
+
+export type RejectFlowTemplateRequestMutationVariables = Exact<{
+    requestId: Scalars['ID']['input'];
+    revision: Scalars['Int']['input'];
+    note: Scalars['String']['input'];
+}>;
+
+export type RejectFlowTemplateRequestMutation = { rejectFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
+
 export type CreateFlowMutationVariables = Exact<{
     modelProvider: Scalars['String']['input'];
     input: Scalars['String']['input'];
@@ -2285,6 +2437,18 @@ export type FlowTemplateUpdatedSubscription = { flowTemplateUpdated: FlowTemplat
 export type FlowTemplateDeletedSubscriptionVariables = Exact<{ [key: string]: never }>;
 
 export type FlowTemplateDeletedSubscription = { flowTemplateDeleted: FlowTemplateFragmentFragment };
+
+export type FlowTemplateRequestCreatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type FlowTemplateRequestCreatedSubscription = {
+    flowTemplateRequestCreated: FlowTemplateRequestFragmentFragment;
+};
+
+export type FlowTemplateRequestUpdatedSubscriptionVariables = Exact<{ [key: string]: never }>;
+
+export type FlowTemplateRequestUpdatedSubscription = {
+    flowTemplateRequestUpdated: FlowTemplateRequestFragmentFragment;
+};
 
 export type DomainFragmentFragment = {
     id: string;
@@ -2748,6 +2912,28 @@ export const FlowTemplateFragmentFragmentDoc = gql`
         text
         targetTypes
         systemOwned
+        version
+        createdAt
+        updatedAt
+    }
+`;
+export const FlowTemplateRequestFragmentFragmentDoc = gql`
+    fragment flowTemplateRequestFragment on FlowTemplateRequest {
+        id
+        kind
+        status
+        templateId
+        requesterId
+        requesterName
+        title
+        text
+        targetTypes
+        revision
+        baseVersion
+        reviewNote
+        reviewedBy
+        reviewerName
+        reviewedAt
         createdAt
         updatedAt
     }
@@ -5610,6 +5796,399 @@ export type DeleteFlowTemplateMutationOptions = Apollo.BaseMutationOptions<
     DeleteFlowTemplateMutation,
     DeleteFlowTemplateMutationVariables
 >;
+export const FlowTemplateRequestsDocument = gql`
+    query flowTemplateRequests {
+        flowTemplateRequests {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+
+/**
+ * __useFlowTemplateRequestsQuery__
+ *
+ * To run a query within a React component, call `useFlowTemplateRequestsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFlowTemplateRequestsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFlowTemplateRequestsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useFlowTemplateRequestsQuery(
+    baseOptions?: Apollo.QueryHookOptions<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>(
+        FlowTemplateRequestsDocument,
+        options,
+    );
+}
+export function useFlowTemplateRequestsLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>(
+        FlowTemplateRequestsDocument,
+        options,
+    );
+}
+// @ts-ignore
+export function useFlowTemplateRequestsSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>;
+export function useFlowTemplateRequestsSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>,
+): Apollo.UseSuspenseQueryResult<FlowTemplateRequestsQuery | undefined, FlowTemplateRequestsQueryVariables>;
+export function useFlowTemplateRequestsSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<FlowTemplateRequestsQuery, FlowTemplateRequestsQueryVariables>(
+        FlowTemplateRequestsDocument,
+        options,
+    );
+}
+export type FlowTemplateRequestsQueryHookResult = ReturnType<typeof useFlowTemplateRequestsQuery>;
+export type FlowTemplateRequestsLazyQueryHookResult = ReturnType<typeof useFlowTemplateRequestsLazyQuery>;
+export type FlowTemplateRequestsSuspenseQueryHookResult = ReturnType<typeof useFlowTemplateRequestsSuspenseQuery>;
+export type FlowTemplateRequestsQueryResult = Apollo.QueryResult<
+    FlowTemplateRequestsQuery,
+    FlowTemplateRequestsQueryVariables
+>;
+export const FlowTemplateRequestDocument = gql`
+    query flowTemplateRequest($requestId: ID!) {
+        flowTemplateRequest(requestId: $requestId) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+
+/**
+ * __useFlowTemplateRequestQuery__
+ *
+ * To run a query within a React component, call `useFlowTemplateRequestQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFlowTemplateRequestQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFlowTemplateRequestQuery({
+ *   variables: {
+ *      requestId: // value for 'requestId'
+ *   },
+ * });
+ */
+export function useFlowTemplateRequestQuery(
+    baseOptions: Apollo.QueryHookOptions<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables> &
+        ({ variables: FlowTemplateRequestQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>(
+        FlowTemplateRequestDocument,
+        options,
+    );
+}
+export function useFlowTemplateRequestLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>(
+        FlowTemplateRequestDocument,
+        options,
+    );
+}
+// @ts-ignore
+export function useFlowTemplateRequestSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>,
+): Apollo.UseSuspenseQueryResult<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>;
+export function useFlowTemplateRequestSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>,
+): Apollo.UseSuspenseQueryResult<FlowTemplateRequestQuery | undefined, FlowTemplateRequestQueryVariables>;
+export function useFlowTemplateRequestSuspenseQuery(
+    baseOptions?:
+        | Apollo.SkipToken
+        | Apollo.SuspenseQueryHookOptions<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<FlowTemplateRequestQuery, FlowTemplateRequestQueryVariables>(
+        FlowTemplateRequestDocument,
+        options,
+    );
+}
+export type FlowTemplateRequestQueryHookResult = ReturnType<typeof useFlowTemplateRequestQuery>;
+export type FlowTemplateRequestLazyQueryHookResult = ReturnType<typeof useFlowTemplateRequestLazyQuery>;
+export type FlowTemplateRequestSuspenseQueryHookResult = ReturnType<typeof useFlowTemplateRequestSuspenseQuery>;
+export type FlowTemplateRequestQueryResult = Apollo.QueryResult<
+    FlowTemplateRequestQuery,
+    FlowTemplateRequestQueryVariables
+>;
+export const SubmitFlowTemplateRequestDocument = gql`
+    mutation submitFlowTemplateRequest($templateId: ID, $input: FlowTemplateRequestInput!) {
+        submitFlowTemplateRequest(templateId: $templateId, input: $input) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+export type SubmitFlowTemplateRequestMutationFn = Apollo.MutationFunction<
+    SubmitFlowTemplateRequestMutation,
+    SubmitFlowTemplateRequestMutationVariables
+>;
+
+/**
+ * __useSubmitFlowTemplateRequestMutation__
+ *
+ * To run a mutation, you first call `useSubmitFlowTemplateRequestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSubmitFlowTemplateRequestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [submitFlowTemplateRequestMutation, { data, loading, error }] = useSubmitFlowTemplateRequestMutation({
+ *   variables: {
+ *      templateId: // value for 'templateId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useSubmitFlowTemplateRequestMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        SubmitFlowTemplateRequestMutation,
+        SubmitFlowTemplateRequestMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<SubmitFlowTemplateRequestMutation, SubmitFlowTemplateRequestMutationVariables>(
+        SubmitFlowTemplateRequestDocument,
+        options,
+    );
+}
+export type SubmitFlowTemplateRequestMutationHookResult = ReturnType<typeof useSubmitFlowTemplateRequestMutation>;
+export type SubmitFlowTemplateRequestMutationResult = Apollo.MutationResult<SubmitFlowTemplateRequestMutation>;
+export type SubmitFlowTemplateRequestMutationOptions = Apollo.BaseMutationOptions<
+    SubmitFlowTemplateRequestMutation,
+    SubmitFlowTemplateRequestMutationVariables
+>;
+export const UpdateFlowTemplateRequestDocument = gql`
+    mutation updateFlowTemplateRequest($requestId: ID!, $revision: Int!, $input: FlowTemplateRequestInput!) {
+        updateFlowTemplateRequest(requestId: $requestId, revision: $revision, input: $input) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+export type UpdateFlowTemplateRequestMutationFn = Apollo.MutationFunction<
+    UpdateFlowTemplateRequestMutation,
+    UpdateFlowTemplateRequestMutationVariables
+>;
+
+/**
+ * __useUpdateFlowTemplateRequestMutation__
+ *
+ * To run a mutation, you first call `useUpdateFlowTemplateRequestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFlowTemplateRequestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFlowTemplateRequestMutation, { data, loading, error }] = useUpdateFlowTemplateRequestMutation({
+ *   variables: {
+ *      requestId: // value for 'requestId'
+ *      revision: // value for 'revision'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateFlowTemplateRequestMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        UpdateFlowTemplateRequestMutation,
+        UpdateFlowTemplateRequestMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<UpdateFlowTemplateRequestMutation, UpdateFlowTemplateRequestMutationVariables>(
+        UpdateFlowTemplateRequestDocument,
+        options,
+    );
+}
+export type UpdateFlowTemplateRequestMutationHookResult = ReturnType<typeof useUpdateFlowTemplateRequestMutation>;
+export type UpdateFlowTemplateRequestMutationResult = Apollo.MutationResult<UpdateFlowTemplateRequestMutation>;
+export type UpdateFlowTemplateRequestMutationOptions = Apollo.BaseMutationOptions<
+    UpdateFlowTemplateRequestMutation,
+    UpdateFlowTemplateRequestMutationVariables
+>;
+export const WithdrawFlowTemplateRequestDocument = gql`
+    mutation withdrawFlowTemplateRequest($requestId: ID!) {
+        withdrawFlowTemplateRequest(requestId: $requestId) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+export type WithdrawFlowTemplateRequestMutationFn = Apollo.MutationFunction<
+    WithdrawFlowTemplateRequestMutation,
+    WithdrawFlowTemplateRequestMutationVariables
+>;
+
+/**
+ * __useWithdrawFlowTemplateRequestMutation__
+ *
+ * To run a mutation, you first call `useWithdrawFlowTemplateRequestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useWithdrawFlowTemplateRequestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [withdrawFlowTemplateRequestMutation, { data, loading, error }] = useWithdrawFlowTemplateRequestMutation({
+ *   variables: {
+ *      requestId: // value for 'requestId'
+ *   },
+ * });
+ */
+export function useWithdrawFlowTemplateRequestMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        WithdrawFlowTemplateRequestMutation,
+        WithdrawFlowTemplateRequestMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<WithdrawFlowTemplateRequestMutation, WithdrawFlowTemplateRequestMutationVariables>(
+        WithdrawFlowTemplateRequestDocument,
+        options,
+    );
+}
+export type WithdrawFlowTemplateRequestMutationHookResult = ReturnType<typeof useWithdrawFlowTemplateRequestMutation>;
+export type WithdrawFlowTemplateRequestMutationResult = Apollo.MutationResult<WithdrawFlowTemplateRequestMutation>;
+export type WithdrawFlowTemplateRequestMutationOptions = Apollo.BaseMutationOptions<
+    WithdrawFlowTemplateRequestMutation,
+    WithdrawFlowTemplateRequestMutationVariables
+>;
+export const ApproveFlowTemplateRequestDocument = gql`
+    mutation approveFlowTemplateRequest($requestId: ID!, $revision: Int!, $templateVersion: Int, $note: String) {
+        approveFlowTemplateRequest(
+            requestId: $requestId
+            revision: $revision
+            templateVersion: $templateVersion
+            note: $note
+        ) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+export type ApproveFlowTemplateRequestMutationFn = Apollo.MutationFunction<
+    ApproveFlowTemplateRequestMutation,
+    ApproveFlowTemplateRequestMutationVariables
+>;
+
+/**
+ * __useApproveFlowTemplateRequestMutation__
+ *
+ * To run a mutation, you first call `useApproveFlowTemplateRequestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApproveFlowTemplateRequestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [approveFlowTemplateRequestMutation, { data, loading, error }] = useApproveFlowTemplateRequestMutation({
+ *   variables: {
+ *      requestId: // value for 'requestId'
+ *      revision: // value for 'revision'
+ *      templateVersion: // value for 'templateVersion'
+ *      note: // value for 'note'
+ *   },
+ * });
+ */
+export function useApproveFlowTemplateRequestMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        ApproveFlowTemplateRequestMutation,
+        ApproveFlowTemplateRequestMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<ApproveFlowTemplateRequestMutation, ApproveFlowTemplateRequestMutationVariables>(
+        ApproveFlowTemplateRequestDocument,
+        options,
+    );
+}
+export type ApproveFlowTemplateRequestMutationHookResult = ReturnType<typeof useApproveFlowTemplateRequestMutation>;
+export type ApproveFlowTemplateRequestMutationResult = Apollo.MutationResult<ApproveFlowTemplateRequestMutation>;
+export type ApproveFlowTemplateRequestMutationOptions = Apollo.BaseMutationOptions<
+    ApproveFlowTemplateRequestMutation,
+    ApproveFlowTemplateRequestMutationVariables
+>;
+export const RejectFlowTemplateRequestDocument = gql`
+    mutation rejectFlowTemplateRequest($requestId: ID!, $revision: Int!, $note: String!) {
+        rejectFlowTemplateRequest(requestId: $requestId, revision: $revision, note: $note) {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+export type RejectFlowTemplateRequestMutationFn = Apollo.MutationFunction<
+    RejectFlowTemplateRequestMutation,
+    RejectFlowTemplateRequestMutationVariables
+>;
+
+/**
+ * __useRejectFlowTemplateRequestMutation__
+ *
+ * To run a mutation, you first call `useRejectFlowTemplateRequestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRejectFlowTemplateRequestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [rejectFlowTemplateRequestMutation, { data, loading, error }] = useRejectFlowTemplateRequestMutation({
+ *   variables: {
+ *      requestId: // value for 'requestId'
+ *      revision: // value for 'revision'
+ *      note: // value for 'note'
+ *   },
+ * });
+ */
+export function useRejectFlowTemplateRequestMutation(
+    baseOptions?: Apollo.MutationHookOptions<
+        RejectFlowTemplateRequestMutation,
+        RejectFlowTemplateRequestMutationVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useMutation<RejectFlowTemplateRequestMutation, RejectFlowTemplateRequestMutationVariables>(
+        RejectFlowTemplateRequestDocument,
+        options,
+    );
+}
+export type RejectFlowTemplateRequestMutationHookResult = ReturnType<typeof useRejectFlowTemplateRequestMutation>;
+export type RejectFlowTemplateRequestMutationResult = Apollo.MutationResult<RejectFlowTemplateRequestMutation>;
+export type RejectFlowTemplateRequestMutationOptions = Apollo.BaseMutationOptions<
+    RejectFlowTemplateRequestMutation,
+    RejectFlowTemplateRequestMutationVariables
+>;
 export const CreateFlowDocument = gql`
     mutation createFlow($modelProvider: String!, $input: String!) {
         createFlow(modelProvider: $modelProvider, input: $input) {
@@ -7503,6 +8082,88 @@ export function useFlowTemplateDeletedSubscription(
 }
 export type FlowTemplateDeletedSubscriptionHookResult = ReturnType<typeof useFlowTemplateDeletedSubscription>;
 export type FlowTemplateDeletedSubscriptionResult = Apollo.SubscriptionResult<FlowTemplateDeletedSubscription>;
+export const FlowTemplateRequestCreatedDocument = gql`
+    subscription flowTemplateRequestCreated {
+        flowTemplateRequestCreated {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+
+/**
+ * __useFlowTemplateRequestCreatedSubscription__
+ *
+ * To run a query within a React component, call `useFlowTemplateRequestCreatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useFlowTemplateRequestCreatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFlowTemplateRequestCreatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useFlowTemplateRequestCreatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<
+        FlowTemplateRequestCreatedSubscription,
+        FlowTemplateRequestCreatedSubscriptionVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<
+        FlowTemplateRequestCreatedSubscription,
+        FlowTemplateRequestCreatedSubscriptionVariables
+    >(FlowTemplateRequestCreatedDocument, options);
+}
+export type FlowTemplateRequestCreatedSubscriptionHookResult = ReturnType<
+    typeof useFlowTemplateRequestCreatedSubscription
+>;
+export type FlowTemplateRequestCreatedSubscriptionResult =
+    Apollo.SubscriptionResult<FlowTemplateRequestCreatedSubscription>;
+export const FlowTemplateRequestUpdatedDocument = gql`
+    subscription flowTemplateRequestUpdated {
+        flowTemplateRequestUpdated {
+            ...flowTemplateRequestFragment
+        }
+    }
+    ${FlowTemplateRequestFragmentFragmentDoc}
+`;
+
+/**
+ * __useFlowTemplateRequestUpdatedSubscription__
+ *
+ * To run a query within a React component, call `useFlowTemplateRequestUpdatedSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useFlowTemplateRequestUpdatedSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFlowTemplateRequestUpdatedSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useFlowTemplateRequestUpdatedSubscription(
+    baseOptions?: Apollo.SubscriptionHookOptions<
+        FlowTemplateRequestUpdatedSubscription,
+        FlowTemplateRequestUpdatedSubscriptionVariables
+    >,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useSubscription<
+        FlowTemplateRequestUpdatedSubscription,
+        FlowTemplateRequestUpdatedSubscriptionVariables
+    >(FlowTemplateRequestUpdatedDocument, options);
+}
+export type FlowTemplateRequestUpdatedSubscriptionHookResult = ReturnType<
+    typeof useFlowTemplateRequestUpdatedSubscription
+>;
+export type FlowTemplateRequestUpdatedSubscriptionResult =
+    Apollo.SubscriptionResult<FlowTemplateRequestUpdatedSubscription>;
 export const DomainsDocument = gql`
     query domains {
         domains {

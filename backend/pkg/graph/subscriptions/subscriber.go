@@ -148,6 +148,22 @@ func (s *flowSubscriber) FlowTemplateDeleted(ctx context.Context) (<-chan *model
 	return s.ctrl.flowTemplateDeleted.Subscribe(ctx, s.userID), nil
 }
 
+func (s *flowSubscriber) FlowTemplateRequestCreatedAdmin(ctx context.Context) (<-chan *model.FlowTemplateRequest, error) {
+	return s.ctrl.flowTemplateRequestCreatedAdmin.Subscribe(ctx, s.userID), nil
+}
+
+func (s *flowSubscriber) FlowTemplateRequestCreated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error) {
+	return s.ctrl.flowTemplateRequestCreated.Subscribe(ctx, s.userID), nil
+}
+
+func (s *flowSubscriber) FlowTemplateRequestUpdatedAdmin(ctx context.Context) (<-chan *model.FlowTemplateRequest, error) {
+	return s.ctrl.flowTemplateRequestUpdatedAdmin.Subscribe(ctx, s.userID), nil
+}
+
+func (s *flowSubscriber) FlowTemplateRequestUpdated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error) {
+	return s.ctrl.flowTemplateRequestUpdated.Subscribe(ctx, s.userID), nil
+}
+
 func (s *flowSubscriber) DomainCreatedAdmin(ctx context.Context) (<-chan *model.Domain, error) {
 	return s.ctrl.domainCreatedAdmin.Subscribe(ctx, s.userID), nil
 }

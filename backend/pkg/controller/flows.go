@@ -309,10 +309,7 @@ func (fc *flowController) CreateFlowForDomain(
 		return nil, err
 	}
 
-	template, err := fc.db.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
-		ID:     templateID,
-		UserID: userID,
-	})
+	template, err := fc.db.GetFlowTemplate(ctx, templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
 	}
@@ -386,10 +383,7 @@ func (fc *flowController) CreateAssistantForDomain(
 		return nil, err
 	}
 
-	template, err := fc.db.GetFlowTemplate(ctx, database.GetFlowTemplateParams{
-		ID:     templateID,
-		UserID: userID,
-	})
+	template, err := fc.db.GetFlowTemplate(ctx, templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template %d for domain %d: %w", templateID, domainID, err)
 	}
