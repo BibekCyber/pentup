@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"pentagi/pkg/chat"
 	"pentagi/pkg/config"
 	"pentagi/pkg/controller"
 	"pentagi/pkg/database"
@@ -26,4 +27,5 @@ type Resolver struct {
 	Controller       controller.FlowController
 	DomainController controller.DomainController
 	Subscriptions    subscriptions.SubscriptionsController
+	Chat             *chat.Service
 }

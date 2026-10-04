@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"pentagi/pkg/chat"
 	"pentagi/pkg/config"
 	"pentagi/pkg/controller"
 	"pentagi/pkg/database"
@@ -58,6 +59,14 @@ func NewGraphqlService(
 	subscriptions subscriptions.SubscriptionsController,
 ) *GraphqlService {
 	domainController := controller.NewDomainController(db, cfg, flowController, providers, subscriptions)
+	chatService := chat.NewService(
+		context.Background(),
+		db,
+		providers,
+		subscriptions.NewChatPublisher(),
+		chat.LimitsFromConfig(cfg),
+		logrus.StandardLogger().WithField("component", "pentagi-chat"),
+	)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 		DB:               db,
@@ -69,6 +78,7 @@ func NewGraphqlService(
 		Controller:       flowController,
 		DomainController: domainController,
 		Subscriptions:    subscriptions,
+		Chat:             chatService,
 	}}))
 
 	component := "pentagi-gql"

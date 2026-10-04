@@ -20,6 +20,8 @@ var defSendTimeout = 5 * time.Second
 type SubscriptionsController interface {
 	NewFlowSubscriber(userID, flowID int64) FlowSubscriber
 	NewFlowPublisher(userID, flowID int64) FlowPublisher
+	NewChatSubscriber(userID int64) ChatSubscriber
+	NewChatPublisher() ChatPublisher
 }
 
 type FlowContext interface {
@@ -151,6 +153,14 @@ type controller struct {
 	domainUpdated                   Channel[*model.Domain]
 	domainDeletedAdmin              Channel[*model.Domain]
 	domainDeleted                   Channel[*model.Domain]
+
+	// keyed by user id
+	chatSessionCreated Channel[*model.ChatSession]
+	chatSessionUpdated Channel[*model.ChatSession]
+	chatSessionDeleted Channel[*model.ChatSession]
+	// keyed by session id
+	chatMessageAdded   Channel[*model.ChatMessage]
+	chatMessageUpdated Channel[*model.ChatMessage]
 }
 
 func NewSubscriptionsController() SubscriptionsController {
@@ -196,6 +206,12 @@ func NewSubscriptionsController() SubscriptionsController {
 		domainUpdated:                   NewChannel[*model.Domain](),
 		domainDeletedAdmin:              NewChannel[*model.Domain](),
 		domainDeleted:                   NewChannel[*model.Domain](),
+
+		chatSessionCreated: NewChannel[*model.ChatSession](),
+		chatSessionUpdated: NewChannel[*model.ChatSession](),
+		chatSessionDeleted: NewChannel[*model.ChatSession](),
+		chatMessageAdded:   NewChannel[*model.ChatMessage](),
+		chatMessageUpdated: NewChannel[*model.ChatMessage](),
 	}
 }
 

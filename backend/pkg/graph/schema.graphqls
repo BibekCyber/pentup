@@ -1006,6 +1006,63 @@ input AgentsConfigInput {
 
 # ==================== GraphQL Operations ====================
 
+# ==================== Pentest Chat ====================
+
+enum ChatMessageRole {
+  user
+  assistant
+}
+
+enum ChatMessageStatus {
+  streaming
+  done
+  # The question was outside the security scope.
+  refused
+  error
+  stopped
+}
+
+# A private conversation with the user's provider. No flow, container or tools.
+type ChatSession {
+  id: ID!
+  title: String!
+  # Provider of the latest message
+  providerName: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ChatMessage {
+  id: ID!
+  sessionId: ID!
+  role: ChatMessageRole!
+  status: ChatMessageStatus!
+  # While streaming, the whole reply so far.
+  content: String!
+  providerName: String!
+  model: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# Per-user chat limits. A limit of 0 means unlimited; resetAt is when the
+# oldest counted usage leaves its window.
+type ChatQuota {
+  messagesUsed: Int!
+  messagesLimit: Int!
+  messagesResetAt: Time
+  tokensUsed: Int!
+  tokensLimit: Int!
+  tokensResetAt: Time
+  maxInputChars: Int!
+}
+
+type ChatSendResult {
+  session: ChatSession!
+  userMessage: ChatMessage!
+  assistantMessage: ChatMessage!
+}
+
 type Query {
   # Provider management
   providers: [Provider!]!
@@ -1072,6 +1129,12 @@ type Query {
   domains: [Domain!]!
   domain(id: ID!): Domain
   quotaUsage: QuotaUsage!
+
+  # Pentest chat (the caller's own sessions only)
+  chatSessions: [ChatSession!]!
+  chatSession(sessionId: ID!): ChatSession
+  chatMessages(sessionId: ID!): [ChatMessage!]!
+  chatQuota: ChatQuota!
 }
 
 type Mutation {
@@ -1155,6 +1218,13 @@ type Mutation {
   # Scan engagement (new wizard): one scan -> one flow per selected template,
   # with engagement scope/box, per-template run mode, and optional credentials.
   createScan(input: CreateScanInput!): Domain!
+
+  # Pentest chat. sendChatMessage returns at once; the reply streams through
+  # chatMessageUpdated. Omit sessionId to start a new session.
+  sendChatMessage(sessionId: ID, providerName: String!, content: String!): ChatSendResult!
+  stopChatMessage(messageId: ID!): ChatMessage!
+  renameChatSession(sessionId: ID!, title: String!): ChatSession!
+  deleteChatSession(sessionId: ID!): ResultType!
 }
 
 type Subscription {
@@ -1207,4 +1277,11 @@ type Subscription {
   domainCreated: Domain!
   domainUpdated: Domain!
   domainDeleted: Domain!
+
+  # Chat events (the caller's own sessions only)
+  chatSessionCreated: ChatSession!
+  chatSessionUpdated: ChatSession!
+  chatSessionDeleted: ChatSession!
+  chatMessageAdded(sessionId: ID!): ChatMessage!
+  chatMessageUpdated(sessionId: ID!): ChatMessage!
 }
