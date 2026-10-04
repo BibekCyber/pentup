@@ -162,15 +162,15 @@ func (q *Queries) CreateChatUsage(ctx context.Context, arg CreateChatUsageParams
 	return i, err
 }
 
-const deleteUnbilledChatUsageByMessage = `-- name: DeleteUnbilledChatUsageByMessage :exec
+const deleteUnbilledChatUsage = `-- name: DeleteUnbilledChatUsage :exec
 DELETE FROM chat_usage
-WHERE message_id = $1 AND kind = 'reply' AND usage_in = 0 AND usage_out = 0
+WHERE id = $1 AND usage_in = 0 AND usage_out = 0
 `
 
 // A reply that failed before the provider billed anything gives the user
 // their message back.
-func (q *Queries) DeleteUnbilledChatUsageByMessage(ctx context.Context, messageID sql.NullInt64) error {
-	_, err := q.db.ExecContext(ctx, deleteUnbilledChatUsageByMessage, messageID)
+func (q *Queries) DeleteUnbilledChatUsage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUnbilledChatUsage, id)
 	return err
 }
 
@@ -568,23 +568,25 @@ func (q *Queries) UpdateChatSessionSummary(ctx context.Context, arg UpdateChatSe
 	return i, err
 }
 
-const updateChatUsageByMessage = `-- name: UpdateChatUsageByMessage :exec
+const updateChatUsage = `-- name: UpdateChatUsage :exec
 UPDATE chat_usage
 SET usage_in = $2, usage_out = $3, cost_in = $4, cost_out = $5
-WHERE message_id = $1 AND kind = 'reply'
+WHERE id = $1
 `
 
-type UpdateChatUsageByMessageParams struct {
-	MessageID sql.NullInt64 `json:"message_id"`
-	UsageIn   int64         `json:"usage_in"`
-	UsageOut  int64         `json:"usage_out"`
-	CostIn    float64       `json:"cost_in"`
-	CostOut   float64       `json:"cost_out"`
+type UpdateChatUsageParams struct {
+	ID       int64   `json:"id"`
+	UsageIn  int64   `json:"usage_in"`
+	UsageOut int64   `json:"usage_out"`
+	CostIn   float64 `json:"cost_in"`
+	CostOut  float64 `json:"cost_out"`
 }
 
-func (q *Queries) UpdateChatUsageByMessage(ctx context.Context, arg UpdateChatUsageByMessageParams) error {
-	_, err := q.db.ExecContext(ctx, updateChatUsageByMessage,
-		arg.MessageID,
+// Addressed by the ledger row's own id, not message_id: deleting the chat
+// mid-reply nulls message_id, and the reply's tokens must still be counted.
+func (q *Queries) UpdateChatUsage(ctx context.Context, arg UpdateChatUsageParams) error {
+	_, err := q.db.ExecContext(ctx, updateChatUsage,
+		arg.ID,
 		arg.UsageIn,
 		arg.UsageOut,
 		arg.CostIn,

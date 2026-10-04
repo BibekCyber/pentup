@@ -73,7 +73,7 @@ type Querier interface {
 	DeleteSubtasks(ctx context.Context, ids []int64) error
 	// A reply that failed before the provider billed anything gives the user
 	// their message back.
-	DeleteUnbilledChatUsageByMessage(ctx context.Context, messageID sql.NullInt64) error
+	DeleteUnbilledChatUsage(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteUserAPIToken(ctx context.Context, arg DeleteUserAPITokenParams) (ApiToken, error)
 	DeleteUserAPITokenByTokenID(ctx context.Context, arg DeleteUserAPITokenByTokenIDParams) (ApiToken, error)
@@ -304,7 +304,9 @@ type Querier interface {
 	UpdateAssistantToolCallIDTemplate(ctx context.Context, arg UpdateAssistantToolCallIDTemplateParams) (Assistant, error)
 	UpdateAssistantUseAgents(ctx context.Context, arg UpdateAssistantUseAgentsParams) (Assistant, error)
 	UpdateChatSessionSummary(ctx context.Context, arg UpdateChatSessionSummaryParams) (ChatSession, error)
-	UpdateChatUsageByMessage(ctx context.Context, arg UpdateChatUsageByMessageParams) error
+	// Addressed by the ledger row's own id, not message_id: deleting the chat
+	// mid-reply nulls message_id, and the reply's tokens must still be counted.
+	UpdateChatUsage(ctx context.Context, arg UpdateChatUsageParams) error
 	UpdateContainerImage(ctx context.Context, arg UpdateContainerImageParams) (Container, error)
 	UpdateContainerStatus(ctx context.Context, arg UpdateContainerStatusParams) (Container, error)
 	UpdateContainerStatusLocalID(ctx context.Context, arg UpdateContainerStatusLocalIDParams) (Container, error)

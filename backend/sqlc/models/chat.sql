@@ -126,16 +126,18 @@ INSERT INTO chat_usage (
 )
 RETURNING *;
 
--- name: UpdateChatUsageByMessage :exec
+-- Addressed by the ledger row's own id, not message_id: deleting the chat
+-- mid-reply nulls message_id, and the reply's tokens must still be counted.
+-- name: UpdateChatUsage :exec
 UPDATE chat_usage
 SET usage_in = $2, usage_out = $3, cost_in = $4, cost_out = $5
-WHERE message_id = $1 AND kind = 'reply';
+WHERE id = $1;
 
 -- A reply that failed before the provider billed anything gives the user
 -- their message back.
--- name: DeleteUnbilledChatUsageByMessage :exec
+-- name: DeleteUnbilledChatUsage :exec
 DELETE FROM chat_usage
-WHERE message_id = $1 AND kind = 'reply' AND usage_in = 0 AND usage_out = 0;
+WHERE id = $1 AND usage_in = 0 AND usage_out = 0;
 
 -- name: GetUserChatReplyStats :one
 SELECT
