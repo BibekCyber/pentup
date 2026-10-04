@@ -200,6 +200,9 @@ const Login = () => {
                             <span className="text-primary">AI</span> Pentest
                         </div>
                         <div className="mt-1 overline">Autonomous penetration testing</div>
+                        <div className="text-muted-foreground mt-1 text-[11px]">
+                            by <span className="text-foreground/90 font-semibold">CyberFortify</span>
+                        </div>
                     </div>
                 </div>
 

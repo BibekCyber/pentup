@@ -169,8 +169,8 @@ export const MainSidebar = () => {
                             <span className="truncate text-[15px] font-bold tracking-[0.02em]">
                                 <span className="text-primary">AI</span> Pentest
                             </span>
-                            <span className="text-muted-foreground truncate font-mono text-[9px] tracking-[0.18em] uppercase">
-                                operator console
+                            <span className="text-muted-foreground truncate font-mono text-[10px] tracking-[0.08em]">
+                                by <span className="text-foreground/90 font-semibold">CyberFortify</span>
                             </span>
                         </div>
                     </SidebarMenuItem>

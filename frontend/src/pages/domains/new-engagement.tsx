@@ -44,6 +44,11 @@ import {
     useCreateScanMutation,
 } from '@/graphql/types';
 import { useScanStage } from '@/hooks/use-scan-stage';
+import {
+    type CredentialBranch,
+    getCredentialErrors,
+    stripBearer,
+} from '@/lib/credential-validation';
 import { getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
 import { useTemplates } from '@/providers/templates-provider';
@@ -114,11 +119,27 @@ const ChoiceCard = ({
     </button>
 );
 
-const Field = ({ children, hint, label }: { children: React.ReactNode; hint?: string; label: string }) => (
+const Field = ({
+    children,
+    error,
+    hint,
+    label,
+}: {
+    children: React.ReactNode;
+    error?: string;
+    hint?: string;
+    label: string;
+}) => (
     <div>
         <label className="field-label">{label}</label>
         {children}
-        {hint ? <p className="field-hint">{hint}</p> : null}
+        {error ? (
+            <p className="field-error" role="alert">
+                {error}
+            </p>
+        ) : hint ? (
+            <p className="field-hint">{hint}</p>
+        ) : null}
     </div>
 );
 
@@ -175,6 +196,11 @@ const NewEngagement = () => {
 
     const setCred = (key: keyof typeof creds, value: string) => setCreds((prev) => ({ ...prev, [key]: value }));
 
+    // Track which credential fields the user has left, so format errors only
+    // appear after a field has been touched rather than while first typing.
+    const [touched, setTouched] = useState<Partial<Record<keyof typeof creds, boolean>>>({});
+    const touch = (key: keyof typeof creds) => setTouched((prev) => ({ ...prev, [key]: true }));
+
     // The concrete target type that drives template filtering + the scan record.
     // Cloud maps to the single TargetType.Cloud regardless of which provider
     // (AWS/Azure/GCP) the user picked; the provider only selects the credential kind.
@@ -185,9 +211,39 @@ const NewEngagement = () => {
     const needsCredentials =
         (targetClass === 'cloud' && scope === ScanScope.Internal) || (targetClass === 'web' && box === ScanBox.Grey);
 
+    // Which credential form is active, and the per-field format errors for it.
+    const credBranch: CredentialBranch | null =
+        targetClass === 'cloud' && cloudProvider === TargetType.Aws
+            ? 'aws'
+            : targetClass === 'cloud' && cloudProvider === TargetType.Gcp
+              ? 'gcp'
+              : targetClass === 'cloud' && cloudProvider === TargetType.Azure
+                ? 'azure'
+                : targetClass === 'web' && webCredType === 'token'
+                  ? 'web-token'
+                  : targetClass === 'web' && webCredType === 'form'
+                    ? 'web-form'
+                    : null;
+
+    const credErrors = useMemo(
+        () => (credBranch ? getCredentialErrors(credBranch, creds) : {}),
+        [credBranch, creds],
+    );
+
+    // Credentials are valid once the active branch has no missing/malformed
+    // fields; when no credentials are required the step is trivially satisfied.
+    const credValid = !needsCredentials || (credBranch !== null && Object.keys(credErrors).length === 0);
+
+    // Error shown for a field only after it has been touched (blurred).
+    const errFor = (key: keyof typeof creds): string | undefined => (touched[key] ? credErrors[key] : undefined);
+
     const availableTemplates = useMemo(() => {
         if (targetClass === 'cloud' && cloudProvider) {
-            return templates.filter((t) => t.targetTypes.includes(TargetType.Cloud));
+            // Show templates tagged for the chosen provider (AWS/Azure/GCP)
+            // plus generic Cloud templates that apply to any provider.
+            return templates.filter(
+                (t) => t.targetTypes.includes(cloudProvider) || t.targetTypes.includes(TargetType.Cloud),
+            );
         }
 
         if (targetClass === 'web') {
@@ -239,29 +295,10 @@ const NewEngagement = () => {
     const canAdvance = useMemo(() => {
         switch (currentKey) {
             case 'credentials':
-                // Require the active branch's credential fields to be filled so we
-                // never store/deliver an all-empty credential.
-                if (targetClass === 'cloud' && cloudProvider === TargetType.Aws) {
-                    return !!creds.accessKeyId.trim() && !!creds.secretAccessKey.trim();
-                }
-
-                if (targetClass === 'cloud' && cloudProvider === TargetType.Gcp) {
-                    return !!creds.serviceAccountJson.trim();
-                }
-
-                if (targetClass === 'cloud' && cloudProvider === TargetType.Azure) {
-                    return !!creds.tenant.trim() && !!creds.appId.trim() && !!creds.clientSecret.trim();
-                }
-
-                if (targetClass === 'web' && webCredType === 'token') {
-                    return !!creds.token.trim() && !!creds.protectedUrl.trim();
-                }
-
-                if (targetClass === 'web' && webCredType === 'form') {
-                    return !!creds.loginUrl.trim() && !!creds.email.trim() && !!creds.password.trim();
-                }
-
-                return false;
+                // Require the active branch's credential fields to be present AND
+                // correctly formatted, so we never store/deliver a malformed
+                // credential. credValid is false while no branch is chosen.
+                return credValid && credBranch !== null;
             case 'scope':
                 if (targetClass === 'cloud') {
                     return !!cloudProvider && !!scope;
@@ -275,7 +312,7 @@ const NewEngagement = () => {
             default:
                 return true;
         }
-    }, [currentKey, name, targetClass, cloudProvider, scope, box, selectedIds.length, webCredType, creds]);
+    }, [currentKey, name, targetClass, cloudProvider, scope, box, selectedIds.length, credValid, credBranch]);
 
     const buildCredential = (): CreateScanInput['credential'] => {
         if (!needsCredentials) {
@@ -316,7 +353,7 @@ const NewEngagement = () => {
         if (targetClass === 'web' && webCredType === 'token') {
             return {
                 kind: ScanCredentialKind.WebToken,
-                value: JSON.stringify({ protected_url: creds.protectedUrl, token: creds.token }),
+                value: JSON.stringify({ protected_url: creds.protectedUrl.trim(), token: stripBearer(creds.token) }),
             };
         }
 
@@ -374,33 +411,9 @@ const NewEngagement = () => {
 
     const scopeValid = targetClass === 'cloud' ? !!cloudProvider && !!scope : targetClass === 'web' ? !!box : false;
 
-    const credComplete = (() => {
-        if (!needsCredentials) {
-            return true;
-        }
-
-        if (targetClass === 'cloud' && cloudProvider === TargetType.Aws) {
-            return !!creds.accessKeyId.trim() && !!creds.secretAccessKey.trim();
-        }
-
-        if (targetClass === 'cloud' && cloudProvider === TargetType.Gcp) {
-            return !!creds.serviceAccountJson.trim();
-        }
-
-        if (targetClass === 'cloud' && cloudProvider === TargetType.Azure) {
-            return !!creds.tenant.trim() && !!creds.appId.trim() && !!creds.clientSecret.trim();
-        }
-
-        if (targetClass === 'web' && webCredType === 'token') {
-            return !!creds.token.trim() && !!creds.protectedUrl.trim();
-        }
-
-        if (targetClass === 'web' && webCredType === 'form') {
-            return !!creds.loginUrl.trim() && !!creds.email.trim() && !!creds.password.trim();
-        }
-
-        return false;
-    })();
+    // Credentials are complete when the active branch validates (or none are
+    // required). Uses the same format checks as the per-field inline errors.
+    const credComplete = credValid && (!needsCredentials || credBranch !== null);
 
     const fullValid = !!name.trim() && !!targetClass && scopeValid && selectedIds.length > 0 && credComplete;
 
@@ -510,7 +523,7 @@ const NewEngagement = () => {
                                 {currentKey === 'target' ? (
                                     <div className="flex flex-col gap-5">
                                         <StepHead
-                                            desc="Name the target and pick its class. This determines the playbooks you can choose from."
+                                            desc="Enter the target and choose its type. This filters the test templates down to the ones that apply."
                                             over={`Step ${currentNum} · Target`}
                                             title="What are we assessing?"
                                         />
@@ -526,7 +539,7 @@ const NewEngagement = () => {
                                             />
                                         </Field>
                                         <div className="flex flex-col gap-2">
-                                            <label className="field-label">Target class</label>
+                                            <label className="field-label">What type of target is it?</label>
                                             <div className="flex flex-col gap-3 sm:flex-row">
                                                 <ChoiceCard
                                                     description="GCP, AWS, or Azure infrastructure."
@@ -640,7 +653,7 @@ const NewEngagement = () => {
                                         <StepHead
                                             desc="Each selected template becomes its own isolated flow against the target. Tune the run mode per template."
                                             over={`Step ${currentNum} · Templates`}
-                                            title="Choose playbooks"
+                                            title="Choose templates"
                                         />
                                         <div className="flex max-h-[30rem] flex-col gap-3 overflow-y-auto">
                                             {availableTemplates.length === 0 ? (
@@ -757,16 +770,20 @@ const NewEngagement = () => {
                                         />
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Aws ? (
                                             <>
-                                                <Field label="Access key ID">
+                                                <Field error={errFor('accessKeyId')} label="Access key ID">
                                                     <Input
+                                                        aria-invalid={!!errFor('accessKeyId')}
+                                                        onBlur={() => touch('accessKeyId')}
                                                         onChange={(e) => setCred('accessKeyId', e.target.value)}
                                                         placeholder="AKIA…"
                                                         value={creds.accessKeyId}
                                                     />
                                                 </Field>
-                                                <Field label="Secret access key">
+                                                <Field error={errFor('secretAccessKey')} label="Secret access key">
                                                     <div className="relative">
                                                         <Input
+                                                            aria-invalid={!!errFor('secretAccessKey')}
+                                                            onBlur={() => touch('secretAccessKey')}
                                                             onChange={(e) => setCred('secretAccessKey', e.target.value)}
                                                             type={showSecret ? 'text' : 'password'}
                                                             value={creds.secretAccessKey}
@@ -784,8 +801,14 @@ const NewEngagement = () => {
                                                         </button>
                                                     </div>
                                                 </Field>
-                                                <Field label="Default region">
+                                                <Field
+                                                    error={errFor('region')}
+                                                    hint="Optional — defaults to the credential's region."
+                                                    label="Default region"
+                                                >
                                                     <Input
+                                                        aria-invalid={!!errFor('region')}
+                                                        onBlur={() => touch('region')}
                                                         onChange={(e) => setCred('region', e.target.value)}
                                                         placeholder="us-east-1"
                                                         value={creds.region}
@@ -796,11 +819,14 @@ const NewEngagement = () => {
 
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Gcp ? (
                                             <Field
+                                                error={errFor('serviceAccountJson')}
                                                 hint="Paste the JSON key for the service account AI Pentest should act as."
                                                 label="Service-account key (JSON)"
                                             >
                                                 <Textarea
+                                                    aria-invalid={!!errFor('serviceAccountJson')}
                                                     className="min-h-32 font-mono text-xs"
+                                                    onBlur={() => touch('serviceAccountJson')}
                                                     onChange={(e) => setCred('serviceAccountJson', e.target.value)}
                                                     placeholder={
                                                         '{\n  "type": "service_account",\n  "project_id": "…"\n}'
@@ -812,20 +838,28 @@ const NewEngagement = () => {
 
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Azure ? (
                                             <>
-                                                <Field label="Tenant ID">
+                                                <Field error={errFor('tenant')} label="Tenant ID">
                                                     <Input
+                                                        aria-invalid={!!errFor('tenant')}
+                                                        onBlur={() => touch('tenant')}
                                                         onChange={(e) => setCred('tenant', e.target.value)}
+                                                        placeholder="00000000-0000-0000-0000-000000000000"
                                                         value={creds.tenant}
                                                     />
                                                 </Field>
-                                                <Field label="Application (client) ID">
+                                                <Field error={errFor('appId')} label="Application (client) ID">
                                                     <Input
+                                                        aria-invalid={!!errFor('appId')}
+                                                        onBlur={() => touch('appId')}
                                                         onChange={(e) => setCred('appId', e.target.value)}
+                                                        placeholder="00000000-0000-0000-0000-000000000000"
                                                         value={creds.appId}
                                                     />
                                                 </Field>
-                                                <Field label="Client secret">
+                                                <Field error={errFor('clientSecret')} label="Client secret">
                                                     <Input
+                                                        aria-invalid={!!errFor('clientSecret')}
+                                                        onBlur={() => touch('clientSecret')}
                                                         onChange={(e) => setCred('clientSecret', e.target.value)}
                                                         type="password"
                                                         value={creds.clientSecret}
@@ -858,8 +892,10 @@ const NewEngagement = () => {
 
                                         {targetClass === 'web' && webCredType === 'token' ? (
                                             <>
-                                                <Field label="Token">
+                                                <Field error={errFor('token')} label="Token">
                                                     <Input
+                                                        aria-invalid={!!errFor('token')}
+                                                        onBlur={() => touch('token')}
                                                         onChange={(e) => setCred('token', e.target.value)}
                                                         placeholder="Bearer token or API key"
                                                         type="password"
@@ -867,10 +903,13 @@ const NewEngagement = () => {
                                                     />
                                                 </Field>
                                                 <Field
+                                                    error={errFor('protectedUrl')}
                                                     hint="A protected endpoint to test the token against (a public URL proves nothing)."
                                                     label="Protected URL"
                                                 >
                                                     <Input
+                                                        aria-invalid={!!errFor('protectedUrl')}
+                                                        onBlur={() => touch('protectedUrl')}
                                                         onChange={(e) => setCred('protectedUrl', e.target.value)}
                                                         placeholder="https://app.acme.com/api/me"
                                                         value={creds.protectedUrl}
@@ -882,24 +921,31 @@ const NewEngagement = () => {
                                         {targetClass === 'web' && webCredType === 'form' ? (
                                             <>
                                                 <Field
+                                                    error={errFor('loginUrl')}
                                                     hint="The form's POST endpoint — a bare target URL is not enough for form login."
                                                     label="Login URL"
                                                 >
                                                     <Input
+                                                        aria-invalid={!!errFor('loginUrl')}
+                                                        onBlur={() => touch('loginUrl')}
                                                         onChange={(e) => setCred('loginUrl', e.target.value)}
                                                         placeholder="https://app.acme.com/login"
                                                         value={creds.loginUrl}
                                                     />
                                                 </Field>
-                                                <Field label="Email / username">
+                                                <Field error={errFor('email')} label="Email / username">
                                                     <Input
+                                                        aria-invalid={!!errFor('email')}
+                                                        onBlur={() => touch('email')}
                                                         onChange={(e) => setCred('email', e.target.value)}
                                                         placeholder="tester@acme.com"
                                                         value={creds.email}
                                                     />
                                                 </Field>
-                                                <Field label="Password">
+                                                <Field error={errFor('password')} label="Password">
                                                     <Input
+                                                        aria-invalid={!!errFor('password')}
+                                                        onBlur={() => touch('password')}
                                                         onChange={(e) => setCred('password', e.target.value)}
                                                         type="password"
                                                         value={creds.password}
