@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 import CommandBar from '@/components/layouts/command-bar';
+import PageTabs from '@/components/layouts/page-tabs';
 import { usePermission } from '@/hooks/use-permission';
-import { cn } from '@/lib/utils';
 
 // Types
 export interface MenuItem {
@@ -68,22 +68,10 @@ const SettingsTabs = () => {
     );
 
     return (
-        <div className="border-border text-muted-foreground mb-6 flex flex-wrap items-center gap-1 border-b">
-            {visibleMenuItems.map((item) => (
-                <NavLink
-                    className={({ isActive }) =>
-                        cn(
-                            'relative -mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-[13px] font-medium whitespace-nowrap transition-colors',
-                            isActive ? 'border-primary text-foreground' : 'hover:text-foreground border-transparent',
-                        )
-                    }
-                    key={item.id}
-                    to={item.path}
-                >
-                    {item.label ?? item.title}
-                </NavLink>
-            ))}
-        </div>
+        <PageTabs
+            className="mb-6"
+            tabs={visibleMenuItems.map((item) => ({ id: item.id, label: item.label ?? item.title, path: item.path }))}
+        />
     );
 };
 

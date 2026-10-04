@@ -60,6 +60,10 @@ type FlowSubscriber interface {
 	FlowTemplateCreated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateUpdated(ctx context.Context) (<-chan *model.FlowTemplate, error)
 	FlowTemplateDeleted(ctx context.Context) (<-chan *model.FlowTemplate, error)
+	FlowTemplateRequestCreatedAdmin(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
+	FlowTemplateRequestCreated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
+	FlowTemplateRequestUpdatedAdmin(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
+	FlowTemplateRequestUpdated(ctx context.Context) (<-chan *model.FlowTemplateRequest, error)
 	DomainCreatedAdmin(ctx context.Context) (<-chan *model.Domain, error)
 	DomainCreated(ctx context.Context) (<-chan *model.Domain, error)
 	DomainUpdatedAdmin(ctx context.Context) (<-chan *model.Domain, error)
@@ -97,6 +101,8 @@ type FlowPublisher interface {
 	FlowTemplateCreated(ctx context.Context, template database.FlowTemplate)
 	FlowTemplateUpdated(ctx context.Context, template database.FlowTemplate)
 	FlowTemplateDeleted(ctx context.Context, template database.FlowTemplate)
+	FlowTemplateRequestCreated(ctx context.Context, request database.FlowTemplateRequestsView)
+	FlowTemplateRequestUpdated(ctx context.Context, request database.FlowTemplateRequestsView)
 	DomainCreated(ctx context.Context, domain database.Domain, flows []database.Flow)
 	DomainUpdated(ctx context.Context, domain database.Domain, flows []database.Flow)
 	DomainDeleted(ctx context.Context, domain database.Domain, flows []database.Flow)
@@ -134,12 +140,17 @@ type controller struct {
 	flowTemplateCreated Channel[*model.FlowTemplate]
 	flowTemplateUpdated Channel[*model.FlowTemplate]
 	flowTemplateDeleted Channel[*model.FlowTemplate]
-	domainCreatedAdmin  Channel[*model.Domain]
-	domainCreated       Channel[*model.Domain]
-	domainUpdatedAdmin  Channel[*model.Domain]
-	domainUpdated       Channel[*model.Domain]
-	domainDeletedAdmin  Channel[*model.Domain]
-	domainDeleted       Channel[*model.Domain]
+
+	flowTemplateRequestCreatedAdmin Channel[*model.FlowTemplateRequest]
+	flowTemplateRequestCreated      Channel[*model.FlowTemplateRequest]
+	flowTemplateRequestUpdatedAdmin Channel[*model.FlowTemplateRequest]
+	flowTemplateRequestUpdated      Channel[*model.FlowTemplateRequest]
+	domainCreatedAdmin              Channel[*model.Domain]
+	domainCreated                   Channel[*model.Domain]
+	domainUpdatedAdmin              Channel[*model.Domain]
+	domainUpdated                   Channel[*model.Domain]
+	domainDeletedAdmin              Channel[*model.Domain]
+	domainDeleted                   Channel[*model.Domain]
 }
 
 func NewSubscriptionsController() SubscriptionsController {
@@ -174,12 +185,17 @@ func NewSubscriptionsController() SubscriptionsController {
 		flowTemplateCreated: NewChannel[*model.FlowTemplate](),
 		flowTemplateUpdated: NewChannel[*model.FlowTemplate](),
 		flowTemplateDeleted: NewChannel[*model.FlowTemplate](),
-		domainCreatedAdmin:  NewChannel[*model.Domain](),
-		domainCreated:       NewChannel[*model.Domain](),
-		domainUpdatedAdmin:  NewChannel[*model.Domain](),
-		domainUpdated:       NewChannel[*model.Domain](),
-		domainDeletedAdmin:  NewChannel[*model.Domain](),
-		domainDeleted:       NewChannel[*model.Domain](),
+
+		flowTemplateRequestCreatedAdmin: NewChannel[*model.FlowTemplateRequest](),
+		flowTemplateRequestCreated:      NewChannel[*model.FlowTemplateRequest](),
+		flowTemplateRequestUpdatedAdmin: NewChannel[*model.FlowTemplateRequest](),
+		flowTemplateRequestUpdated:      NewChannel[*model.FlowTemplateRequest](),
+		domainCreatedAdmin:              NewChannel[*model.Domain](),
+		domainCreated:                   NewChannel[*model.Domain](),
+		domainUpdatedAdmin:              NewChannel[*model.Domain](),
+		domainUpdated:                   NewChannel[*model.Domain](),
+		domainDeletedAdmin:              NewChannel[*model.Domain](),
+		domainDeleted:                   NewChannel[*model.Domain](),
 	}
 }
 

@@ -7,9 +7,73 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/lib/pq"
 )
+
+const archiveFlowTemplate = `-- name: ArchiveFlowTemplate :one
+WITH archived AS (
+  UPDATE flow_templates
+  SET archived_at = CURRENT_TIMESTAMP
+  WHERE flow_templates.id = $1 AND archived_at IS NULL
+  RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at
+), closed AS (
+  UPDATE flow_template_requests
+  SET
+    status = 'closed',
+    review_note = 'The template was deleted by an administrator.',
+    reviewed_by = $2::BIGINT,
+    reviewed_at = CURRENT_TIMESTAMP
+  WHERE template_id IN (SELECT archived.id FROM archived) AND status = 'pending'
+  RETURNING flow_template_requests.id
+)
+SELECT
+  archived.id, archived.user_id, archived.title, archived.text, archived.created_at, archived.updated_at,
+  archived.target_types, archived.system_owned, archived.version, archived.archived_at,
+  COALESCE((SELECT closed.id FROM closed LIMIT 1), 0)::BIGINT AS closed_request_id
+FROM archived
+`
+
+type ArchiveFlowTemplateParams struct {
+	ID         int64 `json:"id"`
+	ReviewerID int64 `json:"reviewer_id"`
+}
+
+type ArchiveFlowTemplateRow struct {
+	ID              int64         `json:"id"`
+	UserID          sql.NullInt64 `json:"user_id"`
+	Title           string        `json:"title"`
+	Text            string        `json:"text"`
+	CreatedAt       sql.NullTime  `json:"created_at"`
+	UpdatedAt       sql.NullTime  `json:"updated_at"`
+	TargetTypes     []TargetType  `json:"target_types"`
+	SystemOwned     bool          `json:"system_owned"`
+	Version         int32         `json:"version"`
+	ArchivedAt      sql.NullTime  `json:"archived_at"`
+	ClosedRequestID int64         `json:"closed_request_id"`
+}
+
+// Archiving also closes the template's open edit request in the same
+// statement, so no pending edit can outlive (or be approved onto) it.
+func (q *Queries) ArchiveFlowTemplate(ctx context.Context, arg ArchiveFlowTemplateParams) (ArchiveFlowTemplateRow, error) {
+	row := q.db.QueryRowContext(ctx, archiveFlowTemplate, arg.ID, arg.ReviewerID)
+	var i ArchiveFlowTemplateRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Text,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		pq.Array(&i.TargetTypes),
+		&i.SystemOwned,
+		&i.Version,
+		&i.ArchivedAt,
+		&i.ClosedRequestID,
+	)
+	return i, err
+}
 
 const createFlowTemplate = `-- name: CreateFlowTemplate :one
 INSERT INTO flow_templates (
@@ -18,12 +82,12 @@ INSERT INTO flow_templates (
   text,
   target_types
 ) VALUES (
-  $1,
+  $1::BIGINT,
   $2,
   $3,
   $4
 )
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at
 `
 
 type CreateFlowTemplateParams struct {
@@ -50,39 +114,29 @@ func (q *Queries) CreateFlowTemplate(ctx context.Context, arg CreateFlowTemplate
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
 		&i.SystemOwned,
+		&i.Version,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
-const deleteFlowTemplate = `-- name: DeleteFlowTemplate :exec
-DELETE FROM flow_templates
-WHERE id = $1 AND user_id = $2
-`
-
-type DeleteFlowTemplateParams struct {
-	ID     int64 `json:"id"`
-	UserID int64 `json:"user_id"`
-}
-
-func (q *Queries) DeleteFlowTemplate(ctx context.Context, arg DeleteFlowTemplateParams) error {
-	_, err := q.db.ExecContext(ctx, deleteFlowTemplate, arg.ID, arg.UserID)
-	return err
-}
-
 const getDefaultFlowTemplatesByTargetType = `-- name: GetDefaultFlowTemplatesByTargetType :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
-WHERE (user_id = $1 OR system_owned = true)
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at FROM flow_templates
+WHERE archived_at IS NULL
+  AND (user_id = $1::BIGINT OR system_owned = true)
   AND $2::TARGET_TYPE = ANY(target_types)
 ORDER BY system_owned DESC, created_at DESC
 `
 
 type GetDefaultFlowTemplatesByTargetTypeParams struct {
-	UserID  int64      `json:"user_id"`
-	Column2 TargetType `json:"column_2"`
+	UserID     int64      `json:"user_id"`
+	TargetType TargetType `json:"target_type"`
 }
 
+// Auto-detect only spawns the platform templates plus the caller's own, so a
+// template another user published never runs on someone's scan unselected.
 func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
-	rows, err := q.db.QueryContext(ctx, getDefaultFlowTemplatesByTargetType, arg.UserID, arg.Column2)
+	rows, err := q.db.QueryContext(ctx, getDefaultFlowTemplatesByTargetType, arg.UserID, arg.TargetType)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +153,8 @@ func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg G
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
 			&i.SystemOwned,
+			&i.Version,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -114,17 +170,16 @@ func (q *Queries) GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg G
 }
 
 const getFlowTemplate = `-- name: GetFlowTemplate :one
-SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
-WHERE id = $1 AND (user_id = $2 OR system_owned = true) LIMIT 1
+
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at FROM flow_templates
+WHERE id = $1 AND archived_at IS NULL LIMIT 1
 `
 
-type GetFlowTemplateParams struct {
-	ID     int64 `json:"id"`
-	UserID int64 `json:"user_id"`
-}
-
-func (q *Queries) GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams) (FlowTemplate, error) {
-	row := q.db.QueryRowContext(ctx, getFlowTemplate, arg.ID, arg.UserID)
+// Templates form one shared library: every live (non-archived) template is
+// visible to every user. Only reviewed content is ever stored here; proposed
+// content lives in flow_template_requests until an admin approves it.
+func (q *Queries) GetFlowTemplate(ctx context.Context, id int64) (FlowTemplate, error) {
+	row := q.db.QueryRowContext(ctx, getFlowTemplate, id)
 	var i FlowTemplate
 	err := row.Scan(
 		&i.ID,
@@ -135,24 +190,20 @@ func (q *Queries) GetFlowTemplate(ctx context.Context, arg GetFlowTemplateParams
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
 		&i.SystemOwned,
+		&i.Version,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
-const getFlowTemplatesByTargetType = `-- name: GetFlowTemplatesByTargetType :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
-WHERE (user_id = $1 OR system_owned = true)
-  AND $2::TARGET_TYPE = ANY(target_types)
+const getFlowTemplates = `-- name: GetFlowTemplates :many
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at FROM flow_templates
+WHERE archived_at IS NULL
 ORDER BY system_owned DESC, created_at DESC
 `
 
-type GetFlowTemplatesByTargetTypeParams struct {
-	UserID  int64      `json:"user_id"`
-	Column2 TargetType `json:"column_2"`
-}
-
-func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error) {
-	rows, err := q.db.QueryContext(ctx, getFlowTemplatesByTargetType, arg.UserID, arg.Column2)
+func (q *Queries) GetFlowTemplates(ctx context.Context) ([]FlowTemplate, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowTemplates)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +220,8 @@ func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowT
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
 			&i.SystemOwned,
+			&i.Version,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -183,14 +236,15 @@ func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, arg GetFlowT
 	return items, nil
 }
 
-const getFlowTemplatesByUserID = `-- name: GetFlowTemplatesByUserID :many
-SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned FROM flow_templates
-WHERE user_id = $1 OR system_owned = true
+const getFlowTemplatesByTargetType = `-- name: GetFlowTemplatesByTargetType :many
+SELECT id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at FROM flow_templates
+WHERE archived_at IS NULL
+  AND $1::TARGET_TYPE = ANY(target_types)
 ORDER BY system_owned DESC, created_at DESC
 `
 
-func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([]FlowTemplate, error) {
-	rows, err := q.db.QueryContext(ctx, getFlowTemplatesByUserID, userID)
+func (q *Queries) GetFlowTemplatesByTargetType(ctx context.Context, targetType TargetType) ([]FlowTemplate, error) {
+	rows, err := q.db.QueryContext(ctx, getFlowTemplatesByTargetType, targetType)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +261,8 @@ func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([
 			&i.UpdatedAt,
 			pq.Array(&i.TargetTypes),
 			&i.SystemOwned,
+			&i.Version,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -224,25 +280,33 @@ func (q *Queries) GetFlowTemplatesByUserID(ctx context.Context, userID int64) ([
 const updateFlowTemplate = `-- name: UpdateFlowTemplate :one
 UPDATE flow_templates
 SET
-  title = $3,
-  text = $4
-WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
+  title = $1,
+  text = $2,
+  target_types = $3,
+  version = version + 1
+WHERE id = $4
+  AND archived_at IS NULL
+  AND ($5::INTEGER IS NULL OR version = $5::INTEGER)
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at
 `
 
 type UpdateFlowTemplateParams struct {
-	ID     int64  `json:"id"`
-	UserID int64  `json:"user_id"`
-	Title  string `json:"title"`
-	Text   string `json:"text"`
+	Title           string        `json:"title"`
+	Text            string        `json:"text"`
+	TargetTypes     []TargetType  `json:"target_types"`
+	ID              int64         `json:"id"`
+	ExpectedVersion sql.NullInt32 `json:"expected_version"`
 }
 
+// expected_version is optional: when given, the write only applies if nobody
+// changed the template since the editor loaded it.
 func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplateParams) (FlowTemplate, error) {
 	row := q.db.QueryRowContext(ctx, updateFlowTemplate,
-		arg.ID,
-		arg.UserID,
 		arg.Title,
 		arg.Text,
+		pq.Array(arg.TargetTypes),
+		arg.ID,
+		arg.ExpectedVersion,
 	)
 	var i FlowTemplate
 	err := row.Scan(
@@ -254,6 +318,8 @@ func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplate
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
 		&i.SystemOwned,
+		&i.Version,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
@@ -261,9 +327,10 @@ func (q *Queries) UpdateFlowTemplate(ctx context.Context, arg UpdateFlowTemplate
 const updateFlowTemplateTargetTypes = `-- name: UpdateFlowTemplateTargetTypes :one
 UPDATE flow_templates
 SET
-  target_types = $2
-WHERE id = $1
-RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned
+  target_types = $2,
+  version = version + 1
+WHERE id = $1 AND archived_at IS NULL
+RETURNING id, user_id, title, text, created_at, updated_at, target_types, system_owned, version, archived_at
 `
 
 type UpdateFlowTemplateTargetTypesParams struct {
@@ -283,6 +350,8 @@ func (q *Queries) UpdateFlowTemplateTargetTypes(ctx context.Context, arg UpdateF
 		&i.UpdatedAt,
 		pq.Array(&i.TargetTypes),
 		&i.SystemOwned,
+		&i.Version,
+		&i.ArchivedAt,
 	)
 	return i, err
 }

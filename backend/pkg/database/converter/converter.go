@@ -548,14 +548,15 @@ func convertTargetTypes(targetTypes []database.TargetType) []model.TargetType {
 
 func ConvertFlowTemplate(template database.FlowTemplate) *model.FlowTemplate {
 	return &model.FlowTemplate{
-		ID:              template.ID,
-		UserID:          template.UserID,
-		Title:           template.Title,
-		Text:            template.Text,
-		TargetTypes:     convertTargetTypes(template.TargetTypes),
-		SystemOwned:     template.SystemOwned,
-		CreatedAt:       template.CreatedAt.Time,
-		UpdatedAt:       template.UpdatedAt.Time,
+		ID:          template.ID,
+		UserID:      database.NullInt64ToInt64(template.UserID),
+		Title:       template.Title,
+		Text:        template.Text,
+		TargetTypes: convertTargetTypes(template.TargetTypes),
+		SystemOwned: template.SystemOwned,
+		Version:     int(template.Version),
+		CreatedAt:   template.CreatedAt.Time,
+		UpdatedAt:   template.UpdatedAt.Time,
 	}
 }
 
@@ -563,6 +564,46 @@ func ConvertFlowTemplates(templates []database.FlowTemplate) []*model.FlowTempla
 	result := make([]*model.FlowTemplate, 0, len(templates))
 	for _, template := range templates {
 		result = append(result, ConvertFlowTemplate(template))
+	}
+	return result
+}
+
+func ConvertFlowTemplateRequest(request database.FlowTemplateRequestsView) *model.FlowTemplateRequest {
+	result := &model.FlowTemplateRequest{
+		ID:            request.ID,
+		Kind:          model.TemplateRequestKind(request.Kind),
+		Status:        model.TemplateRequestStatus(request.Status),
+		TemplateID:    database.NullInt64ToInt64(request.TemplateID),
+		RequesterID:   request.RequesterID,
+		RequesterName: request.RequesterName,
+		Title:         request.Title,
+		Text:          request.Text,
+		TargetTypes:   convertTargetTypes(request.TargetTypes),
+		Revision:      int(request.Revision),
+		ReviewNote:    database.NullStringToPtrString(request.ReviewNote),
+		ReviewedBy:    database.NullInt64ToInt64(request.ReviewedBy),
+		CreatedAt:     request.CreatedAt,
+		UpdatedAt:     request.UpdatedAt,
+	}
+	if request.BaseVersion.Valid {
+		baseVersion := int(request.BaseVersion.Int32)
+		result.BaseVersion = &baseVersion
+	}
+	if request.ReviewerName != "" {
+		reviewerName := request.ReviewerName
+		result.ReviewerName = &reviewerName
+	}
+	if request.ReviewedAt.Valid {
+		reviewedAt := request.ReviewedAt.Time
+		result.ReviewedAt = &reviewedAt
+	}
+	return result
+}
+
+func ConvertFlowTemplateRequests(requests []database.FlowTemplateRequestsView) []*model.FlowTemplateRequest {
+	result := make([]*model.FlowTemplateRequest, 0, len(requests))
+	for _, request := range requests {
+		result = append(result, ConvertFlowTemplateRequest(request))
 	}
 	return result
 }

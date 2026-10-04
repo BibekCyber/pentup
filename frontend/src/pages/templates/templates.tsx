@@ -5,7 +5,10 @@ import {
     Braces,
     ChevronLeft,
     ChevronRight,
+    ClipboardCheck,
     Cloud,
+    Copy,
+    Eye,
     FileText,
     Globe,
     Loader2,
@@ -17,12 +20,14 @@ import {
     Smartphone,
     Trash,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import TargetTypeChip from '@/components/forms/target-type-chip';
 import CommandBar from '@/components/layouts/command-bar';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
+import { StatusPill } from '@/components/shared/status-pill';
+import TemplatesTabs from '@/components/templates/templates-tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import {
@@ -36,13 +41,14 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
 import { TargetType } from '@/graphql/types';
 import { ALL_TARGET_TYPES, getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
-import { type Template, useTemplates } from '@/providers/templates-provider';
+import { type Template, type TemplateAccess, useTemplates } from '@/providers/templates-provider';
 
 const ALL_FILTER = 'all';
 const PAGE_SIZE = 24;
@@ -77,9 +83,32 @@ const TYPE_FILTERS: Array<{ icon: LucideIcon | null; label: string; value: strin
     })),
 ];
 
+const OPEN_ACTION: Record<TemplateAccess, { icon: LucideIcon; label: string }> = {
+    edit: { icon: Pencil, label: 'Edit' },
+    propose: { icon: Pencil, label: 'Propose changes' },
+    view: { icon: Eye, label: 'View' },
+};
+
+interface TemplateAction {
+    disabled?: boolean;
+    icon: LucideIcon;
+    id: string;
+    label: string;
+    onSelect: () => void;
+    /** Start a new group (rendered with a separator before it). */
+    separated?: boolean;
+}
+
 const Templates = () => {
     const navigate = useNavigate();
-    const { deleteTemplate, templates } = useTemplates();
+    const {
+        canSubmitTemplates,
+        deleteTemplate,
+        getTemplateAccess,
+        isTemplateAdmin,
+        pendingRequestByTemplateId,
+        templates,
+    } = useTemplates();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingTemplate, setDeletingTemplate] = useState<null | Template>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -131,6 +160,86 @@ const Templates = () => {
         navigate(`/templates/${templateId}`);
     };
 
+    // One action list per template, shared by the card menu, row menu and
+    // right-click menu, so every surface offers exactly what the user may do.
+    const getTemplateActions = (template: Template): TemplateAction[] => {
+        const access = getTemplateAccess(template);
+        const pendingRequest = pendingRequestByTemplateId.get(template.id);
+        const open = OPEN_ACTION[access];
+        const actions: TemplateAction[] = [
+            {
+                icon: open.icon,
+                id: 'open',
+                label: access === 'propose' && pendingRequest ? 'Edit pending changes' : open.label,
+                onSelect: () => handleTemplateOpen(template.id),
+            },
+        ];
+
+        if (isTemplateAdmin && pendingRequest) {
+            actions.push({
+                icon: ClipboardCheck,
+                id: 'review',
+                label: 'Review pending changes',
+                onSelect: () => navigate(`/templates/requests/${pendingRequest.id}`),
+            });
+        }
+
+        if (canSubmitTemplates) {
+            actions.push({
+                icon: Copy,
+                id: 'duplicate',
+                label: 'Duplicate',
+                onSelect: () => navigate(`/templates/new?from=${template.id}`),
+            });
+        }
+
+        if (isTemplateAdmin) {
+            const isDeleting = deletingIds.has(template.id);
+
+            actions.push({
+                disabled: isDeleting,
+                icon: isDeleting ? Loader2 : Trash,
+                id: 'delete',
+                label: isDeleting ? 'Deleting...' : 'Delete',
+                onSelect: () => handleDeleteDialogOpen(template),
+                separated: true,
+            });
+        }
+
+        return actions;
+    };
+
+    const renderActionItems = (template: Template, variant: 'context' | 'dropdown') => {
+        const Item = variant === 'context' ? ContextMenuItem : DropdownMenuItem;
+        const Separator = variant === 'context' ? ContextMenuSeparator : DropdownMenuSeparator;
+
+        return getTemplateActions(template).map((action) => {
+            const Icon = action.icon;
+
+            return (
+                <Fragment key={action.id}>
+                    {action.separated ? <Separator /> : null}
+                    <Item
+                        disabled={action.disabled}
+                        onClick={action.onSelect}
+                    >
+                        <Icon className={cn('size-4', action.disabled && action.id === 'delete' && 'animate-spin')} />
+                        {action.label}
+                    </Item>
+                </Fragment>
+            );
+        });
+    };
+
+    const renderPendingMarker = (template: Template) =>
+        pendingRequestByTemplateId.has(template.id) ? (
+            <StatusPill
+                className="text-[10.5px]"
+                label="Pending changes"
+                tone="waiting"
+            />
+        ) : null;
+
     const handleDeleteDialogOpen = (template: Template) => {
         setDeletingTemplate(template);
         setIsDeleteDialogOpen(true);
@@ -159,7 +268,7 @@ const Templates = () => {
     };
 
     const renderTemplateCard = (template: Template) => {
-        const Glyph = TARGET_GLYPH[template.targetTypes[0]] ?? Box;
+        const Glyph = TARGET_GLYPH[template.targetTypes[0] ?? TargetType.General] ?? Box;
         const primaryLabel = getTargetTypeLabel(template.targetTypes[0] ?? TargetType.General);
 
         return (
@@ -173,8 +282,11 @@ const Templates = () => {
                     </span>
                     <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold tracking-tight">{template.title}</div>
-                        <div className="text-muted-foreground truncate font-mono text-[10.5px]">
-                            #{template.id} · {primaryLabel}
+                        <div className="text-muted-foreground flex min-w-0 items-center gap-2">
+                            <span className="truncate font-mono text-[10.5px]">
+                                #{template.id} · {primaryLabel}
+                            </span>
+                            {renderPendingMarker(template)}
                         </div>
                     </div>
                     {template.systemOwned ? (
@@ -200,26 +312,7 @@ const Templates = () => {
                                 align="end"
                                 className="min-w-24"
                             >
-                                <DropdownMenuItem onClick={() => handleTemplateOpen(template.id)}>
-                                    <Pencil />
-                                    Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    disabled={deletingIds.has(template.id)}
-                                    onClick={() => handleDeleteDialogOpen(template)}
-                                >
-                                    {deletingIds.has(template.id) ? (
-                                        <>
-                                            <Loader2 className="size-4 animate-spin" />
-                                            Deleting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Trash className="size-4" />
-                                            Delete
-                                        </>
-                                    )}
-                                </DropdownMenuItem>
+                                {renderActionItems(template, 'dropdown')}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -241,34 +334,19 @@ const Templates = () => {
         );
     };
 
-    const renderRowContextMenu = (template: Template) => (
-        <>
-            <ContextMenuItem onClick={() => handleTemplateOpen(template.id)}>
-                <Pencil />
-                Edit
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-                disabled={deletingIds.has(template.id)}
-                onClick={() => handleDeleteDialogOpen(template)}
-            >
-                <Trash />
-                {deletingIds.has(template.id) ? 'Deleting...' : 'Delete'}
-            </ContextMenuItem>
-        </>
-    );
-
     const pageHeader = (
         <CommandBar
             actions={
-                <Button
-                    onClick={() => navigate('/templates/new')}
-                    size="sm"
-                    variant="default"
-                >
-                    <Plus />
-                    <span className="hidden sm:inline">New Template</span>
-                </Button>
+                canSubmitTemplates ? (
+                    <Button
+                        onClick={() => navigate('/templates/new')}
+                        size="sm"
+                        variant="default"
+                    >
+                        <Plus />
+                        <span className="hidden sm:inline">New Template</span>
+                    </Button>
+                ) : undefined
             }
             ctx={
                 templates.length ? (
@@ -368,7 +446,7 @@ const Templates = () => {
     );
 
     const renderTemplateRow = (template: Template) => {
-        const Glyph = TARGET_GLYPH[template.targetTypes[0]] ?? Box;
+        const Glyph = TARGET_GLYPH[template.targetTypes[0] ?? TargetType.General] ?? Box;
         const primaryLabel = getTargetTypeLabel(template.targetTypes[0] ?? TargetType.General);
 
         return (
@@ -389,14 +467,17 @@ const Templates = () => {
                     </span>
                 </td>
                 <td>
-                    {template.systemOwned ? (
-                        <span className="badge badge-sys uppercase">
-                            <Shield className="size-3" />
-                            System
-                        </span>
-                    ) : (
-                        <span className="badge badge-outline uppercase">Custom</span>
-                    )}
+                    <div className="flex items-center gap-2.5">
+                        {template.systemOwned ? (
+                            <span className="badge badge-sys uppercase">
+                                <Shield className="size-3" />
+                                System
+                            </span>
+                        ) : (
+                            <span className="badge badge-outline uppercase">Custom</span>
+                        )}
+                        {renderPendingMarker(template)}
+                    </div>
                 </td>
                 <td className="w-11 text-right">
                     <DropdownMenu>
@@ -414,26 +495,7 @@ const Templates = () => {
                             align="end"
                             onClick={(event) => event.stopPropagation()}
                         >
-                            <DropdownMenuItem onClick={() => handleTemplateOpen(template.id)}>
-                                <Pencil />
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                disabled={deletingIds.has(template.id)}
-                                onClick={() => handleDeleteDialogOpen(template)}
-                            >
-                                {deletingIds.has(template.id) ? (
-                                    <>
-                                        <Loader2 className="size-4 animate-spin" />
-                                        Deleting...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash className="size-4" />
-                                        Delete
-                                    </>
-                                )}
-                            </DropdownMenuItem>
+                            {renderActionItems(template, 'dropdown')}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </td>
@@ -446,17 +508,24 @@ const Templates = () => {
             <>
                 {pageHeader}
                 <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
+                    <TemplatesTabs />
                     <StatusCard
                         action={
-                            <Button
-                                onClick={() => navigate('/templates/new')}
-                                variant="default"
-                            >
-                                <Plus className="size-4" />
-                                New Template
-                            </Button>
+                            canSubmitTemplates ? (
+                                <Button
+                                    onClick={() => navigate('/templates/new')}
+                                    variant="default"
+                                >
+                                    <Plus className="size-4" />
+                                    New Template
+                                </Button>
+                            ) : undefined
                         }
-                        description="Create your first template to get started"
+                        description={
+                            canSubmitTemplates
+                                ? 'Create your first template to get started'
+                                : 'No templates have been published yet'
+                        }
                         icon={<FileText className="text-muted-foreground size-8" />}
                         title="No templates yet"
                     />
@@ -469,6 +538,7 @@ const Templates = () => {
         <>
             {pageHeader}
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 p-6">
+                <TemplatesTabs />
                 {filterToolbar}
                 {filteredTemplates.length === 0 ? (
                     <StatusCard
@@ -490,7 +560,7 @@ const Templates = () => {
                             {pageTemplates.map((template) => (
                                 <ContextMenu key={template.id}>
                                     <ContextMenuTrigger asChild>{renderTemplateCard(template)}</ContextMenuTrigger>
-                                    <ContextMenuContent>{renderRowContextMenu(template)}</ContextMenuContent>
+                                    <ContextMenuContent>{renderActionItems(template, 'context')}</ContextMenuContent>
                                 </ContextMenu>
                             ))}
                         </div>
