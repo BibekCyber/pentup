@@ -57,6 +57,136 @@ func (ns NullAssistantStatus) Value() (driver.Value, error) {
 	return string(ns.AssistantStatus), nil
 }
 
+type ChatMessageRole string
+
+const (
+	ChatMessageRoleUser      ChatMessageRole = "user"
+	ChatMessageRoleAssistant ChatMessageRole = "assistant"
+)
+
+func (e *ChatMessageRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChatMessageRole(s)
+	case string:
+		*e = ChatMessageRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChatMessageRole: %T", src)
+	}
+	return nil
+}
+
+type NullChatMessageRole struct {
+	ChatMessageRole ChatMessageRole `json:"chat_message_role"`
+	Valid           bool            `json:"valid"` // Valid is true if ChatMessageRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChatMessageRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChatMessageRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChatMessageRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChatMessageRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChatMessageRole), nil
+}
+
+type ChatMessageStatus string
+
+const (
+	ChatMessageStatusStreaming ChatMessageStatus = "streaming"
+	ChatMessageStatusDone      ChatMessageStatus = "done"
+	ChatMessageStatusRefused   ChatMessageStatus = "refused"
+	ChatMessageStatusError     ChatMessageStatus = "error"
+	ChatMessageStatusStopped   ChatMessageStatus = "stopped"
+)
+
+func (e *ChatMessageStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChatMessageStatus(s)
+	case string:
+		*e = ChatMessageStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChatMessageStatus: %T", src)
+	}
+	return nil
+}
+
+type NullChatMessageStatus struct {
+	ChatMessageStatus ChatMessageStatus `json:"chat_message_status"`
+	Valid             bool              `json:"valid"` // Valid is true if ChatMessageStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChatMessageStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChatMessageStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChatMessageStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChatMessageStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChatMessageStatus), nil
+}
+
+type ChatUsageKind string
+
+const (
+	ChatUsageKindReply   ChatUsageKind = "reply"
+	ChatUsageKindTitle   ChatUsageKind = "title"
+	ChatUsageKindSummary ChatUsageKind = "summary"
+)
+
+func (e *ChatUsageKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChatUsageKind(s)
+	case string:
+		*e = ChatUsageKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChatUsageKind: %T", src)
+	}
+	return nil
+}
+
+type NullChatUsageKind struct {
+	ChatUsageKind ChatUsageKind `json:"chat_usage_kind"`
+	Valid         bool          `json:"valid"` // Valid is true if ChatUsageKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChatUsageKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChatUsageKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChatUsageKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChatUsageKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChatUsageKind), nil
+}
+
 type ContainerStatus string
 
 const (
@@ -1099,6 +1229,42 @@ type Assistantlog struct {
 	AssistantID  int64              `json:"assistant_id"`
 	CreatedAt    sql.NullTime       `json:"created_at"`
 	Thinking     sql.NullString     `json:"thinking"`
+}
+
+type ChatMessage struct {
+	ID           int64             `json:"id"`
+	SessionID    int64             `json:"session_id"`
+	Role         ChatMessageRole   `json:"role"`
+	Status       ChatMessageStatus `json:"status"`
+	Content      string            `json:"content"`
+	ProviderName string            `json:"provider_name"`
+	Model        string            `json:"model"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
+}
+
+type ChatSession struct {
+	ID               int64     `json:"id"`
+	UserID           int64     `json:"user_id"`
+	Title            string    `json:"title"`
+	ProviderName     string    `json:"provider_name"`
+	Summary          string    `json:"summary"`
+	SummaryThroughID int64     `json:"summary_through_id"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type ChatUsage struct {
+	ID        int64         `json:"id"`
+	UserID    int64         `json:"user_id"`
+	Kind      ChatUsageKind `json:"kind"`
+	SessionID sql.NullInt64 `json:"session_id"`
+	MessageID sql.NullInt64 `json:"message_id"`
+	UsageIn   int64         `json:"usage_in"`
+	UsageOut  int64         `json:"usage_out"`
+	CostIn    float64       `json:"cost_in"`
+	CostOut   float64       `json:"cost_out"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type Container struct {

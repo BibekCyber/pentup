@@ -32,6 +32,11 @@ type Querier interface {
 	CreateAgentLog(ctx context.Context, arg CreateAgentLogParams) (Agentlog, error)
 	CreateAssistant(ctx context.Context, arg CreateAssistantParams) (Assistant, error)
 	CreateAssistantLog(ctx context.Context, arg CreateAssistantLogParams) (Assistantlog, error)
+	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
+	// Pentest chat. Every session query is scoped by user_id: sessions are
+	// private to their owner, and there is no admin view.
+	CreateChatSession(ctx context.Context, arg CreateChatSessionParams) (ChatSession, error)
+	CreateChatUsage(ctx context.Context, arg CreateChatUsageParams) (ChatUsage, error)
 	CreateContainer(ctx context.Context, arg CreateContainerParams) (Container, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
 	CreateFlow(ctx context.Context, arg CreateFlowParams) (Flow, error)
@@ -66,12 +71,22 @@ type Querier interface {
 	DeleteScanCredentialsForDomain(ctx context.Context, domainID int64) error
 	DeleteSubtask(ctx context.Context, id int64) error
 	DeleteSubtasks(ctx context.Context, ids []int64) error
+	// A reply that failed before the provider billed anything gives the user
+	// their message back.
+	DeleteUnbilledChatUsageByMessage(ctx context.Context, messageID sql.NullInt64) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteUserAPIToken(ctx context.Context, arg DeleteUserAPITokenParams) (ApiToken, error)
 	DeleteUserAPITokenByTokenID(ctx context.Context, arg DeleteUserAPITokenByTokenIDParams) (ApiToken, error)
+	DeleteUserChatSession(ctx context.Context, arg DeleteUserChatSessionParams) (ChatSession, error)
 	DeleteUserPreferences(ctx context.Context, userID int64) error
 	DeleteUserPrompt(ctx context.Context, arg DeleteUserPromptParams) error
 	DeleteUserProvider(ctx context.Context, arg DeleteUserProviderParams) (Provider, error)
+	// Replies cannot outlive the process that streams them: anything still
+	// streaming at startup was cut off by a restart.
+	FailStreamingChatMessages(ctx context.Context) error
+	// Final write of a reply. Guarded on 'streaming' so a stop and a finish
+	// racing each other cannot overwrite the one that landed first.
+	FinishChatMessage(ctx context.Context, arg FinishChatMessageParams) (ChatMessage, error)
 	GetAPIToken(ctx context.Context, id int64) (ApiToken, error)
 	GetAPITokenByTokenID(ctx context.Context, tokenID string) (ApiToken, error)
 	GetAPITokens(ctx context.Context) ([]ApiToken, error)
@@ -84,6 +99,9 @@ type Querier interface {
 	// Get total count of assistants for a specific flow
 	GetAssistantsCountForFlow(ctx context.Context, flowID int64) (int64, error)
 	GetCallToolcall(ctx context.Context, callID string) (Toolcall, error)
+	GetChatMessages(ctx context.Context, sessionID int64) ([]ChatMessage, error)
+	// Messages not yet folded into the session summary, oldest first.
+	GetChatMessagesAfter(ctx context.Context, arg GetChatMessagesAfterParams) ([]ChatMessage, error)
 	GetContainerTermLogs(ctx context.Context, containerID int64) ([]Termlog, error)
 	GetContainers(ctx context.Context) ([]Container, error)
 	// Auto-detect only spawns the platform templates plus the caller's own, so a
@@ -225,6 +243,11 @@ type Querier interface {
 	GetUserAPITokenByTokenID(ctx context.Context, arg GetUserAPITokenByTokenIDParams) (ApiToken, error)
 	GetUserAPITokens(ctx context.Context, userID int64) ([]ApiToken, error)
 	GetUserByHash(ctx context.Context, hash string) (GetUserByHashRow, error)
+	GetUserChatMessage(ctx context.Context, arg GetUserChatMessageParams) (ChatMessage, error)
+	GetUserChatReplyStats(ctx context.Context, arg GetUserChatReplyStatsParams) (GetUserChatReplyStatsRow, error)
+	GetUserChatSession(ctx context.Context, arg GetUserChatSessionParams) (ChatSession, error)
+	GetUserChatSessions(ctx context.Context, userID int64) ([]ChatSession, error)
+	GetUserChatTokenStats(ctx context.Context, arg GetUserChatTokenStatsParams) (GetUserChatTokenStatsRow, error)
 	GetUserContainers(ctx context.Context, userID int64) ([]Container, error)
 	GetUserDomain(ctx context.Context, arg GetUserDomainParams) (Domain, error)
 	GetUserDomains(ctx context.Context, userID int64) ([]Domain, error)
@@ -259,9 +282,15 @@ type Querier interface {
 	GetUserTotalUsageStats(ctx context.Context, userID int64) (GetUserTotalUsageStatsRow, error)
 	GetUsers(ctx context.Context) ([]GetUsersRow, error)
 	RejectFlowTemplateRequest(ctx context.Context, arg RejectFlowTemplateRequestParams) (FlowTemplateRequest, error)
+	// Replaces the placeholder title with a generated one, unless the user
+	// renamed the session in the meantime.
+	ReplaceChatSessionTitle(ctx context.Context, arg ReplaceChatSessionTitleParams) (ChatSession, error)
 	SetDefaultProvider(ctx context.Context, arg SetDefaultProviderParams) (Provider, error)
 	SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
+	// Records the provider of the latest message; also bumps updated_at so the
+	// session moves to the top of the history list.
+	TouchChatSession(ctx context.Context, arg TouchChatSessionParams) (ChatSession, error)
 	UpdateAPIToken(ctx context.Context, arg UpdateAPITokenParams) (ApiToken, error)
 	UpdateAssistant(ctx context.Context, arg UpdateAssistantParams) (Assistant, error)
 	UpdateAssistantFindings(ctx context.Context, arg UpdateAssistantFindingsParams) error
@@ -274,6 +303,8 @@ type Querier interface {
 	UpdateAssistantTitle(ctx context.Context, arg UpdateAssistantTitleParams) (Assistant, error)
 	UpdateAssistantToolCallIDTemplate(ctx context.Context, arg UpdateAssistantToolCallIDTemplateParams) (Assistant, error)
 	UpdateAssistantUseAgents(ctx context.Context, arg UpdateAssistantUseAgentsParams) (Assistant, error)
+	UpdateChatSessionSummary(ctx context.Context, arg UpdateChatSessionSummaryParams) (ChatSession, error)
+	UpdateChatUsageByMessage(ctx context.Context, arg UpdateChatUsageByMessageParams) error
 	UpdateContainerImage(ctx context.Context, arg UpdateContainerImageParams) (Container, error)
 	UpdateContainerStatus(ctx context.Context, arg UpdateContainerStatusParams) (Container, error)
 	UpdateContainerStatusLocalID(ctx context.Context, arg UpdateContainerStatusLocalIDParams) (Container, error)
@@ -309,6 +340,7 @@ type Querier interface {
 	UpdateToolcallFinishedResult(ctx context.Context, arg UpdateToolcallFinishedResultParams) (Toolcall, error)
 	UpdateToolcallStatus(ctx context.Context, arg UpdateToolcallStatusParams) (Toolcall, error)
 	UpdateUserAPIToken(ctx context.Context, arg UpdateUserAPITokenParams) (ApiToken, error)
+	UpdateUserChatSessionTitle(ctx context.Context, arg UpdateUserChatSessionTitleParams) (ChatSession, error)
 	UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error)
 	UpdateUserPasswordChangeRequired(ctx context.Context, arg UpdateUserPasswordChangeRequiredParams) (User, error)
