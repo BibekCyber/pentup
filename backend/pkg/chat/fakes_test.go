@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"pentagi/pkg/providers/provider"
 
 	"github.com/vxcontrol/langchaingo/llms"
+	"github.com/vxcontrol/langchaingo/llms/reasoning"
 	"github.com/vxcontrol/langchaingo/llms/streaming"
 )
 
@@ -224,6 +226,10 @@ func (f *fakeDB) FinishChatMessage(ctx context.Context, arg database.FinishChatM
 func (f *fakeDB) CreateChatUsage(ctx context.Context, arg database.CreateChatUsageParams) (database.ChatUsage, error) {
 	f.mx.Lock()
 	defer f.mx.Unlock()
+	// foreign key, like the real schema
+	if _, ok := f.sessions[arg.SessionID.Int64]; arg.SessionID.Valid && !ok {
+		return database.ChatUsage{}, errors.New("violates foreign key constraint chat_usage_session_id_fkey")
+	}
 	u := database.ChatUsage{
 		ID: f.id(), UserID: arg.UserID, Kind: arg.Kind, SessionID: arg.SessionID, MessageID: arg.MessageID,
 		UsageIn: arg.UsageIn, UsageOut: arg.UsageOut, CostIn: arg.CostIn, CostOut: arg.CostOut, CreatedAt: f.now(),
@@ -244,12 +250,10 @@ func (f *fakeDB) UpdateChatUsage(ctx context.Context, arg database.UpdateChatUsa
 	return nil
 }
 
-func (f *fakeDB) DeleteUnbilledChatUsage(ctx context.Context, id int64) error {
+func (f *fakeDB) DeleteChatUsage(ctx context.Context, id int64) error {
 	f.mx.Lock()
 	defer f.mx.Unlock()
-	if u, ok := f.usage[id]; ok && u.UsageIn == 0 && u.UsageOut == 0 {
-		delete(f.usage, id)
-	}
+	delete(f.usage, id)
 	return nil
 }
 
@@ -313,6 +317,8 @@ type fakeProvider struct {
 	provider.Provider
 
 	mx sync.Mutex
+	// reasoning chunks streamed before the text ones
+	reasoning []string
 	// chunks to stream for the main reply
 	chunks []string
 	// final content in the response; defaults to the joined chunks
@@ -384,9 +390,17 @@ func (p *fakeProvider) CallWithExtraOptions(
 		o(&p.lastOptions)
 	}
 	chunks, final, err, usage, block := p.chunks, p.final, p.err, p.usage, p.block
+	reasoningChunks := p.reasoning
 	p.mx.Unlock()
 
 	p.started <- struct{}{}
+
+	for _, r := range reasoningChunks {
+		chunk := streaming.Chunk{Type: streaming.ChunkTypeReasoning, Reasoning: &reasoning.ContentReasoning{Content: r}}
+		if err := streamCb(ctx, chunk); err != nil {
+			return nil, err
+		}
+	}
 
 	for _, c := range chunks {
 		if err := streamCb(ctx, streaming.NewTextChunk(c)); err != nil {

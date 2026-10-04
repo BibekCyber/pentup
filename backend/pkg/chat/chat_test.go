@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"pentagi/pkg/database"
 	"pentagi/pkg/providers/pconfig"
@@ -117,6 +118,39 @@ func TestStreamGuard(t *testing.T) {
 
 	assert.True(t, isRefusal("Sorry. [[OUT_OF_SCOPE]]"), "marker buried in text")
 	assert.False(t, isRefusal("Use [[double brackets]] carefully"))
+}
+
+func TestStreamGuard_Hardened(t *testing.T) {
+	t.Run("marker wrapped in markdown", func(t *testing.T) {
+		for _, head := range []string{"**[[OUT_OF_SCOPE]]**", "`[[OUT_OF_SCOPE]]`", "> [[OUT_OF_SCOPE]]", "# [[out_of_scope]]"} {
+			g := &streamGuard{}
+			assert.Equal(t, guardRefused, g.Feed(head+" sure, a cake recipe"), head)
+		}
+	})
+
+	t.Run("marker after some text refuses and is never visible", func(t *testing.T) {
+		g := &streamGuard{}
+		assert.Equal(t, guardPassed, g.Feed("Sure, here"))
+		assert.Equal(t, guardPassed, g.Feed(" is [[OUT_"))
+		assert.Equal(t, "Sure, here is ", g.Visible(), "a possible marker start is held back")
+		assert.Equal(t, guardRefused, g.Feed("OF_SCOPE]] cake"))
+		assert.Empty(t, g.Visible())
+	})
+
+	t.Run("held back fragment is released once it diverges", func(t *testing.T) {
+		g := &streamGuard{}
+		g.Feed("See [")
+		assert.Equal(t, "See ", g.Visible())
+		g.Feed("RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)")
+		assert.Equal(t, "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)", g.Visible())
+	})
+
+	t.Run("non-ascii text keeps valid utf-8", func(t *testing.T) {
+		g := &streamGuard{}
+		g.Feed("Straße ſ [[ou")
+		assert.Equal(t, "Straße ſ ", g.Visible())
+		assert.True(t, utf8.ValidString(g.Visible()))
+	})
 }
 
 func TestNormalizeInput(t *testing.T) {
@@ -586,4 +620,114 @@ func assertUserError(t *testing.T, err error, contains string) {
 	var userErr *UserError
 	require.ErrorAs(t, err, &userErr)
 	assert.Contains(t, userErr.Error(), contains)
+}
+
+func TestSend_MarkerMidStreamIsRefused(t *testing.T) {
+	prv := newFakeProvider("Note: ", "[[OUT_OF_SCOPE]]", " here is off-topic text")
+	prv.block = make(chan struct{})
+	h := newHarness(t, Limits{}, prv)
+
+	_, reply := h.send(t, alice, nil, "bake me a cake")
+
+	assert.Equal(t, database.ChatMessageStatusRefused, reply.Status)
+	assert.Equal(t, refusalMessage, reply.Content)
+	for _, e := range h.pub.snapshot() {
+		if e.message.Role == database.ChatMessageRoleAssistant {
+			assert.NotContains(t, e.message.Content, "[[")
+			assert.NotContains(t, e.message.Content, "off-topic")
+		}
+	}
+}
+
+func TestTitleGenerationDoesNotBlockFollowUp(t *testing.T) {
+	prv := newFakeProvider("ok")
+	inTitle, release := make(chan struct{}), make(chan struct{})
+	prv.simple = func(prompt string) (string, error) {
+		close(inTitle)
+		<-release
+		return "Generated Title", nil
+	}
+	h := newHarness(t, Limits{}, prv)
+	ctx := context.Background()
+
+	res, err := h.svc.Send(ctx, alice, nil, "kimi", "q1")
+	require.NoError(t, err)
+	<-inTitle
+
+	assert.Equal(t, database.ChatMessageStatusDone, h.db.message(res.AssistantMessage.ID).Status)
+	_, err = h.svc.Send(ctx, alice, &res.Session.ID, "kimi", "follow-up while the title is generated")
+	require.NoError(t, err, "a finished reply must not keep the session busy")
+
+	close(release)
+	h.svc.Wait()
+	assert.Equal(t, "Generated Title", h.db.session(res.Session.ID).Title)
+}
+
+func TestSend_ReservationCountsRepliesInFlight(t *testing.T) {
+	prv := newFakeProvider("answer")
+	prv.block = make(chan struct{})
+	prv.usage = pconfig.CallUsage{Input: 900, Output: 100}
+	h := newHarness(t, Limits{DailyTokenBudget: 30000, ContextTokens: 24000, MaxOutputTokens: 8192}, prv)
+	ctx := context.Background()
+
+	_, err := h.svc.Send(ctx, alice, nil, "kimi", "q1")
+	require.NoError(t, err)
+	<-prv.started
+
+	quota, err := h.svc.Quota(ctx, alice)
+	require.NoError(t, err)
+	assert.Equal(t, int64(24000+8192), quota.TokensUsed, "worst case reserved while in flight")
+
+	_, err = h.svc.Send(ctx, alice, nil, "kimi", "q2 at the same time")
+	assertUserError(t, err, "token budget")
+
+	close(prv.block)
+	h.svc.Wait()
+
+	quota, err = h.svc.Quota(ctx, alice)
+	require.NoError(t, err)
+	assert.Less(t, quota.TokensUsed, int64(2000), "reservation replaced by real usage")
+	h.send(t, alice, nil, "q2")
+}
+
+func TestStop_DuringReasoningStillCountsReasoning(t *testing.T) {
+	prv := newFakeProvider()
+	prv.reasoning = []string{strings.Repeat("r", 800)}
+	prv.block = make(chan struct{})
+	h := newHarness(t, Limits{}, prv)
+	ctx := context.Background()
+
+	res, err := h.svc.Send(ctx, alice, nil, "kimi", "q1")
+	require.NoError(t, err)
+	<-prv.started
+
+	msg, err := h.svc.Stop(ctx, alice, res.AssistantMessage.ID)
+	require.NoError(t, err)
+	assert.Equal(t, database.ChatMessageStatusStopped, msg.Status)
+	h.svc.Wait()
+
+	usage := h.db.usageRows(database.ChatUsageKindReply)
+	require.Len(t, usage, 1)
+	assert.Equal(t, int64(200), usage[0].UsageOut)
+}
+
+func TestTitleUsageCountedWhenSessionDeletedMeanwhile(t *testing.T) {
+	prv := newFakeProvider("ok")
+	h := newHarness(t, Limits{}, prv)
+	ctx := context.Background()
+
+	prv.simple = func(prompt string) (string, error) {
+		sessions, _ := h.svc.ListSessions(ctx, alice)
+		for _, s := range sessions {
+			_ = h.svc.DeleteSession(ctx, alice, s.ID)
+		}
+		return "Generated Title", nil
+	}
+
+	h.send(t, alice, nil, "q1")
+
+	titles := h.db.usageRows(database.ChatUsageKindTitle)
+	require.Len(t, titles, 1)
+	assert.False(t, titles[0].SessionID.Valid)
+	assert.Positive(t, titles[0].UsageIn)
 }

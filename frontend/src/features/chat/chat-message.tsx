@@ -61,7 +61,14 @@ const AssistantBody = ({ message, onRetry }: ChatMessageProps) => {
         case ChatMessageStatus.Error:
             return (
                 <div className="flex flex-col gap-2">
-                    {message.content && <Markdown className="prose-fixed wrap-break-word">{message.content}</Markdown>}
+                    {message.content && (
+                        <Markdown
+                            blockRemoteImages
+                            className="prose-fixed wrap-break-word"
+                        >
+                            {message.content}
+                        </Markdown>
+                    )}
                     <div className="border-destructive/30 bg-destructive/5 flex flex-wrap items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px]">
                         <TriangleAlert className="text-destructive size-4 shrink-0" />
                         <span className="text-foreground/90 flex-1">The reply could not be generated.</span>
@@ -93,10 +100,24 @@ const AssistantBody = ({ message, onRetry }: ChatMessageProps) => {
                 return <ThinkingIndicator />;
             }
 
-            return <Markdown className="prose-fixed wrap-break-word">{message.content}</Markdown>;
+            return (
+                <Markdown
+                    blockRemoteImages
+                    className="prose-fixed wrap-break-word"
+                >
+                    {message.content}
+                </Markdown>
+            );
 
         default:
-            return <Markdown className="prose-fixed wrap-break-word">{message.content}</Markdown>;
+            return (
+                <Markdown
+                    blockRemoteImages
+                    className="prose-fixed wrap-break-word"
+                >
+                    {message.content}
+                </Markdown>
+            );
     }
 };
 

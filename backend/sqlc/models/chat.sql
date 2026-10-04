@@ -133,11 +133,11 @@ UPDATE chat_usage
 SET usage_in = $2, usage_out = $3, cost_in = $4, cost_out = $5
 WHERE id = $1;
 
--- A reply that failed before the provider billed anything gives the user
--- their message back.
--- name: DeleteUnbilledChatUsage :exec
+-- A reply that failed before generating anything gives the user their
+-- message (and its token reservation) back.
+-- name: DeleteChatUsage :exec
 DELETE FROM chat_usage
-WHERE id = $1 AND usage_in = 0 AND usage_out = 0;
+WHERE id = $1;
 
 -- name: GetUserChatReplyStats :one
 SELECT

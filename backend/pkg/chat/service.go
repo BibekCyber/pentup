@@ -355,7 +355,17 @@ func (s *Service) Send(
 	s.publisher.ChatMessageAdded(ctx, userID, result.AssistantMessage)
 
 	s.wg.Add(1)
-	go s.run(replyCtx, r, prv, result.Session, result.UserMessage, result.AssistantMessage, isNewSession)
+	go func() {
+		defer s.wg.Done()
+
+		done := s.run(replyCtx, r, prv, result.Session, result.UserMessage, result.AssistantMessage)
+
+		// After run has released the reply, so a follow-up is not blocked on
+		// the title call. A stopped reply means the session may be gone.
+		if isNewSession && done && !r.stopped.Load() {
+			s.generateTitle(replyCtx, r, prv, result.Session, result.UserMessage.Content, s.replyLogger(r, providerName))
+		}
+	}()
 
 	return result, nil
 }
@@ -389,11 +399,16 @@ func (s *Service) storeExchange(
 		return nil, 0, fmt.Errorf("failed to store chat reply: %w", err)
 	}
 
+	// The ledger row starts with a worst-case reservation, replaced by the
+	// real usage when the reply ends, so replies in flight already count
+	// against the budget and a restart mid-reply cannot leave them free.
 	usage, err := s.db.CreateChatUsage(ctx, database.CreateChatUsageParams{
 		UserID:    userID,
 		Kind:      database.ChatUsageKindReply,
 		SessionID: sql.NullInt64{Int64: session.ID, Valid: true},
 		MessageID: sql.NullInt64{Int64: answer.ID, Valid: true},
+		UsageIn:   s.reservedInputTokens(content),
+		UsageOut:  int64(s.maxOutputTokens(prv)),
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to record chat usage: %w", err)
@@ -552,15 +567,14 @@ func retryIn(now time.Time, at *time.Time) string {
 	}
 }
 
+// run streams one reply and reports whether it completed normally.
 func (s *Service) run(
 	ctx context.Context,
 	r *reply,
 	prv provider.Provider,
 	session database.ChatSession,
 	question, answer database.ChatMessage,
-	isNewSession bool,
-) {
-	defer s.wg.Done()
+) (completed bool) {
 	defer close(r.done)
 	defer func() {
 		s.mx.Lock()
@@ -569,17 +583,13 @@ func (s *Service) run(
 	}()
 	defer r.cancel()
 
-	logger := s.logger.WithFields(logrus.Fields{
-		"user_id":    r.userID,
-		"session_id": r.sessionID,
-		"message_id": r.messageID,
-		"provider":   answer.ProviderName,
-	})
+	logger := s.replyLogger(r, answer.ProviderName)
 
 	defer func() {
 		if rec := recover(); rec != nil {
 			logger.WithField("panic", rec).Error("chat reply panicked")
 			s.finish(ctx, r, answer, database.ChatMessageStatusError, "", logger)
+			completed = false
 		}
 	}()
 
@@ -587,8 +597,16 @@ func (s *Service) run(
 	inputTokens := estimateTokens(chain)
 
 	guard := &streamGuard{}
-	var lastPublish time.Time
+	var (
+		lastPublish    time.Time
+		reasoningBytes int
+	)
 	streamCb := func(ctx context.Context, chunk streaming.Chunk) error {
+		if chunk.Type == streaming.ChunkTypeReasoning && chunk.Reasoning != nil {
+			// never shown, but billed
+			reasoningBytes += len(chunk.Reasoning.Content)
+			return nil
+		}
 		if chunk.Type != streaming.ChunkTypeText || chunk.Content == "" {
 			return nil
 		}
@@ -624,7 +642,8 @@ func (s *Service) run(
 
 	status := database.ChatMessageStatusDone
 	switch {
-	case guard.State() == guardRefused || (err == nil && isRefusal(content)):
+	// checked first: a stopped or failed reply may still carry the marker
+	case guard.State() == guardRefused || isRefusal(content):
 		status, content = database.ChatMessageStatusRefused, refusalMessage
 	case r.stopped.Load():
 		status, content = database.ChatMessageStatusStopped, guard.Visible()
@@ -639,12 +658,31 @@ func (s *Service) run(
 		}
 	}
 
-	s.account(ctx, r, prv, resp, inputTokens, guard.raw.String(), status, logger)
+	generated := guard.raw.Len() + reasoningBytes
+	s.account(ctx, r, prv, resp, inputTokens, generated, status, logger)
 	s.finish(ctx, r, answer, status, content, logger)
 
-	if isNewSession && status == database.ChatMessageStatusDone {
-		s.generateTitle(ctx, r, prv, session, question.Content, logger)
+	return status == database.ChatMessageStatusDone
+}
+
+func (s *Service) replyLogger(r *reply, providerName string) *logrus.Entry {
+	return s.logger.WithFields(logrus.Fields{
+		"user_id":    r.userID,
+		"session_id": r.sessionID,
+		"message_id": r.messageID,
+		"provider":   providerName,
+	})
+}
+
+// reservedInputTokens bounds what a reply can consume as input before its
+// chain is built: the context budget, or the question plus system prompt
+// when the budget is unlimited.
+func (s *Service) reservedInputTokens(question string) int64 {
+	if s.limits.ContextTokens > 0 {
+		return int64(s.limits.ContextTokens)
 	}
+
+	return int64(estimateTextTokens(systemPrompt) + estimateTextTokens(question))
 }
 
 // prepareChain builds the model input: system prompt, rolling summary, recent
@@ -765,7 +803,7 @@ func (s *Service) account(
 	prv provider.Provider,
 	resp *llms.ContentResponse,
 	inputTokens int,
-	streamed string,
+	generatedBytes int,
 	status database.ChatMessageStatus,
 	logger *logrus.Entry,
 ) {
@@ -780,14 +818,14 @@ func (s *Service) account(
 	}
 
 	if usage.IsZero() {
-		if status == database.ChatMessageStatusError && streamed == "" {
-			if err := s.db.DeleteUnbilledChatUsage(ctx, r.usageID); err != nil {
+		if status == database.ChatMessageStatusError && generatedBytes == 0 {
+			if err := s.db.DeleteChatUsage(ctx, r.usageID); err != nil {
 				logger.WithError(err).Warn("failed to release chat usage")
 			}
 			return
 		}
 		usage.Input = int64(inputTokens)
-		usage.Output = int64(estimateTextTokens(streamed))
+		usage.Output = int64(generatedBytes / bytesPerToken)
 	}
 
 	usage.UpdateCost(prv.GetPriceInfo(pconfig.OptionsTypeAssistant))
@@ -819,7 +857,7 @@ func (s *Service) recordSideUsage(
 	}
 	usage.UpdateCost(prv.GetPriceInfo(pconfig.OptionsTypeSimple))
 
-	_, err := s.db.CreateChatUsage(context.WithoutCancel(ctx), database.CreateChatUsageParams{
+	params := database.CreateChatUsageParams{
 		UserID:    r.userID,
 		Kind:      kind,
 		SessionID: sql.NullInt64{Int64: r.sessionID, Valid: true},
@@ -827,9 +865,16 @@ func (s *Service) recordSideUsage(
 		UsageOut:  usage.Output,
 		CostIn:    usage.CostInput,
 		CostOut:   usage.CostOutput,
-	})
-	if err != nil {
-		logger.WithError(err).Warn("failed to record chat usage")
+	}
+
+	ctx = context.WithoutCancel(ctx)
+	if _, err := s.db.CreateChatUsage(ctx, params); err != nil {
+		// The session may have been deleted during the call; the tokens
+		// still count.
+		params.SessionID = sql.NullInt64{}
+		if _, err := s.db.CreateChatUsage(ctx, params); err != nil {
+			logger.WithError(err).Warn("failed to record chat usage")
+		}
 	}
 }
 

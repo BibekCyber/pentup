@@ -162,15 +162,15 @@ func (q *Queries) CreateChatUsage(ctx context.Context, arg CreateChatUsageParams
 	return i, err
 }
 
-const deleteUnbilledChatUsage = `-- name: DeleteUnbilledChatUsage :exec
+const deleteChatUsage = `-- name: DeleteChatUsage :exec
 DELETE FROM chat_usage
-WHERE id = $1 AND usage_in = 0 AND usage_out = 0
+WHERE id = $1
 `
 
-// A reply that failed before the provider billed anything gives the user
-// their message back.
-func (q *Queries) DeleteUnbilledChatUsage(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteUnbilledChatUsage, id)
+// A reply that failed before generating anything gives the user their
+// message (and its token reservation) back.
+func (q *Queries) DeleteChatUsage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteChatUsage, id)
 	return err
 }
 

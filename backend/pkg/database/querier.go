@@ -62,6 +62,9 @@ type Querier interface {
 	CreateVectorStoreLog(ctx context.Context, arg CreateVectorStoreLogParams) (Vecstorelog, error)
 	DeleteAPIToken(ctx context.Context, id int64) (ApiToken, error)
 	DeleteAssistant(ctx context.Context, id int64) (Assistant, error)
+	// A reply that failed before generating anything gives the user their
+	// message (and its token reservation) back.
+	DeleteChatUsage(ctx context.Context, id int64) error
 	DeleteDomain(ctx context.Context, id int64) (Domain, error)
 	DeleteFavoriteFlow(ctx context.Context, arg DeleteFavoriteFlowParams) (UserPreference, error)
 	DeleteFlow(ctx context.Context, id int64) (Flow, error)
@@ -71,9 +74,6 @@ type Querier interface {
 	DeleteScanCredentialsForDomain(ctx context.Context, domainID int64) error
 	DeleteSubtask(ctx context.Context, id int64) error
 	DeleteSubtasks(ctx context.Context, ids []int64) error
-	// A reply that failed before the provider billed anything gives the user
-	// their message back.
-	DeleteUnbilledChatUsage(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteUserAPIToken(ctx context.Context, arg DeleteUserAPITokenParams) (ApiToken, error)
 	DeleteUserAPITokenByTokenID(ctx context.Context, arg DeleteUserAPITokenByTokenIDParams) (ApiToken, error)
