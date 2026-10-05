@@ -580,7 +580,7 @@ export type MutationCreateApiTokenArgs = {
 export type MutationCreateAssistantArgs = {
     flowId: Scalars['ID']['input'];
     input: Scalars['String']['input'];
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
     useAgents: Scalars['Boolean']['input'];
 };
 
@@ -677,7 +677,7 @@ export type MutationRenameFlowArgs = {
 
 export type MutationSendChatMessageArgs = {
     content: Scalars['String']['input'];
-    providerName: Scalars['String']['input'];
+    providerName?: InputMaybe<Scalars['String']['input']>;
     sessionId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -2229,7 +2229,7 @@ export type RejectFlowTemplateRequestMutationVariables = Exact<{
 export type RejectFlowTemplateRequestMutation = { rejectFlowTemplateRequest: FlowTemplateRequestFragmentFragment };
 
 export type CreateFlowMutationVariables = Exact<{
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
     input: Scalars['String']['input'];
 }>;
 
@@ -2270,7 +2270,7 @@ export type RenameFlowMutation = { renameFlow: ResultType };
 
 export type CreateAssistantMutationVariables = Exact<{
     flowId: Scalars['ID']['input'];
-    modelProvider: Scalars['String']['input'];
+    modelProvider?: InputMaybe<Scalars['String']['input']>;
     input: Scalars['String']['input'];
     useAgents: Scalars['Boolean']['input'];
 }>;
@@ -2670,7 +2670,7 @@ export type ChatQuotaQuery = { chatQuota: ChatQuotaFragmentFragment };
 
 export type SendChatMessageMutationVariables = Exact<{
     sessionId?: InputMaybe<Scalars['ID']['input']>;
-    providerName: Scalars['String']['input'];
+    providerName?: InputMaybe<Scalars['String']['input']>;
     content: Scalars['String']['input'];
 }>;
 
@@ -6427,7 +6427,7 @@ export type RejectFlowTemplateRequestMutationOptions = Apollo.BaseMutationOption
     RejectFlowTemplateRequestMutationVariables
 >;
 export const CreateFlowDocument = gql`
-    mutation createFlow($modelProvider: String!, $input: String!) {
+    mutation createFlow($modelProvider: String, $input: String!) {
         createFlow(modelProvider: $modelProvider, input: $input) {
             ...flowFragment
         }
@@ -6635,7 +6635,7 @@ export type RenameFlowMutationHookResult = ReturnType<typeof useRenameFlowMutati
 export type RenameFlowMutationResult = Apollo.MutationResult<RenameFlowMutation>;
 export type RenameFlowMutationOptions = Apollo.BaseMutationOptions<RenameFlowMutation, RenameFlowMutationVariables>;
 export const CreateAssistantDocument = gql`
-    mutation createAssistant($flowId: ID!, $modelProvider: String!, $input: String!, $useAgents: Boolean!) {
+    mutation createAssistant($flowId: ID!, $modelProvider: String, $input: String!, $useAgents: Boolean!) {
         createAssistant(flowId: $flowId, modelProvider: $modelProvider, input: $input, useAgents: $useAgents) {
             flow {
                 ...flowFragment
@@ -8995,7 +8995,7 @@ export type ChatQuotaLazyQueryHookResult = ReturnType<typeof useChatQuotaLazyQue
 export type ChatQuotaSuspenseQueryHookResult = ReturnType<typeof useChatQuotaSuspenseQuery>;
 export type ChatQuotaQueryResult = Apollo.QueryResult<ChatQuotaQuery, ChatQuotaQueryVariables>;
 export const SendChatMessageDocument = gql`
-    mutation sendChatMessage($sessionId: ID, $providerName: String!, $content: String!) {
+    mutation sendChatMessage($sessionId: ID, $providerName: String, $content: String!) {
         sendChatMessage(sessionId: $sessionId, providerName: $providerName, content: $content) {
             session {
                 ...chatSessionFragment

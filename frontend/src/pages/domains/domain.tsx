@@ -57,6 +57,7 @@ import { getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
 import { useDomain } from '@/providers/domain-provider';
 import { useDomains } from '@/providers/domains-provider';
+import { useProviders } from '@/providers/providers-provider';
 
 // How many child-flow dossiers a page shows before the client-side pager kicks in.
 const PAGE_SIZE = 12;
@@ -177,6 +178,7 @@ const FlowCard = ({
     const [deleteFlow] = useDeleteFlowMutation();
     const [renameFlow] = useRenameFlowMutation();
     const navigate = useNavigate();
+    const { canManageProviders } = useProviders();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [title, setTitle] = useState(flow.title);
@@ -269,7 +271,7 @@ const FlowCard = ({
                             <div className="d-name">{flow.title}</div>
                             <div className="d-id">
                                 #{flow.id} · {getTargetTypeLabel(targetType)}
-                                {flow.provider?.name ? ` · ${flow.provider.name}` : ''}
+                                {canManageProviders && flow.provider?.name ? ` · ${flow.provider.name}` : ''}
                             </div>
                         </div>
                         {meta ? (
@@ -345,10 +347,12 @@ const FlowCard = ({
                     </div>
 
                     <div className="d-foot">
-                        <span className="chip">
-                            <Cpu className="size-[13px]" />
-                            {flow.provider?.name || 'N/A'}
-                        </span>
+                        {canManageProviders && (
+                            <span className="chip">
+                                <Cpu className="size-[13px]" />
+                                {flow.provider?.name || 'N/A'}
+                            </span>
+                        )}
                         <span className="flex-1" />
                         <span className="phase">{formatDate(flow.createdAt)}</span>
                     </div>

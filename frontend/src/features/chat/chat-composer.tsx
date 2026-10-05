@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { ChatProviderSelect } from './chat-provider-select';
 
 interface ChatComposerProps {
+    canManageProviders: boolean;
     canSend: boolean;
     isSending: boolean;
     isStopping: boolean;
@@ -25,11 +26,12 @@ interface ChatComposerProps {
 
 /**
  * Chat input styled like the flow form composer: autosizing textarea with the
- * provider picker and the send / stop button underneath.
+ * provider picker (admins only) and the send / stop button underneath.
  */
 export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(
     (
         {
+            canManageProviders,
             canSend,
             isSending,
             isStopping,
@@ -46,7 +48,13 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(
     ) => {
         const length = value.trim().length;
         const isTooLong = value.length > maxLength;
-        const isSendable = canSend && !isSending && !isStreaming && length > 0 && !isTooLong && !!providerName;
+        const isSendable =
+            canSend &&
+            !isSending &&
+            !isStreaming &&
+            length > 0 &&
+            !isTooLong &&
+            (!canManageProviders || !!providerName);
         const showCounter = value.length > maxLength * 0.8;
 
         const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -86,11 +94,13 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(
                         value={value}
                     />
                     <InputGroupAddon align="block-end">
-                        <ChatProviderSelect
-                            disabled={isSending || isStreaming}
-                            onChange={onProviderChange}
-                            value={providerName}
-                        />
+                        {canManageProviders && (
+                            <ChatProviderSelect
+                                disabled={isSending || isStreaming}
+                                onChange={onProviderChange}
+                                value={providerName}
+                            />
+                        )}
 
                         {showCounter && (
                             <span

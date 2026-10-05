@@ -1087,7 +1087,7 @@ mutation rejectFlowTemplateRequest($requestId: ID!, $revision: Int!, $note: Stri
 
 # ==================== Flows ====================
 
-mutation createFlow($modelProvider: String!, $input: String!) {
+mutation createFlow($modelProvider: String, $input: String!) {
     createFlow(modelProvider: $modelProvider, input: $input) {
         ...flowFragment
     }
@@ -1113,7 +1113,7 @@ mutation renameFlow($flowId: ID!, $title: String!) {
     renameFlow(flowId: $flowId, title: $title)
 }
 
-mutation createAssistant($flowId: ID!, $modelProvider: String!, $input: String!, $useAgents: Boolean!) {
+mutation createAssistant($flowId: ID!, $modelProvider: String, $input: String!, $useAgents: Boolean!) {
     createAssistant(flowId: $flowId, modelProvider: $modelProvider, input: $input, useAgents: $useAgents) {
         flow {
             ...flowFragment
@@ -1527,7 +1527,7 @@ query chatQuota {
     }
 }
 
-mutation sendChatMessage($sessionId: ID, $providerName: String!, $content: String!) {
+mutation sendChatMessage($sessionId: ID, $providerName: String, $content: String!) {
     sendChatMessage(sessionId: $sessionId, providerName: $providerName, content: $content) {
         session {
             ...chatSessionFragment

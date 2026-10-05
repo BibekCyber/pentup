@@ -17,7 +17,7 @@ import client from '@/lib/apollo';
 import { DomainProvider } from '@/providers/domain-provider';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
-import { ProvidersProvider } from '@/providers/providers-provider';
+import { PROVIDERS_ADMIN_PERMISSION, ProvidersProvider } from '@/providers/providers-provider';
 import { TemplatesProvider } from '@/providers/templates-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { UserProvider } from '@/providers/user-provider';
@@ -240,12 +240,29 @@ const App = () => {
                                                         }
                                                         index
                                                     />
+                                                    {/* Providers are shared and admin-only; the
+                                                        index and catch-all redirects land here and
+                                                        bounce everyone else to Prompts */}
                                                     <Route
-                                                        element={<SettingsProviders />}
+                                                        element={
+                                                            <ProtectedByPermission
+                                                                fallback="/settings/prompts"
+                                                                permission={PROVIDERS_ADMIN_PERMISSION}
+                                                            >
+                                                                <SettingsProviders />
+                                                            </ProtectedByPermission>
+                                                        }
                                                         path="providers"
                                                     />
                                                     <Route
-                                                        element={<SettingsProvider />}
+                                                        element={
+                                                            <ProtectedByPermission
+                                                                fallback="/settings/prompts"
+                                                                permission={PROVIDERS_ADMIN_PERMISSION}
+                                                            >
+                                                                <SettingsProvider />
+                                                            </ProtectedByPermission>
+                                                        }
                                                         path="providers/:providerId"
                                                     />
                                                     <Route

@@ -75,9 +75,10 @@ export const FlowsProvider = ({ children }: FlowsProviderProps) => {
             const { message, providerName } = values;
 
             const input = message.trim();
-            const modelProvider = providerName.trim();
+            // Empty for users who cannot pick: the backend uses the shared default.
+            const modelProvider = providerName.trim() || undefined;
 
-            if (!input || !modelProvider) {
+            if (!input) {
                 return null;
             }
 
@@ -112,9 +113,10 @@ export const FlowsProvider = ({ children }: FlowsProviderProps) => {
             const { message, providerName, useAgents } = values;
 
             const input = message.trim();
-            const modelProvider = providerName.trim();
+            // Empty for users who cannot pick: the backend uses the shared default.
+            const modelProvider = providerName.trim() || undefined;
 
-            if (!input || !modelProvider) {
+            if (!input) {
                 return null;
             }
 

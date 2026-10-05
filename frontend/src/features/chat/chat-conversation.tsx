@@ -48,7 +48,7 @@ interface ChatConversationProps {
 export const ChatConversation = ({ sessionId }: ChatConversationProps) => {
     const navigate = useNavigate();
     const composerRef = useRef<HTMLTextAreaElement>(null);
-    const { selectedProvider, setSelectedProvider } = useProviders();
+    const { canManageProviders, selectedProvider, setSelectedProvider } = useProviders();
 
     const [draft, setDraft] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -102,9 +102,10 @@ export const ChatConversation = ({ sessionId }: ChatConversationProps) => {
 
     const send = useCallback(
         async (content: string) => {
-            const providerName = selectedProvider?.name;
+            // Without a pick the backend answers with the shared default provider.
+            const providerName = canManageProviders ? selectedProvider?.name : undefined;
 
-            if (!providerName || isSending) {
+            if ((canManageProviders && !providerName) || isSending) {
                 return;
             }
 
@@ -166,7 +167,16 @@ export const ChatConversation = ({ sessionId }: ChatConversationProps) => {
                 setIsSending(false);
             }
         },
-        [isSending, navigate, refetchQuota, scrollToEnd, selectedProvider?.name, sendMutation, sessionId],
+        [
+            canManageProviders,
+            isSending,
+            navigate,
+            refetchQuota,
+            scrollToEnd,
+            selectedProvider?.name,
+            sendMutation,
+            sessionId,
+        ],
     );
 
     const stop = useCallback(async () => {
@@ -330,6 +340,7 @@ export const ChatConversation = ({ sessionId }: ChatConversationProps) => {
                             </Button>
                         )}
                         <ChatComposer
+                            canManageProviders={canManageProviders}
                             canSend={quotaStatus.canSend}
                             isSending={isSending}
                             isStopping={isStopping}

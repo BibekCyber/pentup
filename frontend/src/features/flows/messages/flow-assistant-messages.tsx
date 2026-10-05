@@ -31,6 +31,7 @@ import FlowMessage from './flow-message';
 
 interface AssistantsDropdownProps {
     assistants: AssistantFragmentFragment[];
+    canManageProviders: boolean;
     isAssistantCreating: boolean;
     isDisabled: boolean;
     onAssistantCreate: () => void;
@@ -42,6 +43,7 @@ interface AssistantsDropdownProps {
 
 const AssistantsDropdown = ({
     assistants,
+    canManageProviders,
     isAssistantCreating,
     isDisabled,
     onAssistantCreate,
@@ -124,7 +126,8 @@ const AssistantsDropdown = ({
     // Render assistant item
     const renderAssistantItem = (assistant: AssistantFragmentFragment, index: number) => {
         const isSelected = selectedAssistantId === assistant.id;
-        const isValid = isProviderValid(assistant.provider, providers);
+        // Only admins see providers, so only they can tell a removed one apart.
+        const isValid = !canManageProviders || isProviderValid(assistant.provider, providers);
 
         return (
             <CommandItem
@@ -138,10 +141,12 @@ const AssistantsDropdown = ({
                     tooltip={formatName(assistant.status)}
                 />
 
-                <ProviderIcon
-                    className="shrink-0"
-                    provider={assistant.provider}
-                />
+                {canManageProviders && (
+                    <ProviderIcon
+                        className="shrink-0"
+                        provider={assistant.provider}
+                    />
+                )}
 
                 <span className="bg-muted text-muted-foreground flex size-5 shrink-0 items-center justify-center rounded text-xs font-medium">
                     {index}
@@ -194,7 +199,7 @@ const AssistantsDropdown = ({
                                     status={selectedAssistant.status}
                                     tooltip={formatName(selectedAssistant.status)}
                                 />
-                                <ProviderIcon provider={selectedAssistant.provider} />
+                                {canManageProviders && <ProviderIcon provider={selectedAssistant.provider} />}
                                 <span className="bg-muted text-muted-foreground flex size-5 shrink-0 items-center justify-center rounded text-xs font-medium">
                                     {selectedAssistantIndex + 1}
                                 </span>
@@ -284,7 +289,7 @@ const searchFormSchema = z.object({
 });
 
 const FlowAssistantMessages = ({ className, isActive = true }: FlowAssistantMessagesProps) => {
-    const { providers } = useProviders();
+    const { canManageProviders, providers } = useProviders();
 
     const {
         assistantLogs: logs,
@@ -558,6 +563,7 @@ const FlowAssistantMessages = ({ className, isActive = true }: FlowAssistantMess
                     {flowId && (
                         <AssistantsDropdown
                             assistants={assistants}
+                            canManageProviders={canManageProviders}
                             isAssistantCreating={isAssistantCreating}
                             isDisabled={isFormDisabled}
                             onAssistantCreate={handleAssistantCreate}

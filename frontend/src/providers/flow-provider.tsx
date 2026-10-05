@@ -245,9 +245,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
             const { message, providerName, useAgents } = values;
 
             const input = message.trim();
-            const modelProvider = providerName.trim();
+            // Empty for users who cannot pick: the backend uses the shared default.
+            const modelProvider = providerName.trim() || undefined;
 
-            if (!input || !modelProvider || !flowId) {
+            if (!input || !flowId) {
                 return;
             }
 
