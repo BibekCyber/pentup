@@ -11,7 +11,6 @@ import (
 	"pentagi/pkg/database"
 	"pentagi/pkg/graph/subscriptions"
 	"pentagi/pkg/providers"
-	"pentagi/pkg/providers/provider"
 	"pentagi/pkg/server/logger"
 	"pentagi/pkg/server/models"
 	"pentagi/pkg/server/rdb"
@@ -274,9 +273,14 @@ func (s *AssistantService) CreateFlowAssistant(c *gin.Context) {
 	}
 
 	uid := c.GetUint64("uid")
-	prvname := provider.ProviderName(createAssistant.Provider)
+	prvname, err := s.pc.ResolveProviderName(c, createAssistant.Provider, canManageProviders(c))
+	if err != nil {
+		logger.FromContext(c).WithError(err).Errorf("error resolving provider")
+		response.Error(c, response.ErrInternal, err)
+		return
+	}
 
-	prv, err := s.pc.GetProvider(c, prvname, int64(uid))
+	prv, err := s.pc.GetProvider(c, prvname)
 	if err != nil {
 		logger.FromContext(c).WithError(err).Errorf("error getting provider: not found")
 		response.Error(c, response.ErrInternal, err)

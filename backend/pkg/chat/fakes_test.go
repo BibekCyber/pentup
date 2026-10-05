@@ -436,14 +436,9 @@ func (p *fakeProvider) CallWithExtraOptions(
 
 type fakeResolver struct {
 	providers map[string]provider.Provider
-	// owner restricts a provider name to one user, like a user-defined provider
-	owner map[string]int64
 }
 
-func (r *fakeResolver) GetProvider(ctx context.Context, name provider.ProviderName, userID int64) (provider.Provider, error) {
-	if owner, ok := r.owner[string(name)]; ok && owner != userID {
-		return nil, sql.ErrNoRows
-	}
+func (r *fakeResolver) GetProvider(ctx context.Context, name provider.ProviderName) (provider.Provider, error) {
 	prv, ok := r.providers[string(name)]
 	if !ok {
 		return nil, sql.ErrNoRows

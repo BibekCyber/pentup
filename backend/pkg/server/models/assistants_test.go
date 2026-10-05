@@ -113,10 +113,11 @@ func TestCreateAssistantValid(t *testing.T) {
 		assert.Error(t, ca.Valid())
 	})
 
-	t.Run("missing provider", func(t *testing.T) {
+	// The server falls back to the shared default provider.
+	t.Run("provider is optional", func(t *testing.T) {
 		t.Parallel()
 		ca := CreateAssistant{Input: "hello", Provider: ""}
-		assert.Error(t, ca.Valid())
+		assert.NoError(t, ca.Valid())
 	})
 }
 

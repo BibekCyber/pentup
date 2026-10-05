@@ -405,7 +405,7 @@ type ComplexityRoot struct {
 		ApproveFlowTemplateRequest    func(childComplexity int, requestID int64, revision int, templateVersion *int, note *string) int
 		CallAssistant                 func(childComplexity int, flowID int64, assistantID int64, input string, useAgents bool) int
 		CreateAPIToken                func(childComplexity int, input model.CreateAPITokenInput) int
-		CreateAssistant               func(childComplexity int, flowID int64, modelProvider string, input string, useAgents bool) int
+		CreateAssistant               func(childComplexity int, flowID int64, modelProvider *string, input string, useAgents bool) int
 		CreateDomain                  func(childComplexity int, input model.CreateDomainInput) int
 		CreateFlow                    func(childComplexity int, modelProvider *string, input string) int
 		CreateFlowTemplate            func(childComplexity int, input model.CreateFlowTemplateInput) int
@@ -426,7 +426,7 @@ type ComplexityRoot struct {
 		RejectFlowTemplateRequest     func(childComplexity int, requestID int64, revision int, note string) int
 		RenameChatSession             func(childComplexity int, sessionID int64, title string) int
 		RenameFlow                    func(childComplexity int, flowID int64, title string) int
-		SendChatMessage               func(childComplexity int, sessionID *int64, providerName string, content string) int
+		SendChatMessage               func(childComplexity int, sessionID *int64, providerName *string, content string) int
 		SetDefaultProvider            func(childComplexity int, providerID int64) int
 		StopAssistant                 func(childComplexity int, flowID int64, assistantID int64) int
 		StopChatMessage               func(childComplexity int, messageID int64) int
@@ -801,7 +801,7 @@ type MutationResolver interface {
 	RenameFlow(ctx context.Context, flowID int64, title string) (model.ResultType, error)
 	UpdateFindingCvss(ctx context.Context, taskID *int64, assistantID *int64, index int, expectedTitle string, cvss float64) (model.ResultType, error)
 	UpdateFindingSeverity(ctx context.Context, taskID *int64, assistantID *int64, index int, expectedTitle string, severity model.Severity) (model.ResultType, error)
-	CreateAssistant(ctx context.Context, flowID int64, modelProvider string, input string, useAgents bool) (*model.FlowAssistant, error)
+	CreateAssistant(ctx context.Context, flowID int64, modelProvider *string, input string, useAgents bool) (*model.FlowAssistant, error)
 	CallAssistant(ctx context.Context, flowID int64, assistantID int64, input string, useAgents bool) (model.ResultType, error)
 	StopAssistant(ctx context.Context, flowID int64, assistantID int64) (*model.Assistant, error)
 	DeleteAssistant(ctx context.Context, flowID int64, assistantID int64) (model.ResultType, error)
@@ -832,7 +832,7 @@ type MutationResolver interface {
 	CreateDomain(ctx context.Context, input model.CreateDomainInput) (*model.Domain, error)
 	DeleteDomain(ctx context.Context, id int64) (model.ResultType, error)
 	CreateScan(ctx context.Context, input model.CreateScanInput) (*model.Domain, error)
-	SendChatMessage(ctx context.Context, sessionID *int64, providerName string, content string) (*model.ChatSendResult, error)
+	SendChatMessage(ctx context.Context, sessionID *int64, providerName *string, content string) (*model.ChatSendResult, error)
 	StopChatMessage(ctx context.Context, messageID int64) (*model.ChatMessage, error)
 	RenameChatSession(ctx context.Context, sessionID int64, title string) (*model.ChatSession, error)
 	DeleteChatSession(ctx context.Context, sessionID int64) (model.ResultType, error)
@@ -2682,7 +2682,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateAssistant(childComplexity, args["flowId"].(int64), args["modelProvider"].(string), args["input"].(string), args["useAgents"].(bool)), true
+		return e.complexity.Mutation.CreateAssistant(childComplexity, args["flowId"].(int64), args["modelProvider"].(*string), args["input"].(string), args["useAgents"].(bool)), true
 
 	case "Mutation.createDomain":
 		if e.complexity.Mutation.CreateDomain == nil {
@@ -2934,7 +2934,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SendChatMessage(childComplexity, args["sessionId"].(*int64), args["providerName"].(string), args["content"].(string)), true
+		return e.complexity.Mutation.SendChatMessage(childComplexity, args["sessionId"].(*int64), args["providerName"].(*string), args["content"].(string)), true
 
 	case "Mutation.setDefaultProvider":
 		if e.complexity.Mutation.SetDefaultProvider == nil {
@@ -5608,22 +5608,22 @@ func (ec *executionContext) field_Mutation_createAssistant_argsFlowID(
 func (ec *executionContext) field_Mutation_createAssistant_argsModelProvider(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (string, error) {
+) (*string, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["modelProvider"]
 	if !ok {
-		var zeroVal string
+		var zeroVal *string
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("modelProvider"))
 	if tmp, ok := rawArgs["modelProvider"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
 	}
 
-	var zeroVal string
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -6653,22 +6653,22 @@ func (ec *executionContext) field_Mutation_sendChatMessage_argsSessionID(
 func (ec *executionContext) field_Mutation_sendChatMessage_argsProviderName(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (string, error) {
+) (*string, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["providerName"]
 	if !ok {
-		var zeroVal string
+		var zeroVal *string
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("providerName"))
 	if tmp, ok := rawArgs["providerName"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
 	}
 
-	var zeroVal string
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -21159,7 +21159,7 @@ func (ec *executionContext) _Mutation_createAssistant(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateAssistant(rctx, fc.Args["flowId"].(int64), fc.Args["modelProvider"].(string), fc.Args["input"].(string), fc.Args["useAgents"].(bool))
+		return ec.resolvers.Mutation().CreateAssistant(rctx, fc.Args["flowId"].(int64), fc.Args["modelProvider"].(*string), fc.Args["input"].(string), fc.Args["useAgents"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -23332,7 +23332,7 @@ func (ec *executionContext) _Mutation_sendChatMessage(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SendChatMessage(rctx, fc.Args["sessionId"].(*int64), fc.Args["providerName"].(string), fc.Args["content"].(string))
+		return ec.resolvers.Mutation().SendChatMessage(rctx, fc.Args["sessionId"].(*int64), fc.Args["providerName"].(*string), fc.Args["content"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

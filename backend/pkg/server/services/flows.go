@@ -347,9 +347,14 @@ func (s *FlowService) CreateFlow(c *gin.Context) {
 	}
 
 	uid := c.GetUint64("uid")
-	prvname := provider.ProviderName(createFlow.Provider)
+	prvname, err := s.pc.ResolveProviderName(c, createFlow.Provider, canManageProviders(c))
+	if err != nil {
+		logger.FromContext(c).WithError(err).Errorf("error resolving provider")
+		response.Error(c, response.ErrInternal, err)
+		return
+	}
 
-	prv, err := s.pc.GetProvider(c, prvname, int64(uid))
+	prv, err := s.pc.GetProvider(c, prvname)
 	if err != nil {
 		logger.FromContext(c).WithError(err).Errorf("error getting provider: not found")
 		response.Error(c, response.ErrInternal, err)
@@ -468,9 +473,11 @@ func (s *FlowService) PatchFlow(c *gin.Context) {
 			return
 		}
 
+		// Only provider admins may switch a flow's provider; for everyone else
+		// the flow keeps the provider it was created with.
 		var prv provider.Provider
-		if patchFlow.Provider != nil && *patchFlow.Provider != "" {
-			prv, err = s.pc.GetProvider(c, provider.ProviderName(*patchFlow.Provider), int64(uid))
+		if patchFlow.Provider != nil && *patchFlow.Provider != "" && canManageProviders(c) {
+			prv, err = s.pc.GetProvider(c, provider.ProviderName(*patchFlow.Provider))
 			if err != nil {
 				logger.FromContext(c).WithError(err).Errorf("error getting provider by name")
 				response.Error(c, response.ErrInternal, err)

@@ -38,7 +38,14 @@ func (s *ProviderService) GetProviders(c *gin.Context) {
 		return
 	}
 
-	providers, err := s.providers.GetProviders(c, int64(c.GetUint64("uid")))
+	// Providers are hidden from everyone who cannot manage them: their work
+	// always runs on the shared default, so there is nothing for them to pick.
+	if !canManageProviders(c) {
+		response.Success(c, http.StatusOK, []models.ProviderInfo{})
+		return
+	}
+
+	providers, err := s.providers.GetProviders(c)
 	if err != nil {
 		logger.FromContext(c).Errorf("error getting providers: %v", err)
 		response.Error(c, response.ErrInternal, nil)
@@ -54,4 +61,10 @@ func (s *ProviderService) GetProviders(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, providerInfos)
+}
+
+// canManageProviders reports whether the caller may see, choose and manage
+// providers. Everyone else's flows and assistants run on the shared default.
+func canManageProviders(c *gin.Context) bool {
+	return slices.Contains(c.GetStringSlice("prm"), "settings.providers.admin")
 }

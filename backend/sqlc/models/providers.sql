@@ -1,4 +1,6 @@
 -- name: GetProviders :many
+-- Providers are shared by all users; user_id only records the admin who
+-- created the row, so no query here is scoped to a user.
 SELECT
   p.*
 FROM providers p
@@ -18,35 +20,11 @@ SELECT
 FROM providers p
 WHERE p.id = $1 AND p.deleted_at IS NULL;
 
--- name: GetUserProvider :one
+-- name: GetProviderByName :one
 SELECT
   p.*
 FROM providers p
-INNER JOIN users u ON p.user_id = u.id
-WHERE p.id = $1 AND p.user_id = $2 AND p.deleted_at IS NULL;
-
--- name: GetUserProviders :many
-SELECT
-  p.*
-FROM providers p
-INNER JOIN users u ON p.user_id = u.id
-WHERE p.user_id = $1 AND p.deleted_at IS NULL
-ORDER BY p.created_at ASC;
-
--- name: GetUserProvidersByType :many
-SELECT
-  p.*
-FROM providers p
-INNER JOIN users u ON p.user_id = u.id
-WHERE p.user_id = $1 AND p.type = $2 AND p.deleted_at IS NULL
-ORDER BY p.created_at ASC;
-
--- name: GetUserProviderByName :one
-SELECT
-  p.*
-FROM providers p
-INNER JOIN users u ON p.user_id = u.id
-WHERE p.name = $1 AND p.user_id = $2 AND p.deleted_at IS NULL;
+WHERE p.name = $1 AND p.deleted_at IS NULL;
 
 -- name: CreateProvider :one
 INSERT INTO providers (
@@ -62,37 +40,25 @@ RETURNING *;
 -- name: UpdateProvider :one
 UPDATE providers
 SET config = $2, name = $3
-WHERE id = $1
-RETURNING *;
-
--- name: UpdateUserProvider :one
-UPDATE providers
-SET config = $3, name = $4
-WHERE id = $1 AND user_id = $2
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: DeleteProvider :one
 UPDATE providers
-SET deleted_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING *;
-
--- name: DeleteUserProvider :one
-UPDATE providers
-SET deleted_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND user_id = $2
+SET deleted_at = CURRENT_TIMESTAMP, is_default = false
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: SetDefaultProvider :one
 UPDATE providers SET is_default = true
-WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: ClearDefaultProviders :exec
 UPDATE providers SET is_default = false
-WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL;
+WHERE is_default = true AND deleted_at IS NULL;
 
 -- name: GetDefaultProvider :one
 SELECT * FROM providers
-WHERE user_id = $1 AND is_default = true AND deleted_at IS NULL
+WHERE is_default = true AND deleted_at IS NULL
 LIMIT 1;

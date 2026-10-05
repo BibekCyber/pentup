@@ -6091,8 +6091,7 @@ const docTemplate = `{
         "models.CreateAssistant": {
             "type": "object",
             "required": [
-                "input",
-                "provider"
+                "input"
             ],
             "properties": {
                 "functions": {
@@ -6115,8 +6114,7 @@ const docTemplate = `{
         "models.CreateFlow": {
             "type": "object",
             "required": [
-                "input",
-                "provider"
+                "input"
             ],
             "properties": {
                 "functions": {

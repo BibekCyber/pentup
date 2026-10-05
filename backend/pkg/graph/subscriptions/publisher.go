@@ -104,16 +104,18 @@ func (p *flowPublisher) AssistantLogUpdated(ctx context.Context, assistantLog da
 	p.ctrl.assistantLogUpdated.Publish(ctx, p.flowID, converter.ConvertAssistantLog(assistantLog, appendPart))
 }
 
+// Providers are shared, so every change goes to all subscribers. Only provider
+// admins may subscribe to these channels.
 func (p *flowPublisher) ProviderCreated(ctx context.Context, provider database.Provider, cfg *pconfig.ProviderConfig) {
-	p.ctrl.providerCreated.Publish(ctx, p.userID, converter.ConvertProvider(provider, cfg))
+	p.ctrl.providerCreated.Broadcast(ctx, converter.ConvertProvider(provider, cfg))
 }
 
 func (p *flowPublisher) ProviderUpdated(ctx context.Context, provider database.Provider, cfg *pconfig.ProviderConfig) {
-	p.ctrl.providerUpdated.Publish(ctx, p.userID, converter.ConvertProvider(provider, cfg))
+	p.ctrl.providerUpdated.Broadcast(ctx, converter.ConvertProvider(provider, cfg))
 }
 
 func (p *flowPublisher) ProviderDeleted(ctx context.Context, provider database.Provider, cfg *pconfig.ProviderConfig) {
-	p.ctrl.providerDeleted.Publish(ctx, p.userID, converter.ConvertProvider(provider, cfg))
+	p.ctrl.providerDeleted.Broadcast(ctx, converter.ConvertProvider(provider, cfg))
 }
 
 func (p *flowPublisher) APITokenCreated(ctx context.Context, apiToken database.APITokenWithSecret) {

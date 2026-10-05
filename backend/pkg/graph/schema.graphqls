@@ -296,7 +296,7 @@ input CreateDomainInput {
   templateIds: [ID!]!
   # When true, run recon + classifier to detect targetType and pick default templates
   autoDetect: Boolean
-  # Optional; when omitted the backend resolves the user's default provider.
+  # Optional and only honoured for provider admins; everyone else gets the shared default provider.
   modelProvider: String
 }
 
@@ -351,7 +351,7 @@ input CreateScanInput {
   templates: [ScanTemplateInput!]!
   # Only used for internal (cloud) / grey-box (web); ignored otherwise.
   credential: ScanCredentialInput
-  # Optional; when omitted the backend resolves the user's default provider.
+  # Optional and only honoured for provider admins; everyone else gets the shared default provider.
   modelProvider: String
 }
 
@@ -1170,7 +1170,7 @@ type Mutation {
   ): ResultType!
 
   # Assistant management
-  createAssistant(flowId: ID!, modelProvider: String!, input: String!, useAgents: Boolean!): FlowAssistant!
+  createAssistant(flowId: ID!, modelProvider: String, input: String!, useAgents: Boolean!): FlowAssistant!
   callAssistant(flowId: ID!, assistantId: ID!, input: String!, useAgents: Boolean!): ResultType!
   stopAssistant(flowId: ID!, assistantId: ID!): Assistant!
   deleteAssistant(flowId: ID!, assistantId: ID!): ResultType!
@@ -1221,7 +1221,7 @@ type Mutation {
 
   # Pentest chat. sendChatMessage returns at once; the reply streams through
   # chatMessageUpdated. Omit sessionId to start a new session.
-  sendChatMessage(sessionId: ID, providerName: String!, content: String!): ChatSendResult!
+  sendChatMessage(sessionId: ID, providerName: String, content: String!): ChatSendResult!
   stopChatMessage(messageId: ID!): ChatMessage!
   renameChatSession(sessionId: ID!, title: String!): ChatSession!
   deleteChatSession(sessionId: ID!): ResultType!

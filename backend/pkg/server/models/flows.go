@@ -84,7 +84,7 @@ func (f Flow) Validate(db *gorm.DB) {
 // nolint:lll
 type CreateFlow struct {
 	Input     string           `form:"input" json:"input" validate:"required" example:"user input for first task in the flow"`
-	Provider  string           `form:"provider" json:"provider" validate:"required" example:"openai"`
+	Provider  string           `form:"provider,omitempty" json:"provider,omitempty" validate:"omitempty" example:"openai"`
 	Functions *tools.Functions `form:"functions,omitempty" json:"functions,omitempty" validate:"omitempty,valid"`
 }
 

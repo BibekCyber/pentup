@@ -135,7 +135,7 @@ func TestDetectionSweep(t *testing.T) {
 	results := make([]result, 0, len(cases))
 	for _, tc := range cases {
 		start := time.Now()
-		got, metaRaw := classifier.Classify(ctx, 1, tc.domain, fallback)
+		got, metaRaw := classifier.Classify(ctx, tc.domain, fallback)
 
 		var meta struct {
 			Confidence float64 `json:"confidence"`

@@ -56,8 +56,7 @@ func newHarness(t *testing.T, limits Limits, prv *fakeProvider) *harness {
 	db := newFakeDB(clock.Now)
 	pub := &fakePublisher{}
 	resolver := &fakeResolver{
-		providers: map[string]provider.Provider{"kimi": prv, "alices-own": prv},
-		owner:     map[string]int64{"alices-own": alice},
+		providers: map[string]provider.Provider{"kimi": prv},
 	}
 
 	logger := logrus.New()
@@ -315,9 +314,6 @@ func TestSend_ValidatesInput(t *testing.T) {
 	assertUserError(t, err, "select a provider")
 
 	_, err = h.svc.Send(ctx, alice, nil, "nope", "hello")
-	assertUserError(t, err, "not available")
-
-	_, err = h.svc.Send(ctx, bob, nil, "alices-own", "hello")
 	assertUserError(t, err, "not available")
 
 	assert.Zero(t, h.prv.calls)

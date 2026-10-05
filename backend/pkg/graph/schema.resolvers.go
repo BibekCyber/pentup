@@ -83,16 +83,11 @@ func (r *mutationResolver) CreateFlow(ctx context.Context, modelProvider *string
 		return nil, fmt.Errorf("user input is required")
 	}
 
-	// When no provider is supplied, fall back to the user's default provider.
-	if providerName == "" {
-		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
-		if err != nil {
-			return nil, err
-		}
+	prvname, err := r.ProvidersCtrl.ResolveProviderName(ctx, providerName, canManageProviders(ctx))
+	if err != nil {
+		return nil, err
 	}
-
-	prvname := provider.ProviderName(providerName)
-	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, err
 	}
@@ -147,10 +142,12 @@ func (r *mutationResolver) PutUserInput(ctx context.Context, flowID int64, input
 		return model.ResultTypeError, err
 	}
 
+	// Only provider admins may switch a flow's provider; for everyone else the
+	// flow keeps the provider it was created with.
 	var prv provider.Provider
-	if modelProvider != nil && *modelProvider != "" {
+	if modelProvider != nil && *modelProvider != "" && canManageProviders(ctx) {
 		name := provider.ProviderName(*modelProvider)
-		prv, err = r.ProvidersCtrl.GetProvider(ctx, name, uid)
+		prv, err = r.ProvidersCtrl.GetProvider(ctx, name)
 		if err != nil {
 			return model.ResultTypeError, fmt.Errorf("failed to get provider '%s': %w", *modelProvider, err)
 		}
@@ -286,7 +283,7 @@ func (r *mutationResolver) UpdateFindingSeverity(ctx context.Context, taskID *in
 }
 
 // CreateAssistant is the resolver for the createAssistant field.
-func (r *mutationResolver) CreateAssistant(ctx context.Context, flowID int64, modelProvider string, input string, useAgents bool) (*model.FlowAssistant, error) {
+func (r *mutationResolver) CreateAssistant(ctx context.Context, flowID int64, modelProvider *string, input string, useAgents bool) (*model.FlowAssistant, error) {
 	var (
 		err error
 		uid int64
@@ -315,16 +312,20 @@ func (r *mutationResolver) CreateAssistant(ctx context.Context, flowID int64, mo
 		"input":    input,
 	}).Debug("create assistant")
 
-	if modelProvider == "" {
-		return nil, fmt.Errorf("model provider is required")
-	}
-
 	if input == "" {
 		return nil, fmt.Errorf("user input is required")
 	}
 
-	prvname := provider.ProviderName(modelProvider)
-	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	providerName := ""
+	if modelProvider != nil {
+		providerName = *modelProvider
+	}
+
+	prvname, err := r.ProvidersCtrl.ResolveProviderName(ctx, providerName, canManageProviders(ctx))
+	if err != nil {
+		return nil, err
+	}
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +461,7 @@ func (r *mutationResolver) DeleteAssistant(ctx context.Context, flowID int64, as
 
 // TestAgent is the resolver for the testAgent field.
 func (r *mutationResolver) TestAgent(ctx context.Context, typeArg model.ProviderType, agentType model.AgentConfigType, agent model.AgentConfig) (*model.AgentTestResult, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.view")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +484,7 @@ func (r *mutationResolver) TestAgent(ctx context.Context, typeArg model.Provider
 
 // TestProvider is the resolver for the testProvider field.
 func (r *mutationResolver) TestProvider(ctx context.Context, typeArg model.ProviderType, agents model.AgentsConfig) (*model.ProviderTestResult, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.view")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +506,7 @@ func (r *mutationResolver) TestProvider(ctx context.Context, typeArg model.Provi
 
 // CreateProvider is the resolver for the createProvider field.
 func (r *mutationResolver) CreateProvider(ctx context.Context, name string, typeArg model.ProviderType, agents model.AgentsConfig) (*model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.edit")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +531,7 @@ func (r *mutationResolver) CreateProvider(ctx context.Context, name string, type
 
 // UpdateProvider is the resolver for the updateProvider field.
 func (r *mutationResolver) UpdateProvider(ctx context.Context, providerID int64, name string, agents model.AgentsConfig) (*model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.edit")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +544,7 @@ func (r *mutationResolver) UpdateProvider(ctx context.Context, providerID int64,
 
 	cfg := converter.ConvertAgentsConfigFromGqlModel(&agents)
 	prvname := provider.ProviderName(name)
-	prv, err := r.ProvidersCtrl.UpdateProvider(ctx, uid, providerID, prvname, cfg)
+	prv, err := r.ProvidersCtrl.UpdateProvider(ctx, providerID, prvname, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -555,7 +556,7 @@ func (r *mutationResolver) UpdateProvider(ctx context.Context, providerID int64,
 
 // DeleteProvider is the resolver for the deleteProvider field.
 func (r *mutationResolver) DeleteProvider(ctx context.Context, providerID int64) (model.ResultType, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.edit")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return model.ResultTypeError, err
 	}
@@ -565,7 +566,7 @@ func (r *mutationResolver) DeleteProvider(ctx context.Context, providerID int64)
 		"provider": providerID,
 	}).Debug("delete provider")
 
-	prv, err := r.ProvidersCtrl.DeleteProvider(ctx, uid, providerID)
+	prv, err := r.ProvidersCtrl.DeleteProvider(ctx, providerID)
 	if err != nil {
 		return model.ResultTypeError, err
 	}
@@ -582,7 +583,7 @@ func (r *mutationResolver) DeleteProvider(ctx context.Context, providerID int64)
 
 // SetDefaultProvider is the resolver for the setDefaultProvider field.
 func (r *mutationResolver) SetDefaultProvider(ctx context.Context, providerID int64) (*model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.edit")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +593,7 @@ func (r *mutationResolver) SetDefaultProvider(ctx context.Context, providerID in
 		"provider": providerID,
 	}).Debug("set default provider")
 
-	prv, err := r.ProvidersCtrl.SetDefaultProvider(ctx, uid, providerID)
+	prv, err := r.ProvidersCtrl.SetDefaultProvider(ctx, providerID)
 	if err != nil {
 		return nil, err
 	}
@@ -1563,20 +1564,16 @@ func (r *mutationResolver) CreateDomain(ctx context.Context, input model.CreateD
 		}
 	}
 
-	// When no provider is supplied, fall back to the user's default provider.
 	providerName := ""
 	if input.ModelProvider != nil {
 		providerName = *input.ModelProvider
 	}
-	if providerName == "" {
-		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	prvname := provider.ProviderName(providerName)
-	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	prvname, err := r.ProvidersCtrl.ResolveProviderName(ctx, providerName, canManageProviders(ctx))
+	if err != nil {
+		return nil, err
+	}
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, err
 	}
@@ -1648,20 +1645,16 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 		return nil, fmt.Errorf("at least one template is required")
 	}
 
-	// When no provider is supplied, fall back to the user's default provider.
 	providerName := ""
 	if input.ModelProvider != nil {
 		providerName = *input.ModelProvider
 	}
-	if providerName == "" {
-		providerName, err = r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	prvname := provider.ProviderName(providerName)
-	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname, uid)
+	prvname, err := r.ProvidersCtrl.ResolveProviderName(ctx, providerName, canManageProviders(ctx))
+	if err != nil {
+		return nil, err
+	}
+	prv, err := r.ProvidersCtrl.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, err
 	}
@@ -1718,13 +1711,23 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 }
 
 // SendChatMessage is the resolver for the sendChatMessage field.
-func (r *mutationResolver) SendChatMessage(ctx context.Context, sessionID *int64, providerName string, content string) (*model.ChatSendResult, error) {
+func (r *mutationResolver) SendChatMessage(ctx context.Context, sessionID *int64, providerName *string, content string) (*model.ChatSendResult, error) {
 	uid, err := validateChatSession(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := r.Chat.Send(ctx, uid, sessionID, providerName, content)
+	requested := ""
+	if providerName != nil {
+		requested = *providerName
+	}
+
+	prvname, err := r.ProvidersCtrl.ResolveProviderName(ctx, requested, canManageProviders(ctx))
+	if err != nil {
+		return nil, r.chatError(err, "send message")
+	}
+
+	res, err := r.Chat.Send(ctx, uid, sessionID, string(prvname), content)
 	if err != nil {
 		return nil, r.chatError(err, "send message")
 	}
@@ -1791,13 +1794,19 @@ func (r *queryResolver) Providers(ctx context.Context) ([]*model.Provider, error
 		"uid": uid,
 	}).Debug("get providers")
 
-	providers, err := r.ProvidersCtrl.GetProviders(ctx, uid)
+	// Providers are hidden from everyone who cannot manage them: their work
+	// always runs on the shared default, so there is nothing for them to pick.
+	if !canManageProviders(ctx) {
+		return []*model.Provider{}, nil
+	}
+
+	providers, err := r.ProvidersCtrl.GetProviders(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Resolve the user's default provider name once so each entry can flag itself.
-	defaultName, _ := r.ProvidersCtrl.GetDefaultProviderName(ctx, uid)
+	// Resolve the shared default provider name once so each entry can flag itself.
+	defaultName, _ := r.ProvidersCtrl.GetDefaultProviderName(ctx)
 
 	providersList := make([]*model.Provider, len(providers))
 	for i, prvname := range providers.ListNames() {
@@ -2533,7 +2542,7 @@ func (r *queryResolver) Settings(ctx context.Context) (*model.Settings, error) {
 
 // SettingsProviders is the resolver for the settingsProviders field.
 func (r *queryResolver) SettingsProviders(ctx context.Context) (*model.ProvidersConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.view")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -2640,9 +2649,9 @@ func (r *queryResolver) SettingsProviders(ctx context.Context) (*model.Providers
 		}
 	}
 
-	providers, err := r.DB.GetUserProviders(ctx, uid)
+	providers, err := r.DB.GetProviders(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user providers: %w", err)
+		return nil, fmt.Errorf("failed to get providers: %w", err)
 	}
 
 	for _, prv := range providers {
@@ -3244,7 +3253,7 @@ func (r *subscriptionResolver) AssistantLogUpdated(ctx context.Context, flowID i
 
 // ProviderCreated is the resolver for the providerCreated field.
 func (r *subscriptionResolver) ProviderCreated(ctx context.Context) (<-chan *model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.subscribe")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -3254,7 +3263,7 @@ func (r *subscriptionResolver) ProviderCreated(ctx context.Context) (<-chan *mod
 
 // ProviderUpdated is the resolver for the providerUpdated field.
 func (r *subscriptionResolver) ProviderUpdated(ctx context.Context) (<-chan *model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.subscribe")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
@@ -3264,7 +3273,7 @@ func (r *subscriptionResolver) ProviderUpdated(ctx context.Context) (<-chan *mod
 
 // ProviderDeleted is the resolver for the providerDeleted field.
 func (r *subscriptionResolver) ProviderDeleted(ctx context.Context) (<-chan *model.ProviderConfig, error) {
-	uid, _, err := validatePermission(ctx, "settings.providers.subscribe")
+	uid, _, err := validatePermission(ctx, providersAdminPermission)
 	if err != nil {
 		return nil, err
 	}
