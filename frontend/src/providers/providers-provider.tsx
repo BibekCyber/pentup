@@ -3,12 +3,21 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Provider } from '@/models/provider';
 
 import { useProvidersQuery } from '@/graphql/types';
+import { usePermission } from '@/hooks/use-permission';
 import { findProviderByName, sortProviders } from '@/models/provider';
 import { useUser } from '@/providers/user-provider';
 
 const SELECTED_PROVIDER_KEY = 'selectedProvider';
 
+// Providers are shared and managed by admins. Everyone else never sees them:
+// the backend runs their scans, chats and assistants on the shared default.
+export const PROVIDERS_ADMIN_PERMISSION = 'settings.providers.admin';
+
 interface ProvidersContextValue {
+    // Whether the user may see, pick and manage providers; when false,
+    // `providers` is empty, provider names stay hidden and callers omit the
+    // provider so the backend uses the shared default.
+    canManageProviders: boolean;
     providers: Provider[];
     selectedProvider: null | Provider;
     setSelectedProvider: (provider: Provider) => void;
@@ -22,13 +31,17 @@ interface ProvidersProviderProps {
 
 export const ProvidersProvider = ({ children }: ProvidersProviderProps) => {
     const { isAuthenticated } = useUser();
+    const canManageProviders = usePermission(PROVIDERS_ADMIN_PERMISSION);
 
     const { data: providersData } = useProvidersQuery({
-        skip: !isAuthenticated(),
+        skip: !isAuthenticated() || !canManageProviders,
     });
 
     // Create sorted providers list to ensure consistent order
-    const providers = sortProviders(providersData?.providers || []);
+    const providers = useMemo(
+        () => (canManageProviders ? sortProviders(providersData?.providers || []) : []),
+        [canManageProviders, providersData?.providers],
+    );
 
     // Store selected provider name instead of the provider object
     const [selectedProviderName, setSelectedProviderName] = useState<null | string>(() => {
@@ -67,6 +80,7 @@ export const ProvidersProvider = ({ children }: ProvidersProviderProps) => {
     };
 
     const value = {
+        canManageProviders,
         providers,
         selectedProvider,
         setSelectedProvider,

@@ -24,7 +24,7 @@ type Querier interface {
 	// Archiving also closes the template's open edit request in the same
 	// statement, so no pending edit can outlive (or be approved onto) it.
 	ArchiveFlowTemplate(ctx context.Context, arg ArchiveFlowTemplateParams) (ArchiveFlowTemplateRow, error)
-	ClearDefaultProviders(ctx context.Context, userID int64) error
+	ClearDefaultProviders(ctx context.Context) error
 	CountActiveDomainsForUser(ctx context.Context, userID int64) (int64, error)
 	CountActiveFlowsForUser(ctx context.Context, userID int64) (int64, error)
 	CountPendingFlowTemplateRequestsByRequester(ctx context.Context, requesterID int64) (int64, error)
@@ -80,7 +80,6 @@ type Querier interface {
 	DeleteUserChatSession(ctx context.Context, arg DeleteUserChatSessionParams) (ChatSession, error)
 	DeleteUserPreferences(ctx context.Context, userID int64) error
 	DeleteUserPrompt(ctx context.Context, arg DeleteUserPromptParams) error
-	DeleteUserProvider(ctx context.Context, arg DeleteUserProviderParams) (Provider, error)
 	// Replies cannot outlive the process that streams them: anything still
 	// streaming at startup was cut off by a restart.
 	FailStreamingChatMessages(ctx context.Context) error
@@ -107,7 +106,7 @@ type Querier interface {
 	// Auto-detect only spawns the platform templates plus the caller's own, so a
 	// template another user published never runs on someone's scan unselected.
 	GetDefaultFlowTemplatesByTargetType(ctx context.Context, arg GetDefaultFlowTemplatesByTargetTypeParams) ([]FlowTemplate, error)
-	GetDefaultProvider(ctx context.Context, userID int64) (Provider, error)
+	GetDefaultProvider(ctx context.Context) (Provider, error)
 	GetDomain(ctx context.Context, id int64) (Domain, error)
 	GetDomains(ctx context.Context) ([]Domain, error)
 	GetFlow(ctx context.Context, id int64) (Flow, error)
@@ -176,6 +175,9 @@ type Querier interface {
 	GetPendingFlowTemplateRequestByTemplate(ctx context.Context, templateID sql.NullInt64) (FlowTemplateRequestsView, error)
 	GetPrompts(ctx context.Context) ([]Prompt, error)
 	GetProvider(ctx context.Context, id int64) (Provider, error)
+	GetProviderByName(ctx context.Context, name string) (Provider, error)
+	// Providers are shared by all users; user_id only records the admin who
+	// created the row, so no query here is scoped to a user.
 	GetProviders(ctx context.Context) ([]Provider, error)
 	GetProvidersByType(ctx context.Context, type_ ProviderType) ([]Provider, error)
 	GetRole(ctx context.Context, id int64) (GetRoleRow, error)
@@ -271,10 +273,6 @@ type Querier interface {
 	GetUserPrompt(ctx context.Context, arg GetUserPromptParams) (Prompt, error)
 	GetUserPromptByType(ctx context.Context, arg GetUserPromptByTypeParams) (Prompt, error)
 	GetUserPrompts(ctx context.Context, userID int64) ([]Prompt, error)
-	GetUserProvider(ctx context.Context, arg GetUserProviderParams) (Provider, error)
-	GetUserProviderByName(ctx context.Context, arg GetUserProviderByNameParams) (Provider, error)
-	GetUserProviders(ctx context.Context, userID int64) ([]Provider, error)
-	GetUserProvidersByType(ctx context.Context, arg GetUserProvidersByTypeParams) ([]Provider, error)
 	// Get total count of flows, tasks, subtasks, and assistants for a user
 	GetUserTotalFlowsStats(ctx context.Context, userID int64) (GetUserTotalFlowsStatsRow, error)
 	// Get total toolcalls stats for a user
@@ -285,7 +283,7 @@ type Querier interface {
 	// Replaces the placeholder title with a generated one, unless the user
 	// renamed the session in the meantime.
 	ReplaceChatSessionTitle(ctx context.Context, arg ReplaceChatSessionTitleParams) (ChatSession, error)
-	SetDefaultProvider(ctx context.Context, arg SetDefaultProviderParams) (Provider, error)
+	SetDefaultProvider(ctx context.Context, id int64) (Provider, error)
 	SetDomainScopeBox(ctx context.Context, arg SetDomainScopeBoxParams) error
 	SetFlowDomain(ctx context.Context, arg SetFlowDomainParams) error
 	// Records the provider of the latest message; also bumps updated_at so the
@@ -349,7 +347,6 @@ type Querier interface {
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 	UpdateUserPrompt(ctx context.Context, arg UpdateUserPromptParams) (Prompt, error)
 	UpdateUserPromptByType(ctx context.Context, arg UpdateUserPromptByTypeParams) (Prompt, error)
-	UpdateUserProvider(ctx context.Context, arg UpdateUserProviderParams) (Provider, error)
 	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (User, error)
 	UpsertUserPreferences(ctx context.Context, arg UpsertUserPreferencesParams) (UserPreference, error)

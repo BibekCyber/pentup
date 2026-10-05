@@ -56,8 +56,7 @@ func NewTester(
 	taskID, subtaskID *int64,
 	prvname provider.ProviderName,
 ) (Tester, error) {
-	// New provider by user
-	prv, err := providerController.GetProvider(ctx, prvname, userID)
+	prv, err := providerController.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider: %w", err)
 	}

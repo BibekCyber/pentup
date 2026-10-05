@@ -3,7 +3,8 @@ import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 import CommandBar from '@/components/layouts/command-bar';
 import PageTabs from '@/components/layouts/page-tabs';
-import { usePermission } from '@/hooks/use-permission';
+import { PROVIDERS_ADMIN_PERMISSION } from '@/providers/providers-provider';
+import { useUser } from '@/providers/user-provider';
 
 // Types
 export interface MenuItem {
@@ -18,7 +19,7 @@ export interface MenuItem {
 
 // Settings menu items definition
 const menuItems: readonly MenuItem[] = [
-    { id: 'providers', path: '/settings/providers', title: 'Providers' },
+    { id: 'providers', path: '/settings/providers', permission: PROVIDERS_ADMIN_PERMISSION, title: 'Providers' },
     { id: 'prompts', path: '/settings/prompts', title: 'Prompts' },
     { id: 'api-tokens', label: 'API Tokens', path: '/settings/api-tokens', title: 'AI Pentest API' },
     { id: 'users', path: '/settings/users', permission: 'users.view', title: 'Users' },
@@ -62,10 +63,9 @@ const useSettingsTitle = (): string => {
 // main app shell (rail + CommandBar) so Settings is a page in the app, not a
 // separate section. Keeps the permission gating.
 const SettingsTabs = () => {
-    const canViewUsers = usePermission('users.view');
-    const visibleMenuItems = menuItems.filter(
-        (item) => !item.permission || (item.permission === 'users.view' && canViewUsers),
-    );
+    const { authInfo } = useUser();
+    const privileges = authInfo?.privileges ?? [];
+    const visibleMenuItems = menuItems.filter((item) => !item.permission || privileges.includes(item.permission));
 
     return (
         <PageTabs

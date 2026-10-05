@@ -30,11 +30,16 @@ import { getProviderDisplayName } from '@/models/provider';
 import { useProviders } from '@/providers/providers-provider';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
-const formSchema = z.object({
-    message: z.string().trim().min(1, { message: 'Message cannot be empty' }),
-    providerName: z.string().trim().min(1, { message: 'Provider must be selected' }),
-    useAgents: z.boolean(),
-});
+// Only users who can pick a provider must choose one. For everyone else it
+// stays empty and the backend uses the shared default provider.
+const createFormSchema = (isProviderRequired: boolean) =>
+    z.object({
+        message: z.string().trim().min(1, { message: 'Message cannot be empty' }),
+        providerName: isProviderRequired
+            ? z.string().trim().min(1, { message: 'Provider must be selected' })
+            : z.string(),
+        useAgents: z.boolean(),
+    });
 
 export interface FlowFormProps {
     defaultValues?: Partial<FlowFormValues>;
@@ -49,7 +54,7 @@ export interface FlowFormProps {
     type: 'assistant' | 'automation';
 }
 
-export type FlowFormValues = z.infer<typeof formSchema>;
+export type FlowFormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 export const FlowForm = ({
     defaultValues,
@@ -63,7 +68,7 @@ export const FlowForm = ({
     placeholder = 'Describe what you would like AI Pentest to test...',
     type,
 }: FlowFormProps) => {
-    const { providers, setSelectedProvider } = useProviders();
+    const { canManageProviders, providers, setSelectedProvider } = useProviders();
     const { templates } = useTemplates();
     const [isReplaceConfirmOpen, setIsReplaceConfirmOpen] = useState(false);
     const [pendingTemplate, setPendingTemplate] = useState<null | Template>(null);
@@ -96,6 +101,8 @@ export const FlowForm = ({
             return displayName.includes(searchLower) || provider.name.toLowerCase().includes(searchLower);
         });
     }, [providers, providerSearch]);
+
+    const formSchema = useMemo(() => createFormSchema(canManageProviders), [canManageProviders]);
 
     const form = useForm<FlowFormValues>({
         defaultValues: {
@@ -218,109 +225,115 @@ export const FlowForm = ({
                                     }}
                                 />
                                 <InputGroupAddon align="block-end">
-                                    <FormField
-                                        control={control}
-                                        name="providerName"
-                                        render={({ field: providerField }) => {
-                                            const currentProvider = providers.find(
-                                                (p) => p.name === providerField.value,
-                                            );
+                                    {canManageProviders && (
+                                        <FormField
+                                            control={control}
+                                            name="providerName"
+                                            render={({ field: providerField }) => {
+                                                const currentProvider = providers.find(
+                                                    (p) => p.name === providerField.value,
+                                                );
 
-                                            return (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <InputGroupButton
-                                                            className="border-border border"
-                                                            disabled={isFormDisabled || isProviderDisabled}
-                                                            variant="ghost"
+                                                return (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <InputGroupButton
+                                                                className="border-border border"
+                                                                disabled={isFormDisabled || isProviderDisabled}
+                                                                variant="ghost"
+                                                            >
+                                                                {currentProvider && (
+                                                                    <ProviderIcon provider={currentProvider} />
+                                                                )}
+                                                                <span className="max-w-40 truncate">
+                                                                    {currentProvider
+                                                                        ? getProviderDisplayName(currentProvider)
+                                                                        : 'Select Provider'}
+                                                                </span>
+                                                                <ChevronDown />
+                                                            </InputGroupButton>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent
+                                                            align="start"
+                                                            side="top"
                                                         >
-                                                            {currentProvider && (
-                                                                <ProviderIcon provider={currentProvider} />
-                                                            )}
-                                                            <span className="max-w-40 truncate">
-                                                                {currentProvider
-                                                                    ? getProviderDisplayName(currentProvider)
-                                                                    : 'Select Provider'}
-                                                            </span>
-                                                            <ChevronDown />
-                                                        </InputGroupButton>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent
-                                                        align="start"
-                                                        side="top"
-                                                    >
-                                                        <DropdownMenuGroup className="-m-1 rounded-none p-0">
-                                                            <InputGroup className="-mb-1 rounded-none border-0 shadow-none [&:has([data-slot=input-group-control]:focus-visible)]:border-0 [&:has([data-slot=input-group-control]:focus-visible)]:ring-0">
-                                                                <InputGroupInput
-                                                                    onChange={(event) =>
-                                                                        setProviderSearch(event.target.value)
-                                                                    }
-                                                                    onClick={(event) => event.stopPropagation()}
-                                                                    onKeyDown={(event) => event.stopPropagation()}
-                                                                    placeholder="Search..."
-                                                                    value={providerSearch}
-                                                                />
-                                                                {providerSearch && (
-                                                                    <InputGroupAddon align="inline-end">
-                                                                        <InputGroupButton
-                                                                            onClick={(event) => {
-                                                                                event.stopPropagation();
+                                                            <DropdownMenuGroup className="-m-1 rounded-none p-0">
+                                                                <InputGroup className="-mb-1 rounded-none border-0 shadow-none [&:has([data-slot=input-group-control]:focus-visible)]:border-0 [&:has([data-slot=input-group-control]:focus-visible)]:ring-0">
+                                                                    <InputGroupInput
+                                                                        onChange={(event) =>
+                                                                            setProviderSearch(event.target.value)
+                                                                        }
+                                                                        onClick={(event) => event.stopPropagation()}
+                                                                        onKeyDown={(event) => event.stopPropagation()}
+                                                                        placeholder="Search..."
+                                                                        value={providerSearch}
+                                                                    />
+                                                                    {providerSearch && (
+                                                                        <InputGroupAddon align="inline-end">
+                                                                            <InputGroupButton
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    setProviderSearch('');
+                                                                                }}
+                                                                            >
+                                                                                <X />
+                                                                            </InputGroupButton>
+                                                                        </InputGroupAddon>
+                                                                    )}
+                                                                </InputGroup>
+                                                                <DropdownMenuSeparator />
+                                                            </DropdownMenuGroup>
+                                                            <DropdownMenuGroup className="max-h-64 overflow-y-auto">
+                                                                {!filteredProviders.length ? (
+                                                                    <DropdownMenuItem
+                                                                        className="min-h-16 justify-center"
+                                                                        disabled
+                                                                    >
+                                                                        {providerSearch
+                                                                            ? 'No results found'
+                                                                            : 'No available providers'}
+                                                                    </DropdownMenuItem>
+                                                                ) : (
+                                                                    filteredProviders.map((provider) => (
+                                                                        <DropdownMenuItem
+                                                                            key={provider.name}
+                                                                            onSelect={() => {
+                                                                                if (
+                                                                                    isFormDisabled ||
+                                                                                    isProviderDisabled
+                                                                                ) {
+                                                                                    return;
+                                                                                }
+
+                                                                                providerField.onChange(provider.name);
+                                                                                setSelectedProvider(provider);
                                                                                 setProviderSearch('');
                                                                             }}
                                                                         >
-                                                                            <X />
-                                                                        </InputGroupButton>
-                                                                    </InputGroupAddon>
+                                                                            <div className="flex w-full min-w-0 items-center gap-2">
+                                                                                <ProviderIcon
+                                                                                    className="size-4 shrink-0"
+                                                                                    provider={provider}
+                                                                                />
+
+                                                                                <span className="flex-1 truncate">
+                                                                                    {getProviderDisplayName(provider)}
+                                                                                </span>
+                                                                                {providerField.value ===
+                                                                                    provider.name && (
+                                                                                    <Check className="ml-auto size-4 shrink-0" />
+                                                                                )}
+                                                                            </div>
+                                                                        </DropdownMenuItem>
+                                                                    ))
                                                                 )}
-                                                            </InputGroup>
-                                                            <DropdownMenuSeparator />
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuGroup className="max-h-64 overflow-y-auto">
-                                                            {!filteredProviders.length ? (
-                                                                <DropdownMenuItem
-                                                                    className="min-h-16 justify-center"
-                                                                    disabled
-                                                                >
-                                                                    {providerSearch
-                                                                        ? 'No results found'
-                                                                        : 'No available providers'}
-                                                                </DropdownMenuItem>
-                                                            ) : (
-                                                                filteredProviders.map((provider) => (
-                                                                    <DropdownMenuItem
-                                                                        key={provider.name}
-                                                                        onSelect={() => {
-                                                                            if (isFormDisabled || isProviderDisabled) {
-                                                                                return;
-                                                                            }
-
-                                                                            providerField.onChange(provider.name);
-                                                                            setSelectedProvider(provider);
-                                                                            setProviderSearch('');
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex w-full min-w-0 items-center gap-2">
-                                                                            <ProviderIcon
-                                                                                className="size-4 shrink-0"
-                                                                                provider={provider}
-                                                                            />
-
-                                                                            <span className="flex-1 truncate">
-                                                                                {getProviderDisplayName(provider)}
-                                                                            </span>
-                                                                            {providerField.value === provider.name && (
-                                                                                <Check className="ml-auto size-4 shrink-0" />
-                                                                            )}
-                                                                        </div>
-                                                                    </DropdownMenuItem>
-                                                                ))
-                                                            )}
-                                                        </DropdownMenuGroup>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            );
-                                        }}
-                                    />
+                                                            </DropdownMenuGroup>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                );
+                                            }}
+                                        />
+                                    )}
 
                                     {type === 'assistant' && (
                                         <FormField

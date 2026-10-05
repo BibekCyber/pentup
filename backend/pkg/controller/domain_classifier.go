@@ -70,7 +70,6 @@ func newDomainClassifier(cfg *config.Config, provs providers.ProviderController)
 // silently degrades to "general" merely because of a misconfigured env var.
 func (c *domainClassifier) Classify(
 	ctx context.Context,
-	userID int64,
 	domain string,
 	fallback provider.ProviderName,
 ) (string, json.RawMessage) {
@@ -88,7 +87,7 @@ func (c *domainClassifier) Classify(
 		return defaultTargetType, classificationMetadata("", defaultTargetType, 0, "recon serialisation failed", recon)
 	}
 
-	prv, prvname, err := c.resolveProvider(ctx, userID, fallback)
+	prv, prvname, err := c.resolveProvider(ctx, fallback)
 	if err != nil {
 		logger.WithError(err).Warn("no classifier provider available; defaulting target type to general")
 		return defaultTargetType, classificationMetadata("", defaultTargetType, 0, "classifier provider unavailable", recon)
@@ -128,13 +127,12 @@ func (c *domainClassifier) Classify(
 // falls back to the supplied provider when the configured one is unavailable.
 func (c *domainClassifier) resolveProvider(
 	ctx context.Context,
-	userID int64,
 	fallback provider.ProviderName,
 ) (provider.Provider, provider.ProviderName, error) {
 	primary := provider.ProviderName(c.cfg.DomainClassifierProvider)
 
 	if primary != "" {
-		prv, err := c.provs.GetProvider(ctx, primary, userID)
+		prv, err := c.provs.GetProvider(ctx, primary)
 		if err == nil {
 			return prv, primary, nil
 		}
@@ -143,7 +141,7 @@ func (c *domainClassifier) resolveProvider(
 	}
 
 	if fallback != "" && fallback != primary {
-		prv, err := c.provs.GetProvider(ctx, fallback, userID)
+		prv, err := c.provs.GetProvider(ctx, fallback)
 		if err == nil {
 			return prv, fallback, nil
 		}

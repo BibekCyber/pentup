@@ -90,11 +90,9 @@ type ProviderController interface {
 	GetProvider(
 		ctx context.Context,
 		prvname provider.ProviderName,
-		userID int64,
 	) (provider.Provider, error)
 	GetProviders(
 		ctx context.Context,
-		userID int64,
 	) (provider.Providers, error)
 
 	NewProvider(prv database.Provider) (provider.Provider, error)
@@ -107,25 +105,26 @@ type ProviderController interface {
 	) (database.Provider, error)
 	UpdateProvider(
 		ctx context.Context,
-		userID int64,
 		prvID int64,
 		prvname provider.ProviderName,
 		config *pconfig.ProviderConfig,
 	) (database.Provider, error)
 	DeleteProvider(
 		ctx context.Context,
-		userID int64,
 		prvID int64,
 	) (database.Provider, error)
 	SetDefaultProvider(
 		ctx context.Context,
-		userID int64,
 		prvID int64,
 	) (database.Provider, error)
 	GetDefaultProviderName(
 		ctx context.Context,
-		userID int64,
 	) (string, error)
+	ResolveProviderName(
+		ctx context.Context,
+		requested string,
+		canChoose bool,
+	) (provider.ProviderName, error)
 
 	TestAgent(
 		ctx context.Context,
@@ -397,7 +396,7 @@ func (pc *providerController) NewFlowProvider(
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.NewFlowProvider")
 	defer span.End()
 
-	prv, err := pc.GetProvider(ctx, prvname, userID)
+	prv, err := pc.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider: %w", err)
 	}
@@ -496,7 +495,7 @@ func (pc *providerController) LoadFlowProvider(
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.LoadFlowProvider")
 	defer span.End()
 
-	prv, err := pc.GetProvider(ctx, prvname, userID)
+	prv, err := pc.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider: %w", err)
 	}
@@ -554,7 +553,7 @@ func (pc *providerController) NewAssistantProvider(
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.NewAssistantProvider")
 	defer span.End()
 
-	prv, err := pc.GetProvider(ctx, prvname, userID)
+	prv, err := pc.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider: %w", err)
 	}
@@ -641,7 +640,7 @@ func (pc *providerController) LoadAssistantProvider(
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.LoadAssistantProvider")
 	defer span.End()
 
-	prv, err := pc.GetProvider(ctx, prvname, userID)
+	prv, err := pc.GetProvider(ctx, prvname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider: %w", err)
 	}
@@ -693,13 +692,9 @@ func (pc *providerController) DefaultProvidersConfig() provider.ProvidersConfig 
 func (pc *providerController) GetProvider(
 	ctx context.Context,
 	prvname provider.ProviderName,
-	userID int64,
 ) (provider.Provider, error) {
-	// Lookup user defined providers first so they take precedence over built-in providers
-	prv, err := pc.db.GetUserProviderByName(ctx, database.GetUserProviderByNameParams{
-		Name:   string(prvname),
-		UserID: userID,
-	})
+	// Lookup admin defined providers first so they take precedence over built-in providers
+	prv, err := pc.db.GetProviderByName(ctx, string(prvname))
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to get provider '%s' from database: %w", prvname, err)
 	}
@@ -736,7 +731,6 @@ func (pc *providerController) GetProvider(
 
 func (pc *providerController) GetProviders(
 	ctx context.Context,
-	userID int64,
 ) (provider.Providers, error) {
 	providersMap := make(provider.Providers, len(pc.Providers))
 
@@ -745,10 +739,10 @@ func (pc *providerController) GetProviders(
 		providersMap[prvname] = prv
 	}
 
-	// Copy user providers
-	providers, err := pc.db.GetUserProviders(ctx, userID)
+	// Copy admin defined providers
+	providers, err := pc.db.GetProviders(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user providers: %w", err)
+		return nil, fmt.Errorf("failed to get providers: %w", err)
 	}
 
 	for _, prv := range providers {
@@ -855,6 +849,10 @@ func (pc *providerController) CreateProvider(
 		result database.Provider
 	)
 
+	if err = pc.checkProviderNameFree(ctx, prvname, 0); err != nil {
+		return result, err
+	}
+
 	if config, err = pc.patchProviderConfig(prvtype, config); err != nil {
 		return result, fmt.Errorf("failed to patch provider config: %w", err)
 	}
@@ -879,7 +877,6 @@ func (pc *providerController) CreateProvider(
 
 func (pc *providerController) UpdateProvider(
 	ctx context.Context,
-	userID int64,
 	prvID int64,
 	prvname provider.ProviderName,
 	config *pconfig.ProviderConfig,
@@ -892,14 +889,15 @@ func (pc *providerController) UpdateProvider(
 		result database.Provider
 	)
 
-	prv, err := pc.db.GetUserProvider(ctx, database.GetUserProviderParams{
-		ID:     prvID,
-		UserID: userID,
-	})
+	prv, err := pc.db.GetProvider(ctx, prvID)
 	if err != nil {
 		return result, fmt.Errorf("failed to get provider: %w", err)
 	}
 	prvtype := provider.ProviderType(prv.Type)
+
+	if err = pc.checkProviderNameFree(ctx, prvname, prvID); err != nil {
+		return result, err
+	}
 
 	if config, err = pc.patchProviderConfig(prvtype, config); err != nil {
 		return result, fmt.Errorf("failed to patch provider config: %w", err)
@@ -910,9 +908,8 @@ func (pc *providerController) UpdateProvider(
 		return result, fmt.Errorf("failed to marshal provider config: %w", err)
 	}
 
-	result, err = pc.db.UpdateUserProvider(ctx, database.UpdateUserProviderParams{
+	result, err = pc.db.UpdateProvider(ctx, database.UpdateProviderParams{
 		ID:     prvID,
-		UserID: userID,
 		Name:   string(prvname),
 		Config: rawConfig,
 	})
@@ -923,18 +920,36 @@ func (pc *providerController) UpdateProvider(
 	return result, nil
 }
 
+// checkProviderNameFree turns a clash with another provider's name into a
+// readable error instead of a unique-index violation. Names are unique across
+// all users because every user resolves providers from the same shared set.
+func (pc *providerController) checkProviderNameFree(
+	ctx context.Context,
+	prvname provider.ProviderName,
+	prvID int64,
+) error {
+	existing, err := pc.db.GetProviderByName(ctx, string(prvname))
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check provider name: %w", err)
+	}
+	if existing.ID != prvID {
+		return fmt.Errorf("provider name '%s' is already in use", prvname)
+	}
+
+	return nil
+}
+
 func (pc *providerController) DeleteProvider(
 	ctx context.Context,
-	userID int64,
 	prvID int64,
 ) (database.Provider, error) {
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.DeleteProvider")
 	defer span.End()
 
-	result, err := pc.db.DeleteUserProvider(ctx, database.DeleteUserProviderParams{
-		ID:     prvID,
-		UserID: userID,
-	})
+	result, err := pc.db.DeleteProvider(ctx, prvID)
 	if err != nil {
 		return result, fmt.Errorf("failed to delete provider: %w", err)
 	}
@@ -942,12 +957,11 @@ func (pc *providerController) DeleteProvider(
 	return result, nil
 }
 
-// SetDefaultProvider marks a single user-owned provider as the default. It uses
-// a clear-then-set sequence so it never transiently violates the partial-unique
-// index that enforces one default per user.
+// SetDefaultProvider marks a single provider as the default for everyone. It
+// uses a clear-then-set sequence so it never transiently violates the
+// partial-unique index that enforces a single default.
 func (pc *providerController) SetDefaultProvider(
 	ctx context.Context,
-	userID int64,
 	prvID int64,
 ) (database.Provider, error) {
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.SetDefaultProvider")
@@ -955,21 +969,25 @@ func (pc *providerController) SetDefaultProvider(
 
 	var result database.Provider
 
+	// Check the target exists before clearing, so a bad id cannot leave the
+	// system without a default.
+	if _, err := pc.db.GetProvider(ctx, prvID); err != nil {
+		if err == sql.ErrNoRows {
+			return result, fmt.Errorf("provider %d not found", prvID)
+		}
+		return result, fmt.Errorf("failed to get provider: %w", err)
+	}
+
 	// Clear any existing default first to avoid clashing with the
-	// providers_one_default_per_user partial-unique index.
-	if err := pc.db.ClearDefaultProviders(ctx, userID); err != nil {
+	// providers_one_default partial-unique index.
+	if err := pc.db.ClearDefaultProviders(ctx); err != nil {
 		return result, fmt.Errorf("failed to clear default providers: %w", err)
 	}
 
-	// The WHERE id=$1 AND user_id=$2 clause enforces ownership: a row that is
-	// not the user's yields sql.ErrNoRows.
-	result, err := pc.db.SetDefaultProvider(ctx, database.SetDefaultProviderParams{
-		ID:     prvID,
-		UserID: userID,
-	})
+	result, err := pc.db.SetDefaultProvider(ctx, prvID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return result, fmt.Errorf("provider %d not found for user", prvID)
+			return result, fmt.Errorf("provider %d not found", prvID)
 		}
 		return result, fmt.Errorf("failed to set default provider: %w", err)
 	}
@@ -979,13 +997,12 @@ func (pc *providerController) SetDefaultProvider(
 
 // GetDefaultProviderName resolves the provider name the system should use for
 // new flows/scans/engagements. It follows a fallback chain and never returns an
-// error for a brand-new user with zero provider rows.
+// error when no provider has been configured yet.
 func (pc *providerController) GetDefaultProviderName(
 	ctx context.Context,
-	userID int64,
 ) (string, error) {
-	// 1. Explicit user default, if any.
-	def, err := pc.db.GetDefaultProvider(ctx, userID)
+	// 1. Default chosen by an admin, if any.
+	def, err := pc.db.GetDefaultProvider(ctx)
 	if err != nil && err != sql.ErrNoRows {
 		return "", fmt.Errorf("failed to get default provider: %w", err)
 	}
@@ -993,19 +1010,13 @@ func (pc *providerController) GetDefaultProviderName(
 		return def.Name, nil
 	}
 
-	// 2. Oldest user-defined provider by created_at (GetUserProviders orders ASC).
-	userProviders, err := pc.db.GetUserProviders(ctx, userID)
+	// 2. Oldest admin defined provider (GetProviders orders by created_at ASC).
+	providers, err := pc.db.GetProviders(ctx)
 	if err != nil && err != sql.ErrNoRows {
-		return "", fmt.Errorf("failed to get user providers: %w", err)
+		return "", fmt.Errorf("failed to get providers: %w", err)
 	}
-	if len(userProviders) > 0 {
-		oldest := userProviders[0]
-		for _, prv := range userProviders[1:] {
-			if prv.CreatedAt.Valid && oldest.CreatedAt.Valid && prv.CreatedAt.Time.Before(oldest.CreatedAt.Time) {
-				oldest = prv
-			}
-		}
-		return oldest.Name, nil
+	if len(providers) > 0 {
+		return providers[0].Name, nil
 	}
 
 	// 3. Configured built-in provider.
@@ -1020,6 +1031,26 @@ func (pc *providerController) GetDefaultProviderName(
 
 	// 5. Last resort: a sensible built-in default.
 	return string(provider.DefaultProviderNameOpenAI), nil
+}
+
+// ResolveProviderName picks the provider for new work. Only callers allowed to
+// manage providers may choose one; everyone else always gets the shared
+// default, whatever they asked for.
+func (pc *providerController) ResolveProviderName(
+	ctx context.Context,
+	requested string,
+	canChoose bool,
+) (provider.ProviderName, error) {
+	if canChoose && requested != "" {
+		return provider.ProviderName(requested), nil
+	}
+
+	name, err := pc.GetDefaultProviderName(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return provider.ProviderName(name), nil
 }
 
 func (pc *providerController) TestAgent(

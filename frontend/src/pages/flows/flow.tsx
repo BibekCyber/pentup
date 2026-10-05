@@ -29,6 +29,7 @@ import { copyToClipboard, downloadTextFile, generateFileName, generateReport } f
 import { formatName } from '@/lib/utils/format';
 import { useFavorites } from '@/providers/favorites-provider';
 import { useFlow } from '@/providers/flow-provider';
+import { useProviders } from '@/providers/providers-provider';
 
 const FlowReportDropdown = () => {
     const { assistantLogs, assistants, flowData, flowId } = useFlow();
@@ -154,6 +155,7 @@ const Flow = () => {
 
     const { assistantLogs, flowData, flowError, flowId, flowStatus, isLoading: isFlowLoading } = useFlow();
     const { isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
+    const { canManageProviders } = useProviders();
 
     // Redirect to flows list if there's an error loading flow data or flow not found
     useEffect(() => {
@@ -233,12 +235,16 @@ const Flow = () => {
                                 tooltip={formatName(flowData.flow.status)}
                             />
                             <span>{formatName(flowData.flow.status)}</span>
-                            <span className="text-muted-foreground/50">·</span>
-                            <ProviderIcon
-                                provider={flowData.flow.provider}
-                                tooltip={formatName(flowData.flow.provider.name)}
-                            />
-                            <span>{formatName(flowData.flow.provider.name)}</span>
+                            {canManageProviders && (
+                                <>
+                                    <span className="text-muted-foreground/50">·</span>
+                                    <ProviderIcon
+                                        provider={flowData.flow.provider}
+                                        tooltip={formatName(flowData.flow.provider.name)}
+                                    />
+                                    <span>{formatName(flowData.flow.provider.name)}</span>
+                                </>
+                            )}
                         </>
                     )
                 }

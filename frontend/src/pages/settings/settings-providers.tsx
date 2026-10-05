@@ -94,7 +94,9 @@ const SettingsProvidersHeader = () => {
                 <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.16em] uppercase">
                     LLM Providers
                 </span>
-                <p className="text-muted-foreground font-mono text-[12px]">Manage language model providers</p>
+                <p className="text-muted-foreground font-mono text-[12px]">
+                    Shared by all users. Everyone else's scans and chats use the default provider.
+                </p>
             </div>
 
             <DropdownMenu>
@@ -278,7 +280,7 @@ const ProviderCard = ({
 const SettingsProviders = () => {
     const { data, error, loading: isLoading } = useSettingsProvidersQuery();
     const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useDeleteProviderMutation();
-    const [setDefaultProvider] = useSetDefaultProviderMutation({ refetchQueries: ['settingsProviders'] });
+    const [setDefaultProvider] = useSetDefaultProviderMutation({ refetchQueries: ['settingsProviders', 'providers'] });
     const [deleteErrorMessage, setDeleteErrorMessage] = useState<null | string>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingProvider, setDeletingProvider] = useState<null | Provider>(null);
@@ -294,7 +296,7 @@ const SettingsProviders = () => {
                 setDeleteErrorMessage(null);
 
                 await deleteProvider({
-                    refetchQueries: ['settingsProviders'],
+                    refetchQueries: ['settingsProviders', 'providers'],
                     variables: { providerId: providerId.toString() },
                 });
 

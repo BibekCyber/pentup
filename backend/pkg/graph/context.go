@@ -98,6 +98,17 @@ func validatePermission(ctx context.Context, perm string) (int64, bool, error) {
 	return 0, false, fmt.Errorf("requested permission '%s' not found", perm)
 }
 
+// providersAdminPermission gates seeing, choosing and managing providers.
+// Resolvers check it directly instead of the narrower settings.providers.*
+// privileges: sessions keep the privileges they were issued with until the next
+// login, so revoking those from a role is not enough on its own.
+const providersAdminPermission = "settings.providers.admin"
+
+func canManageProviders(ctx context.Context) bool {
+	privs, err := GetUserPermissions(ctx)
+	return err == nil && slices.Contains(privs, providersAdminPermission)
+}
+
 func validatePermissionWithFlowID(
 	ctx context.Context,
 	perm string,

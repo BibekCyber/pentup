@@ -68,10 +68,11 @@ func TestCreateFlowValid(t *testing.T) {
 		assert.Error(t, cf.Valid())
 	})
 
-	t.Run("missing provider", func(t *testing.T) {
+	// The server falls back to the shared default provider.
+	t.Run("provider is optional", func(t *testing.T) {
 		t.Parallel()
 		cf := CreateFlow{Input: "scan target", Provider: ""}
-		assert.Error(t, cf.Valid())
+		assert.NoError(t, cf.Valid())
 	})
 }
 

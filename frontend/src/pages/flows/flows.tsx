@@ -49,6 +49,7 @@ import { getSeverityStyle } from '@/lib/severity-palette';
 import { cn } from '@/lib/utils';
 import { useFavorites } from '@/providers/favorites-provider';
 import { type Flow, useFlows } from '@/providers/flows-provider';
+import { useProviders } from '@/providers/providers-provider';
 
 const PAGE_SIZE = 24;
 
@@ -169,6 +170,7 @@ const Flows = () => {
     const navigate = useNavigate();
     const { deleteFlow, finishFlow, flows, isLoading } = useFlows();
     const { isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
+    const { canManageProviders } = useProviders();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingFlow, setDeletingFlow] = useState<Flow | null>(null);
     const [finishingFlowIds, setFinishingFlowIds] = useState<Set<string>>(new Set());
@@ -771,13 +773,15 @@ const Flows = () => {
                                                 </div>
 
                                                 <div className="d-foot">
-                                                    <span
-                                                        className="chip"
-                                                        title={`Provider: ${providerLabel(flow.provider?.name)}`}
-                                                    >
-                                                        <Cpu className="size-[13px]" />
-                                                        {providerLabel(flow.provider?.name)}
-                                                    </span>
+                                                    {canManageProviders && (
+                                                        <span
+                                                            className="chip"
+                                                            title={`Provider: ${providerLabel(flow.provider?.name)}`}
+                                                        >
+                                                            <Cpu className="size-[13px]" />
+                                                            {providerLabel(flow.provider?.name)}
+                                                        </span>
+                                                    )}
                                                     <span className="phase">{formatDateTime(flow.createdAt)}</span>
                                                     <span className="flex-1" />
                                                 </div>
@@ -801,7 +805,7 @@ const Flows = () => {
                                         <th>Status</th>
                                         <th>ID</th>
                                         <th>Title</th>
-                                        <th>Provider</th>
+                                        {canManageProviders && <th>Provider</th>}
                                         <th>Findings</th>
                                         <th>Created</th>
                                         <th />
@@ -838,15 +842,17 @@ const Flows = () => {
                                                                 <span className="block truncate">{flow.title}</span>
                                                             )}
                                                         </td>
-                                                        <td>
-                                                            <span
-                                                                className="chip"
-                                                                title={`Provider: ${providerLabel(flow.provider?.name)}`}
-                                                            >
-                                                                <Cpu className="size-[13px]" />
-                                                                {providerLabel(flow.provider?.name)}
-                                                            </span>
-                                                        </td>
+                                                        {canManageProviders && (
+                                                            <td>
+                                                                <span
+                                                                    className="chip"
+                                                                    title={`Provider: ${providerLabel(flow.provider?.name)}`}
+                                                                >
+                                                                    <Cpu className="size-[13px]" />
+                                                                    {providerLabel(flow.provider?.name)}
+                                                                </span>
+                                                            </td>
+                                                        )}
                                                         <td style={{ minWidth: 150 }}>
                                                             <div className="flex items-center gap-2.5">
                                                                 <span className="min-w-[80px] flex-1">

@@ -85,7 +85,7 @@ func (a Assistant) Validate(db *gorm.DB) {
 // nolint:lll
 type CreateAssistant struct {
 	Input     string           `form:"input" json:"input" validate:"required" example:"user input for running assistant"`
-	Provider  string           `form:"provider" json:"provider" validate:"required" example:"openai"`
+	Provider  string           `form:"provider,omitempty" json:"provider,omitempty" validate:"omitempty" example:"openai"`
 	UseAgents bool             `form:"use_agents" json:"use_agents" validate:"omitempty" example:"true"`
 	Functions *tools.Functions `form:"functions,omitempty" json:"functions,omitempty" validate:"omitempty,valid"`
 }

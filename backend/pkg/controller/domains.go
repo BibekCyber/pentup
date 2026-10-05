@@ -217,7 +217,7 @@ func (dc *domainController) CreateDomain(ctx context.Context, params CreateDomai
 
 	templateIDs := params.TemplateIDs
 	if params.AutoDetect {
-		detected, metadata := dc.classifier.Classify(ctx, params.UserID, params.Name, params.ProviderName)
+		detected, metadata := dc.classifier.Classify(ctx, params.Name, params.ProviderName)
 		domain, err = dc.db.UpdateDomainDetectionMetadata(ctx, database.UpdateDomainDetectionMetadataParams{
 			ID:                domain.ID,
 			TargetType:        database.TargetType(detected),

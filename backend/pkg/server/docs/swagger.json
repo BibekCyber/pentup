@@ -6083,8 +6083,7 @@
         "models.CreateAssistant": {
             "type": "object",
             "required": [
-                "input",
-                "provider"
+                "input"
             ],
             "properties": {
                 "functions": {
@@ -6107,8 +6106,7 @@
         "models.CreateFlow": {
             "type": "object",
             "required": [
-                "input",
-                "provider"
+                "input"
             ],
             "properties": {
                 "functions": {

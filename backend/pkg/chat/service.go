@@ -60,7 +60,7 @@ func userErrorf(format string, args ...any) error {
 var ErrNotFound = &UserError{msg: "chat not found"}
 
 type ProviderResolver interface {
-	GetProvider(ctx context.Context, prvname provider.ProviderName, userID int64) (provider.Provider, error)
+	GetProvider(ctx context.Context, prvname provider.ProviderName) (provider.Provider, error)
 }
 
 // Publisher pushes chat changes to the owner's live subscriptions.
@@ -290,7 +290,7 @@ func (s *Service) Send(
 	}
 
 	providerName = strings.TrimSpace(providerName)
-	prv, err := s.resolveChatProvider(ctx, userID, providerName)
+	prv, err := s.resolveChatProvider(ctx, providerName)
 	if err != nil {
 		return nil, err
 	}
@@ -480,16 +480,16 @@ func (s *Service) getMessage(ctx context.Context, userID, messageID int64) (data
 	return msg, err
 }
 
-// resolveChatProvider is the single place that decides which provider answers
-// chat messages. Today it is the provider the user selected, resolved like a
-// flow's: the user's own providers first, then the system ones. Another
-// user's provider never resolves.
-func (s *Service) resolveChatProvider(ctx context.Context, userID int64, name string) (provider.Provider, error) {
+// resolveChatProvider turns the provider name into the provider that answers
+// chat messages, resolved like a flow's from the shared providers and then the
+// system ones. Callers have already chosen the name: an admin's pick, or the
+// shared default for everyone else.
+func (s *Service) resolveChatProvider(ctx context.Context, name string) (provider.Provider, error) {
 	if name == "" {
 		return nil, userErrorf("select a provider")
 	}
 
-	prv, err := s.providers.GetProvider(ctx, provider.ProviderName(name), userID)
+	prv, err := s.providers.GetProvider(ctx, provider.ProviderName(name))
 	if err != nil {
 		s.logger.WithError(err).WithField("provider", name).Debug("chat provider not available")
 		return nil, userErrorf("provider '%s' is not available", name)

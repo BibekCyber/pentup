@@ -414,7 +414,6 @@ definitions:
         type: boolean
     required:
     - input
-    - provider
     type: object
   models.CreateFlow:
     properties:
@@ -428,7 +427,6 @@ definitions:
         type: string
     required:
     - input
-    - provider
     type: object
   models.DailyFlowsStats:
     properties:
