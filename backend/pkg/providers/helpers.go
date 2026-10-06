@@ -542,6 +542,11 @@ func (fp *flowProvider) restoreChain(
 				ast.AppendHumanMessage(humanPrompt)
 			}
 
+			// Repair any invalid tool-call JSON arguments already stored in the chain
+			// (escape stray control chars; fall back to {} if still invalid) so a
+			// replayed chain cannot 400 at the provider API.
+			ast.SanitizeToolCallArguments()
+
 			if err := ast.NormalizeToolCallIDs(fp.tcIDTemplate); err != nil {
 				return wrapErrorWithEvent("failed to normalize tool call IDs", err)
 			}
@@ -649,6 +654,11 @@ func (fp *flowProvider) processChain(
 		if err != nil {
 			logger.WithError(err).Warn("failed to create chain AST for normalization")
 		} else {
+			// Repair any invalid tool-call JSON arguments already stored in the chain
+			// (escape stray control chars; fall back to {} if still invalid) so a
+			// replayed chain cannot 400 at the provider API.
+			ast.SanitizeToolCallArguments()
+
 			// Normalize tool call IDs to new format
 			if err := ast.NormalizeToolCallIDs(fp.tcIDTemplate); err != nil {
 				logger.WithError(err).Warn("failed to normalize tool call IDs")

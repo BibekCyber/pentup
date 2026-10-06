@@ -488,6 +488,20 @@ func (fp *flowProvider) callWithRetries(
 				if toolCall.FunctionCall == nil {
 					continue
 				}
+				// Repair invalid JSON arguments as they arrive from the LLM, before they
+				// reach the database or the provider API (a truncated "{" causes a 400).
+				// Escape stray control chars; if still invalid, fall back to {} so the
+				// tool-call fixer can regenerate them instead of failing the whole chain.
+				sanitizedArgs := cast.SanitizeJSONControlChars(toolCall.FunctionCall.Arguments)
+				if !json.Valid([]byte(sanitizedArgs)) {
+					logger.WithFields(logrus.Fields{
+						"tool_call_id": toolCall.ID,
+						"tool_name":    toolCall.FunctionCall.Name,
+						"raw_args":     toolCall.FunctionCall.Arguments[:min(200, len(toolCall.FunctionCall.Arguments))],
+					}).Warn("tool call has invalid JSON arguments, replacing with empty object so the tool-call fixer can regenerate them")
+					sanitizedArgs = "{}"
+				}
+				toolCall.FunctionCall.Arguments = sanitizedArgs
 				result.funcCalls = append(result.funcCalls, toolCall)
 			}
 		}
