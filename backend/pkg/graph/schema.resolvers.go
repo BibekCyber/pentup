@@ -1660,6 +1660,15 @@ func (r *mutationResolver) CreateScan(ctx context.Context, input model.CreateSca
 		return nil, err
 	}
 
+	// The target gate the wizard shows is advisory there; this is the real one,
+	// so a hand-crafted request cannot start a scan against a malformed target
+	// or one pointed at internal infrastructure. It runs last of the cheap
+	// checks because it can spend seconds on the network, and there is no point
+	// probing a target for a request that fails on provider grounds anyway.
+	if err := r.assertScanTarget(ctx, uid, input.Name); err != nil {
+		return nil, err
+	}
+
 	scope := ""
 	if input.Scope != nil {
 		scope = string(*input.Scope)
@@ -3065,6 +3074,24 @@ func (r *queryResolver) ChatQuota(ctx context.Context) (*model.ChatQuota, error)
 	}
 
 	return convertChatQuota(quota), nil
+}
+
+// CheckTarget is the resolver for the checkTarget field.
+func (r *queryResolver) CheckTarget(ctx context.Context, target string) (*model.TargetCheckResult, error) {
+	uid, _, err := validatePermission(ctx, "domains.create")
+	if err != nil {
+		return nil, err
+	}
+	if r.TargetCheck == nil {
+		return nil, fmt.Errorf("target checking is not available")
+	}
+
+	res, err := r.TargetCheck.Check(ctx, uid, target)
+	if err != nil {
+		return nil, targetCheckError(err)
+	}
+
+	return convertTargetCheck(res), nil
 }
 
 // FlowCreated is the resolver for the flowCreated field.

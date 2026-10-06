@@ -528,6 +528,7 @@ type ComplexityRoot struct {
 		ChatQuota                       func(childComplexity int) int
 		ChatSession                     func(childComplexity int, sessionID int64) int
 		ChatSessions                    func(childComplexity int) int
+		CheckTarget                     func(childComplexity int, target string) int
 		Domain                          func(childComplexity int, id int64) int
 		Domains                         func(childComplexity int) int
 		Flow                            func(childComplexity int, flowID int64) int
@@ -666,6 +667,27 @@ type ComplexityRoot struct {
 		SubtaskTitle         func(childComplexity int) int
 		TotalDurationSeconds func(childComplexity int) int
 		TotalToolcallsCount  func(childComplexity int) int
+	}
+
+	TargetCheckResult struct {
+		CloudAccountID func(childComplexity int) int
+		CloudProvider  func(childComplexity int) int
+		HTTPStatus     func(childComplexity int) int
+		Host           func(childComplexity int) int
+		Input          func(childComplexity int) int
+		Kind           func(childComplexity int) int
+		Message        func(childComplexity int) int
+		Ok             func(childComplexity int) int
+		Outcome        func(childComplexity int) int
+		Port           func(childComplexity int) int
+		Service        func(childComplexity int) int
+		Steps          func(childComplexity int) int
+	}
+
+	TargetCheckStep struct {
+		Detail func(childComplexity int) int
+		Name   func(childComplexity int) int
+		Status func(childComplexity int) int
 	}
 
 	Task struct {
@@ -877,6 +899,7 @@ type QueryResolver interface {
 	ChatSession(ctx context.Context, sessionID int64) (*model.ChatSession, error)
 	ChatMessages(ctx context.Context, sessionID int64) ([]*model.ChatMessage, error)
 	ChatQuota(ctx context.Context) (*model.ChatQuota, error)
+	CheckTarget(ctx context.Context, target string) (*model.TargetCheckResult, error)
 }
 type SubscriptionResolver interface {
 	FlowCreated(ctx context.Context) (<-chan *model.Flow, error)
@@ -3315,6 +3338,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.ChatSessions(childComplexity), true
+	case "Query.checkTarget":
+		if e.ComplexityRoot.Query.CheckTarget == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkTarget_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.CheckTarget(childComplexity, args["target"].(string)), true
 	case "Query.domain":
 		if e.ComplexityRoot.Query.Domain == nil {
 			break
@@ -4188,6 +4222,98 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.SubtaskExecutionStats.TotalToolcallsCount(childComplexity), true
+
+	case "TargetCheckResult.cloudAccountId":
+		if e.ComplexityRoot.TargetCheckResult.CloudAccountID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.CloudAccountID(childComplexity), true
+	case "TargetCheckResult.cloudProvider":
+		if e.ComplexityRoot.TargetCheckResult.CloudProvider == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.CloudProvider(childComplexity), true
+	case "TargetCheckResult.httpStatus":
+		if e.ComplexityRoot.TargetCheckResult.HTTPStatus == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.HTTPStatus(childComplexity), true
+	case "TargetCheckResult.host":
+		if e.ComplexityRoot.TargetCheckResult.Host == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Host(childComplexity), true
+	case "TargetCheckResult.input":
+		if e.ComplexityRoot.TargetCheckResult.Input == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Input(childComplexity), true
+	case "TargetCheckResult.kind":
+		if e.ComplexityRoot.TargetCheckResult.Kind == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Kind(childComplexity), true
+	case "TargetCheckResult.message":
+		if e.ComplexityRoot.TargetCheckResult.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Message(childComplexity), true
+	case "TargetCheckResult.ok":
+		if e.ComplexityRoot.TargetCheckResult.Ok == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Ok(childComplexity), true
+	case "TargetCheckResult.outcome":
+		if e.ComplexityRoot.TargetCheckResult.Outcome == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Outcome(childComplexity), true
+	case "TargetCheckResult.port":
+		if e.ComplexityRoot.TargetCheckResult.Port == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Port(childComplexity), true
+	case "TargetCheckResult.service":
+		if e.ComplexityRoot.TargetCheckResult.Service == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Service(childComplexity), true
+	case "TargetCheckResult.steps":
+		if e.ComplexityRoot.TargetCheckResult.Steps == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckResult.Steps(childComplexity), true
+
+	case "TargetCheckStep.detail":
+		if e.ComplexityRoot.TargetCheckStep.Detail == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckStep.Detail(childComplexity), true
+	case "TargetCheckStep.name":
+		if e.ComplexityRoot.TargetCheckStep.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckStep.Name(childComplexity), true
+	case "TargetCheckStep.status":
+		if e.ComplexityRoot.TargetCheckStep.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TargetCheckStep.Status(childComplexity), true
 
 	case "Task.createdAt":
 		if e.ComplexityRoot.Task.CreatedAt == nil {
@@ -5754,6 +5880,48 @@ func (ec *executionContext) childFields_SubtaskExecutionStats(ctx context.Contex
 	return nil, fmt.Errorf("no field named %q was found under type SubtaskExecutionStats", field.Name)
 }
 
+func (ec *executionContext) childFields_TargetCheckResult(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "input":
+		return ec.fieldContext_TargetCheckResult_input(ctx, field)
+	case "ok":
+		return ec.fieldContext_TargetCheckResult_ok(ctx, field)
+	case "kind":
+		return ec.fieldContext_TargetCheckResult_kind(ctx, field)
+	case "outcome":
+		return ec.fieldContext_TargetCheckResult_outcome(ctx, field)
+	case "message":
+		return ec.fieldContext_TargetCheckResult_message(ctx, field)
+	case "host":
+		return ec.fieldContext_TargetCheckResult_host(ctx, field)
+	case "port":
+		return ec.fieldContext_TargetCheckResult_port(ctx, field)
+	case "service":
+		return ec.fieldContext_TargetCheckResult_service(ctx, field)
+	case "cloudProvider":
+		return ec.fieldContext_TargetCheckResult_cloudProvider(ctx, field)
+	case "cloudAccountId":
+		return ec.fieldContext_TargetCheckResult_cloudAccountId(ctx, field)
+	case "httpStatus":
+		return ec.fieldContext_TargetCheckResult_httpStatus(ctx, field)
+	case "steps":
+		return ec.fieldContext_TargetCheckResult_steps(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TargetCheckResult", field.Name)
+}
+
+func (ec *executionContext) childFields_TargetCheckStep(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext_TargetCheckStep_name(ctx, field)
+	case "status":
+		return ec.fieldContext_TargetCheckStep_status(ctx, field)
+	case "detail":
+		return ec.fieldContext_TargetCheckStep_detail(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TargetCheckStep", field.Name)
+}
+
 func (ec *executionContext) childFields_Task(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -7139,6 +7307,20 @@ func (ec *executionContext) field_Query_chatSession_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["sessionId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_checkTarget_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "target",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["target"] = arg0
 	return args, nil
 }
 
@@ -19045,6 +19227,50 @@ func (ec *executionContext) fieldContext_Query_chatQuota(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_checkTarget(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_checkTarget(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().CheckTarget(ctx, fc.Args["target"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TargetCheckResult) graphql.Marshaler {
+			return ec.marshalNTargetCheckResult2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckResult(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_checkTarget(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TargetCheckResult(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_checkTarget_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -21415,6 +21641,360 @@ func (ec *executionContext) _SubtaskExecutionStats_totalToolcallsCount(ctx conte
 }
 func (ec *executionContext) fieldContext_SubtaskExecutionStats_totalToolcallsCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("SubtaskExecutionStats", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_input(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_input(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Input, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_input(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_ok(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_ok(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ok, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_ok(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_kind(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_kind(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Kind, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.TargetKind) graphql.Marshaler {
+			return ec.marshalNTargetKind2pentagiᚋpkgᚋgraphᚋmodelᚐTargetKind(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_kind(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type TargetKind does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_outcome(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_outcome(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Outcome, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.TargetOutcome) graphql.Marshaler {
+			return ec.marshalNTargetOutcome2pentagiᚋpkgᚋgraphᚋmodelᚐTargetOutcome(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_outcome(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type TargetOutcome does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_message(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_host(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_host(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Host, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_host(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_port(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_port(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Port, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_port(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_service(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_service(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Service, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_service(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_cloudProvider(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_cloudProvider(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CloudProvider, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_cloudProvider(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_cloudAccountId(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_cloudAccountId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CloudAccountID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_cloudAccountId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_httpStatus(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_httpStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HTTPStatus, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_httpStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckResult_steps(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckResult_steps(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Steps, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.TargetCheckStep) graphql.Marshaler {
+			return ec.marshalNTargetCheckStep2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStepᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckResult_steps(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TargetCheckResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TargetCheckStep(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TargetCheckStep_name(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckStep) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckStep_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckStep_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckStep", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckStep_status(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckStep) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckStep_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.TargetCheckStatus) graphql.Marshaler {
+			return ec.marshalNTargetCheckStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckStep_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckStep", field, false, false, errors.New("field of type TargetCheckStatus does not have child fields"))
+}
+
+func (ec *executionContext) _TargetCheckStep_detail(ctx context.Context, field graphql.CollectedField, obj *model.TargetCheckStep) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TargetCheckStep_detail(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Detail, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TargetCheckStep_detail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TargetCheckStep", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Task_id(ctx context.Context, field graphql.CollectedField, obj *model.Task) (ret graphql.Marshaler) {
@@ -29420,6 +30000,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "checkTarget":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkTarget(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -29954,6 +30556,147 @@ func (ec *executionContext) _SubtaskExecutionStats(ctx context.Context, sel ast.
 			}
 		case "totalToolcallsCount":
 			out.Values[i] = ec._SubtaskExecutionStats_totalToolcallsCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var targetCheckResultImplementors = []string{"TargetCheckResult"}
+
+func (ec *executionContext) _TargetCheckResult(ctx context.Context, sel ast.SelectionSet, obj *model.TargetCheckResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, targetCheckResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TargetCheckResult")
+		case "input":
+			out.Values[i] = ec._TargetCheckResult_input(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ok":
+			out.Values[i] = ec._TargetCheckResult_ok(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "kind":
+			out.Values[i] = ec._TargetCheckResult_kind(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "outcome":
+			out.Values[i] = ec._TargetCheckResult_outcome(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._TargetCheckResult_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "host":
+			out.Values[i] = ec._TargetCheckResult_host(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "port":
+			out.Values[i] = ec._TargetCheckResult_port(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "service":
+			out.Values[i] = ec._TargetCheckResult_service(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cloudProvider":
+			out.Values[i] = ec._TargetCheckResult_cloudProvider(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cloudAccountId":
+			out.Values[i] = ec._TargetCheckResult_cloudAccountId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "httpStatus":
+			out.Values[i] = ec._TargetCheckResult_httpStatus(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "steps":
+			out.Values[i] = ec._TargetCheckResult_steps(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var targetCheckStepImplementors = []string{"TargetCheckStep"}
+
+func (ec *executionContext) _TargetCheckStep(ctx context.Context, sel ast.SelectionSet, obj *model.TargetCheckStep) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, targetCheckStepImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TargetCheckStep")
+		case "name":
+			out.Values[i] = ec._TargetCheckStep_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._TargetCheckStep_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "detail":
+			out.Values[i] = ec._TargetCheckStep_detail(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -32237,6 +32980,72 @@ func (ec *executionContext) marshalNSubtaskExecutionStats2ᚖpentagiᚋpkgᚋgra
 		return graphql.Null
 	}
 	return ec._SubtaskExecutionStats(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTargetCheckResult2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckResult(ctx context.Context, sel ast.SelectionSet, v *model.TargetCheckResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TargetCheckResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTargetCheckStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStatus(ctx context.Context, v any) (model.TargetCheckStatus, error) {
+	var res model.TargetCheckStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTargetCheckStatus2pentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStatus(ctx context.Context, sel ast.SelectionSet, v model.TargetCheckStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNTargetCheckStep2ᚕᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStepᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TargetCheckStep) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTargetCheckStep2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStep(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTargetCheckStep2ᚖpentagiᚋpkgᚋgraphᚋmodelᚐTargetCheckStep(ctx context.Context, sel ast.SelectionSet, v *model.TargetCheckStep) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TargetCheckStep(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTargetKind2pentagiᚋpkgᚋgraphᚋmodelᚐTargetKind(ctx context.Context, v any) (model.TargetKind, error) {
+	var res model.TargetKind
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTargetKind2pentagiᚋpkgᚋgraphᚋmodelᚐTargetKind(ctx context.Context, sel ast.SelectionSet, v model.TargetKind) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNTargetOutcome2pentagiᚋpkgᚋgraphᚋmodelᚐTargetOutcome(ctx context.Context, v any) (model.TargetOutcome, error) {
+	var res model.TargetOutcome
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTargetOutcome2pentagiᚋpkgᚋgraphᚋmodelᚐTargetOutcome(ctx context.Context, sel ast.SelectionSet, v model.TargetOutcome) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNTargetType2pentagiᚋpkgᚋgraphᚋmodelᚐTargetType(ctx context.Context, v any) (model.TargetType, error) {

@@ -556,6 +556,27 @@ type SubtaskExecutionStats struct {
 	TotalToolcallsCount  int     `json:"totalToolcallsCount"`
 }
 
+type TargetCheckResult struct {
+	Input          string             `json:"input"`
+	Ok             bool               `json:"ok"`
+	Kind           TargetKind         `json:"kind"`
+	Outcome        TargetOutcome      `json:"outcome"`
+	Message        string             `json:"message"`
+	Host           string             `json:"host"`
+	Port           int                `json:"port"`
+	Service        string             `json:"service"`
+	CloudProvider  string             `json:"cloudProvider"`
+	CloudAccountID string             `json:"cloudAccountId"`
+	HTTPStatus     int                `json:"httpStatus"`
+	Steps          []*TargetCheckStep `json:"steps"`
+}
+
+type TargetCheckStep struct {
+	Name   string            `json:"name"`
+	Status TargetCheckStatus `json:"status"`
+	Detail string            `json:"detail"`
+}
+
 type Task struct {
 	ID        int64      `json:"id"`
 	Title     string     `json:"title"`
@@ -1855,6 +1876,199 @@ func (e *StatusType) UnmarshalJSON(b []byte) error {
 }
 
 func (e StatusType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TargetCheckStatus string
+
+const (
+	TargetCheckStatusOk   TargetCheckStatus = "ok"
+	TargetCheckStatusWarn TargetCheckStatus = "warn"
+	TargetCheckStatusFail TargetCheckStatus = "fail"
+	TargetCheckStatusSkip TargetCheckStatus = "skip"
+)
+
+var AllTargetCheckStatus = []TargetCheckStatus{
+	TargetCheckStatusOk,
+	TargetCheckStatusWarn,
+	TargetCheckStatusFail,
+	TargetCheckStatusSkip,
+}
+
+func (e TargetCheckStatus) IsValid() bool {
+	switch e {
+	case TargetCheckStatusOk, TargetCheckStatusWarn, TargetCheckStatusFail, TargetCheckStatusSkip:
+		return true
+	}
+	return false
+}
+
+func (e TargetCheckStatus) String() string {
+	return string(e)
+}
+
+func (e *TargetCheckStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TargetCheckStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TargetCheckStatus", str)
+	}
+	return nil
+}
+
+func (e TargetCheckStatus) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TargetCheckStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TargetCheckStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TargetKind string
+
+const (
+	TargetKindURL          TargetKind = "url"
+	TargetKindHost         TargetKind = "host"
+	TargetKindIP           TargetKind = "ip"
+	TargetKindCloudAccount TargetKind = "cloud_account"
+	TargetKindInvalid      TargetKind = "invalid"
+)
+
+var AllTargetKind = []TargetKind{
+	TargetKindURL,
+	TargetKindHost,
+	TargetKindIP,
+	TargetKindCloudAccount,
+	TargetKindInvalid,
+}
+
+func (e TargetKind) IsValid() bool {
+	switch e {
+	case TargetKindURL, TargetKindHost, TargetKindIP, TargetKindCloudAccount, TargetKindInvalid:
+		return true
+	}
+	return false
+}
+
+func (e TargetKind) String() string {
+	return string(e)
+}
+
+func (e *TargetKind) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TargetKind(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TargetKind", str)
+	}
+	return nil
+}
+
+func (e TargetKind) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TargetKind) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TargetKind) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TargetOutcome string
+
+const (
+	TargetOutcomeInvalidInput          TargetOutcome = "invalid_input"
+	TargetOutcomeBlockedDestination    TargetOutcome = "blocked_destination"
+	TargetOutcomeDNSNotFound           TargetOutcome = "dns_not_found"
+	TargetOutcomeCloudResourceNotFound TargetOutcome = "cloud_resource_not_found"
+	TargetOutcomeValid                 TargetOutcome = "valid"
+	TargetOutcomeResponding            TargetOutcome = "responding"
+	TargetOutcomeReachable             TargetOutcome = "reachable"
+	TargetOutcomeDNSOnly               TargetOutcome = "dns_only"
+	TargetOutcomeNoResponse            TargetOutcome = "no_response"
+	TargetOutcomeDNSError              TargetOutcome = "dns_error"
+	TargetOutcomeAccountIdentifier     TargetOutcome = "account_identifier"
+)
+
+var AllTargetOutcome = []TargetOutcome{
+	TargetOutcomeInvalidInput,
+	TargetOutcomeBlockedDestination,
+	TargetOutcomeDNSNotFound,
+	TargetOutcomeCloudResourceNotFound,
+	TargetOutcomeValid,
+	TargetOutcomeResponding,
+	TargetOutcomeReachable,
+	TargetOutcomeDNSOnly,
+	TargetOutcomeNoResponse,
+	TargetOutcomeDNSError,
+	TargetOutcomeAccountIdentifier,
+}
+
+func (e TargetOutcome) IsValid() bool {
+	switch e {
+	case TargetOutcomeInvalidInput, TargetOutcomeBlockedDestination, TargetOutcomeDNSNotFound, TargetOutcomeCloudResourceNotFound, TargetOutcomeValid, TargetOutcomeResponding, TargetOutcomeReachable, TargetOutcomeDNSOnly, TargetOutcomeNoResponse, TargetOutcomeDNSError, TargetOutcomeAccountIdentifier:
+		return true
+	}
+	return false
+}
+
+func (e TargetOutcome) String() string {
+	return string(e)
+}
+
+func (e *TargetOutcome) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TargetOutcome(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TargetOutcome", str)
+	}
+	return nil
+}
+
+func (e TargetOutcome) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TargetOutcome) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TargetOutcome) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

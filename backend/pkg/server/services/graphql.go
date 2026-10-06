@@ -17,6 +17,7 @@ import (
 	"pentagi/pkg/providers"
 	"pentagi/pkg/server/auth"
 	"pentagi/pkg/server/logger"
+	"pentagi/pkg/targetcheck"
 	"pentagi/pkg/templates"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -57,6 +58,7 @@ func NewGraphqlService(
 	providers providers.ProviderController,
 	flowController controller.FlowController,
 	subscriptions subscriptions.SubscriptionsController,
+	targetChecker *targetcheck.Service,
 ) *GraphqlService {
 	domainController := controller.NewDomainController(db, cfg, flowController, providers, subscriptions)
 	chatService := chat.NewService(
@@ -79,6 +81,7 @@ func NewGraphqlService(
 		DomainController: domainController,
 		Subscriptions:    subscriptions,
 		Chat:             chatService,
+		TargetCheck:      targetChecker,
 	}}))
 
 	component := "pentagi-gql"

@@ -355,6 +355,74 @@ input CreateScanInput {
   modelProvider: String
 }
 
+# ==================== Target Check ====================
+
+# How one observation turned out.
+enum TargetCheckStatus {
+  ok
+  warn
+  fail
+  skip
+}
+
+# The shape of the target string.
+enum TargetKind {
+  url
+  host
+  ip
+  cloud_account
+  invalid
+}
+
+# Why the target was accepted or rejected. Only invalid_input,
+# blocked_destination, dns_not_found and cloud_resource_not_found reject.
+enum TargetOutcome {
+  invalid_input
+  blocked_destination
+  dns_not_found
+  cloud_resource_not_found
+  valid
+  responding
+  reachable
+  dns_only
+  no_response
+  dns_error
+  account_identifier
+}
+
+# One stage of the check (input, dns, tcp, tls, http), reported separately so a
+# certificate problem or a 403 stays visible instead of collapsing into "down".
+type TargetCheckStep {
+  name: String!
+  status: TargetCheckStatus!
+  detail: String!
+}
+
+# Verdict for a scan target, used to gate the scan wizard.
+type TargetCheckResult {
+  # The target as entered, trimmed.
+  input: String!
+  # Whether a scan may be created for this target.
+  ok: Boolean!
+  kind: TargetKind!
+  outcome: TargetOutcome!
+  # User-facing explanation of the verdict.
+  message: String!
+  # Normalized host (punycode, no wildcard prefix), empty for account IDs.
+  host: String!
+  # Port probed; 0 when the user named no particular service.
+  port: Int!
+  # Recognised cloud service, e.g. "AWS S3 bucket".
+  service: String!
+  # aws|azure|gcp|digitalocean, for account IDs and known cloud endpoints.
+  cloudProvider: String!
+  # Cloud account/subscription/project identifier, when the target is one.
+  cloudAccountId: String!
+  # HTTP status observed, or 0 when no response was read.
+  httpStatus: Int!
+  steps: [TargetCheckStep!]!
+}
+
 # Live per-user quota usage powering the spawn confirmation screen
 type QuotaUsage {
   flowsCurrent: Int!
@@ -1135,6 +1203,10 @@ type Query {
   chatSession(sessionId: ID!): ChatSession
   chatMessages(sessionId: ID!): [ChatMessage!]!
   chatQuota: ChatQuota!
+
+  # Validate and probe a scan target before creating a scan. Advisory for the
+  # wizard; createScan repeats it.
+  checkTarget(target: String!): TargetCheckResult!
 }
 
 type Mutation {
