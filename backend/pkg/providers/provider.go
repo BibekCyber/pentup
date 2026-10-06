@@ -34,7 +34,7 @@ const (
 	msgGeneratorSizeLimit = 150 * 1024 // 150 KB
 	msgRefinerSizeLimit   = 100 * 1024 // 100 KB
 	msgReporterSizeLimit  = 100 * 1024 // 100 KB
-	msgSummarizerLimit    = 16 * 1024  // 16 KB
+	msgSummarizerLimit    = 32 * 1024  // 32 KB
 )
 
 const textTruncateMessage = "\n\n[...truncated]"
