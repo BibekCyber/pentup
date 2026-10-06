@@ -22,6 +22,7 @@ import (
 	"pentagi/pkg/server/logger"
 	"pentagi/pkg/server/oauth"
 	"pentagi/pkg/server/services"
+	"pentagi/pkg/targetcheck"
 
 	_ "pentagi/pkg/server/docs" // swagger docs
 
@@ -146,9 +147,16 @@ func NewRouter(
 	screenshotService := services.NewScreenshotService(orm, cfg.DataDir)
 	promptService := services.NewPromptService(orm)
 	analyticsService := services.NewAnalyticsService(orm)
+	// One checker for both transports: its rate limit is the abuse control for
+	// an endpoint that reaches third-party infrastructure, so a second instance
+	// would hand every user a second, independent budget.
+	targetChecker := targetcheck.NewService(
+		cfg, logrus.StandardLogger().WithField("component", "pentagi-target-check"),
+	)
+	targetCheckService := services.NewTargetCheckService(targetChecker)
 	tokenService := services.NewTokenService(orm, cfg.CookieSigningSalt, tokenCache, subscriptions)
 	graphqlService := services.NewGraphqlService(
-		db, cfg, baseURL, cfg.CorsOrigins, tokenCache, providers, controller, subscriptions,
+		db, cfg, baseURL, cfg.CorsOrigins, tokenCache, providers, controller, subscriptions, targetChecker,
 	)
 
 	router := gin.Default()
@@ -239,6 +247,7 @@ func NewRouter(
 		setScreenshotsGroup(privateGroup, screenshotService)
 		setPromptsGroup(privateGroup, promptService)
 		setAnalyticsGroup(privateGroup, analyticsService)
+		setTargetsGroup(privateGroup, targetCheckService)
 	}
 
 	privateUserGroup := api.Group("/")
@@ -308,6 +317,13 @@ func NewRouter(
 	}
 
 	return router
+}
+
+func setTargetsGroup(parent *gin.RouterGroup, svc *services.TargetCheckService) {
+	targetsGroup := parent.Group("/targets")
+	{
+		targetsGroup.GET("/check", svc.CheckTarget)
+	}
 }
 
 func setProvidersGroup(parent *gin.RouterGroup, svc *services.ProviderService) {

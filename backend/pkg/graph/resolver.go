@@ -8,6 +8,7 @@ import (
 	"pentagi/pkg/graph/subscriptions"
 	"pentagi/pkg/providers"
 	"pentagi/pkg/server/auth"
+	"pentagi/pkg/targetcheck"
 	"pentagi/pkg/templates"
 
 	"github.com/sirupsen/logrus"
@@ -28,4 +29,5 @@ type Resolver struct {
 	DomainController controller.DomainController
 	Subscriptions    subscriptions.SubscriptionsController
 	Chat             *chat.Service
+	TargetCheck      *targetcheck.Service
 }

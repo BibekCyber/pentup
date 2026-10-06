@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import ScanInitializing from '@/features/flows/scan-initializing';
+import TargetStatus from '@/features/flows/target-status';
 import {
     type CreateScanInput,
     ScanBox,
@@ -44,11 +45,8 @@ import {
     useCreateScanMutation,
 } from '@/graphql/types';
 import { useScanStage } from '@/hooks/use-scan-stage';
-import {
-    type CredentialBranch,
-    getCredentialErrors,
-    stripBearer,
-} from '@/lib/credential-validation';
+import { canAdvanceTarget, useTargetCheck } from '@/hooks/use-target-check';
+import { type CredentialBranch, getCredentialErrors, stripBearer } from '@/lib/credential-validation';
 import { getTargetTypeLabel } from '@/lib/target-type-colors';
 import { cn } from '@/lib/utils';
 import { useTemplates } from '@/providers/templates-provider';
@@ -134,7 +132,10 @@ const Field = ({
         <label className="field-label">{label}</label>
         {children}
         {error ? (
-            <p className="field-error" role="alert">
+            <p
+                className="field-error"
+                role="alert"
+            >
                 {error}
             </p>
         ) : hint ? (
@@ -170,6 +171,9 @@ const NewEngagement = () => {
     // While createScan is in flight (and we navigate to the new scan), show the animated
     // "your scan is starting" experience instead of a bare button spinner.
     const createStage = useScanStage(undefined, isLoading);
+    // NOTE: useTargetCheck(name) does NOT belong here — it sits below the state
+    // declarations. Placed here it reads `name` before its `const`, which throws
+    // "Cannot access 'name' before initialization" and blanks the whole page.
     const [showSecret, setShowSecret] = useState(false);
 
     const [name, setName] = useState('');
@@ -195,6 +199,12 @@ const NewEngagement = () => {
     });
 
     const setCred = (key: keyof typeof creds, value: string) => setCreds((prev) => ({ ...prev, [key]: value }));
+
+    // Live verdict for the Target field: format checked in the browser, then
+    // the backend's checkTarget, which resolves and probes the target. Declared
+    // after `name` so it reads the state rather than its temporal dead zone.
+    const targetCheck = useTargetCheck(name);
+    const targetValid = canAdvanceTarget(targetCheck);
 
     // Track which credential fields the user has left, so format errors only
     // appear after a field has been touched rather than while first typing.
@@ -225,10 +235,7 @@ const NewEngagement = () => {
                     ? 'web-form'
                     : null;
 
-    const credErrors = useMemo(
-        () => (credBranch ? getCredentialErrors(credBranch, creds) : {}),
-        [credBranch, creds],
-    );
+    const credErrors = useMemo(() => (credBranch ? getCredentialErrors(credBranch, creds) : {}), [credBranch, creds]);
 
     // Credentials are valid once the active branch has no missing/malformed
     // fields; when no credentials are required the step is trivially satisfied.
@@ -306,13 +313,26 @@ const NewEngagement = () => {
 
                 return !!box;
             case 'target':
-                return !!name.trim() && !!targetClass;
+                // The target must be confirmed, not merely non-empty, so a
+                // typo or a dead host cannot reach template selection.
+                return !!name.trim() && !!targetClass && targetValid;
             case 'templates':
                 return selectedIds.length > 0;
             default:
                 return true;
         }
-    }, [currentKey, name, targetClass, cloudProvider, scope, box, selectedIds.length, credValid, credBranch]);
+    }, [
+        currentKey,
+        name,
+        targetClass,
+        targetValid,
+        cloudProvider,
+        scope,
+        box,
+        selectedIds.length,
+        credValid,
+        credBranch,
+    ]);
 
     const buildCredential = (): CreateScanInput['credential'] => {
         if (!needsCredentials) {
@@ -415,7 +435,8 @@ const NewEngagement = () => {
     // required). Uses the same format checks as the per-field inline errors.
     const credComplete = credValid && (!needsCredentials || credBranch !== null);
 
-    const fullValid = !!name.trim() && !!targetClass && scopeValid && selectedIds.length > 0 && credComplete;
+    const fullValid =
+        !!name.trim() && !!targetClass && targetValid && scopeValid && selectedIds.length > 0 && credComplete;
 
     const runModeLabel = (() => {
         const modes = selectedIds.map((id) => selected[id]);
@@ -528,15 +549,24 @@ const NewEngagement = () => {
                                             title="What are we assessing?"
                                         />
                                         <Field
-                                            hint="A domain, host, URL, or cloud account/asset identifier."
+                                            hint={
+                                                targetCheck.kind === 'idle'
+                                                    ? 'A domain, host, URL, or cloud account/asset identifier.'
+                                                    : undefined
+                                            }
                                             label="Target"
                                         >
                                             <Input
+                                                aria-invalid={
+                                                    targetCheck.kind === 'format-error' ||
+                                                    (targetCheck.kind === 'checked' && !targetCheck.result.ok)
+                                                }
                                                 autoFocus
                                                 onChange={(e) => setName(e.target.value)}
                                                 placeholder="acme.com"
                                                 value={name}
                                             />
+                                            <TargetStatus state={targetCheck} />
                                         </Field>
                                         <div className="flex flex-col gap-2">
                                             <label className="field-label">What type of target is it?</label>
@@ -770,7 +800,10 @@ const NewEngagement = () => {
                                         />
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Aws ? (
                                             <>
-                                                <Field error={errFor('accessKeyId')} label="Access key ID">
+                                                <Field
+                                                    error={errFor('accessKeyId')}
+                                                    label="Access key ID"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('accessKeyId')}
                                                         onBlur={() => touch('accessKeyId')}
@@ -779,7 +812,10 @@ const NewEngagement = () => {
                                                         value={creds.accessKeyId}
                                                     />
                                                 </Field>
-                                                <Field error={errFor('secretAccessKey')} label="Secret access key">
+                                                <Field
+                                                    error={errFor('secretAccessKey')}
+                                                    label="Secret access key"
+                                                >
                                                     <div className="relative">
                                                         <Input
                                                             aria-invalid={!!errFor('secretAccessKey')}
@@ -838,7 +874,10 @@ const NewEngagement = () => {
 
                                         {targetClass === 'cloud' && cloudProvider === TargetType.Azure ? (
                                             <>
-                                                <Field error={errFor('tenant')} label="Tenant ID">
+                                                <Field
+                                                    error={errFor('tenant')}
+                                                    label="Tenant ID"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('tenant')}
                                                         onBlur={() => touch('tenant')}
@@ -847,7 +886,10 @@ const NewEngagement = () => {
                                                         value={creds.tenant}
                                                     />
                                                 </Field>
-                                                <Field error={errFor('appId')} label="Application (client) ID">
+                                                <Field
+                                                    error={errFor('appId')}
+                                                    label="Application (client) ID"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('appId')}
                                                         onBlur={() => touch('appId')}
@@ -856,7 +898,10 @@ const NewEngagement = () => {
                                                         value={creds.appId}
                                                     />
                                                 </Field>
-                                                <Field error={errFor('clientSecret')} label="Client secret">
+                                                <Field
+                                                    error={errFor('clientSecret')}
+                                                    label="Client secret"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('clientSecret')}
                                                         onBlur={() => touch('clientSecret')}
@@ -892,7 +937,10 @@ const NewEngagement = () => {
 
                                         {targetClass === 'web' && webCredType === 'token' ? (
                                             <>
-                                                <Field error={errFor('token')} label="Token">
+                                                <Field
+                                                    error={errFor('token')}
+                                                    label="Token"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('token')}
                                                         onBlur={() => touch('token')}
@@ -933,7 +981,10 @@ const NewEngagement = () => {
                                                         value={creds.loginUrl}
                                                     />
                                                 </Field>
-                                                <Field error={errFor('email')} label="Email / username">
+                                                <Field
+                                                    error={errFor('email')}
+                                                    label="Email / username"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('email')}
                                                         onBlur={() => touch('email')}
@@ -942,7 +993,10 @@ const NewEngagement = () => {
                                                         value={creds.email}
                                                     />
                                                 </Field>
-                                                <Field error={errFor('password')} label="Password">
+                                                <Field
+                                                    error={errFor('password')}
+                                                    label="Password"
+                                                >
                                                     <Input
                                                         aria-invalid={!!errFor('password')}
                                                         onBlur={() => touch('password')}

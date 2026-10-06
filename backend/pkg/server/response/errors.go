@@ -134,3 +134,8 @@ var ErrTokenNotFound = NewHttpError(404, "Token.NotFound", "token not found")
 var ErrTokenUnauthorized = NewHttpError(403, "Token.Unauthorized", "not authorized to manage this token")
 var ErrTokenInvalidRequest = NewHttpError(400, "Token.InvalidRequest", "invalid token request data")
 var ErrTokenInvalidData = NewHttpError(500, "Token.InvalidData", "invalid token data")
+
+// target checks
+
+var ErrTargetCheckMissingTarget = NewHttpError(400, "TargetCheck.MissingTarget", "target query parameter is required")
+var ErrTargetCheckRateLimited = NewHttpError(429, "TargetCheck.RateLimited", "too many target checks; slow down")

@@ -1443,6 +1443,27 @@ mutation createDomain($input: CreateDomainInput!) {
     }
 }
 
+query checkTarget($target: String!) {
+    checkTarget(target: $target) {
+        input
+        ok
+        kind
+        outcome
+        message
+        host
+        port
+        service
+        cloudProvider
+        cloudAccountId
+        httpStatus
+        steps {
+            name
+            status
+            detail
+        }
+    }
+}
+
 mutation createScan($input: CreateScanInput!) {
     createScan(input: $input) {
         ...domainFragment
