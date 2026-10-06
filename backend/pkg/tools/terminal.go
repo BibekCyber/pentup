@@ -355,12 +355,15 @@ func (t *terminal) ReadFile(ctx context.Context, flowID int64, path string) (str
 			return "", fmt.Errorf("file '%s' has invalid size %d", tarHeader.Name, tarHeader.Size)
 		}
 
-		var fileContent = make([]byte, tarHeader.Size)
-		_, err = tarReader.Read(fileContent)
-		if err != nil && err != io.EOF {
+		// Copy the whole entry rather than a single Read into a full-size buffer.
+		// tar.Reader.Read returns only what the underlying stream has to hand --
+		// typically the first chunk Docker sends -- and the previous code ignored
+		// that count and appended the entire buffer, so everything past the first
+		// chunk arrived as NUL bytes (later stripped, i.e. a silent truncation of
+		// large files around 32 KB). io.CopyN drains the entry in full.
+		if _, err := io.CopyN(&buffer, tarReader, tarHeader.Size); err != nil && err != io.EOF {
 			return "", fmt.Errorf("failed to read file '%s' content: %w", tarHeader.Name, err)
 		}
-		buffer.Write(fileContent)
 
 		if stats.Mode.IsDir() {
 			buffer.WriteString("\n\n")

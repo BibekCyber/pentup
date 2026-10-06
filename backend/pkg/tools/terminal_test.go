@@ -1,7 +1,9 @@
 package tools
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,6 +17,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // contextTestTermLogProvider implements TermLogProvider for context tests.
@@ -35,6 +38,11 @@ type contextAwareMockDockerClient struct {
 	attachOutput   []byte
 	attachDelay    time.Duration
 	inspectResp    container.ExecInspect
+
+	// copyStream / copyStat, when set, are returned by CopyFromContainer so
+	// ReadFile tests can drive a real tar stream through the tool.
+	copyStream io.ReadCloser
+	copyStat   container.PathStat
 
 	// Set by ContainerExecAttach to track if ctx was canceled during attach
 	ctxWasCanceled bool
@@ -95,6 +103,9 @@ func (m *contextAwareMockDockerClient) CopyToContainer(_ context.Context, _ stri
 	return nil
 }
 func (m *contextAwareMockDockerClient) CopyFromContainer(_ context.Context, _ string, _ string) (io.ReadCloser, container.PathStat, error) {
+	if m.copyStream != nil {
+		return m.copyStream, m.copyStat, nil
+	}
 	return io.NopCloser(nil), container.PathStat{}, nil
 }
 func (m *contextAwareMockDockerClient) Cleanup(_ context.Context) error { return nil }
@@ -207,4 +218,61 @@ func TestPrimaryTerminalName(t *testing.T) {
 			}
 		})
 	}
+}
+
+// chunkedReader yields at most chunk bytes per Read, imitating how Docker's
+// CopyFromContainer HTTP body dribbles a large tar entry across several reads.
+type chunkedReader struct {
+	data  []byte
+	chunk int
+	off   int
+}
+
+func (c *chunkedReader) Read(p []byte) (int, error) {
+	if c.off >= len(c.data) {
+		return 0, io.EOF
+	}
+	n := c.chunk
+	if n > len(p) {
+		n = len(p)
+	}
+	if c.off+n > len(c.data) {
+		n = len(c.data) - c.off
+	}
+	copy(p, c.data[c.off:c.off+n])
+	c.off += n
+	return n, nil
+}
+
+// TestReadFileReturnsWholeFileAcrossChunks guards the fix for the silent 32 KB
+// truncation: a file larger than one stream chunk must come back in full. The
+// pre-fix single tarReader.Read kept only the first chunk and zero-filled the
+// rest (later stripped), so a 48 KB file arrived as 32 KB cut mid-line.
+func TestReadFileReturnsWholeFileAcrossChunks(t *testing.T) {
+	const size = 48 * 1024 // > 32 KB, the old truncation point
+	want := bytes.Repeat([]byte("abcdefgh"), size/8)
+
+	var tarBuf bytes.Buffer
+	tw := tar.NewWriter(&tarBuf)
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Name: "attack_surface.md",
+		Size: int64(len(want)),
+		Mode: 0o600,
+	}))
+	_, err := tw.Write(want)
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+
+	mock := &contextAwareMockDockerClient{
+		isRunning:  true,
+		copyStream: io.NopCloser(&chunkedReader{data: tarBuf.Bytes(), chunk: 4096}),
+		copyStat:   container.PathStat{Size: int64(len(want)), Mode: 0o600},
+	}
+
+	term := NewTerminalTool(1, nil, nil, 1, "lid", mock, &contextTestTermLogProvider{}, nil).(*terminal)
+
+	got, err := term.ReadFile(context.Background(), 1, "/tmp/cyberfortify_recon/attack_surface.md")
+	require.NoError(t, err)
+	assert.Equal(t, len(want), len(got), "whole file must be returned, not just the first chunk")
+	assert.Equal(t, string(want), got)
 }
