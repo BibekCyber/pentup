@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
 	"testing"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vxcontrol/cloud/anonymizer"
+	"github.com/vxcontrol/cloud/anonymizer/patterns"
 )
 
 // contextTestTermLogProvider implements TermLogProvider for context tests.
@@ -275,4 +278,52 @@ func TestReadFileReturnsWholeFileAcrossChunks(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, len(want), len(got), "whole file must be returned, not just the first chunk")
 	assert.Equal(t, string(want), got)
+}
+
+// secretsOnlyReplacer builds the replacer the terminal tool now uses: it masks
+// only the given secret values, not the generic PII/URL/domain rules.
+func secretsOnlyReplacer(t *testing.T, secrets ...string) anonymizer.Replacer {
+	t.Helper()
+	var ps []patterns.Pattern
+	for _, s := range secrets {
+		ps = append(ps, patterns.Pattern{
+			Name:  "Scan Credential",
+			Regex: "(?P<replace>" + regexp.QuoteMeta(s) + ")",
+		})
+	}
+	sp := &patterns.Patterns{Patterns: ps}
+	r, err := anonymizer.NewReplacer(sp.Regexes(), sp.Names())
+	require.NoError(t, err)
+	return r
+}
+
+// TestTerminalRedactMasksSecretsNotScanOutput guards the masking fix: the
+// terminal's agent-facing redaction must hide real secret values but leave
+// ordinary scan output (domains, URLs, IPs, file bytes) intact. The old
+// terminal ran every generic anonymizer rule, and one URL rule matched across
+// line breaks and collapsed a 48 KB file to ~2 KB, which made agents re-read it.
+func TestTerminalRedactMasksSecretsNotScanOutput(t *testing.T) {
+	secret := "S3cr3t-Api-Key-ABCDEF123456"
+	term := NewTerminalTool(1, nil, nil, 1, "lid",
+		&contextAwareMockDockerClient{}, &contextTestTermLogProvider{},
+		secretsOnlyReplacer(t, secret),
+	).(*terminal)
+
+	// A realistic chunk of scan output: the target domain repeated, URLs, an IP,
+	// and the secret embedded once.
+	var sb bytes.Buffer
+	for i := 0; i < 500; i++ {
+		fmt.Fprintf(&sb, "- https://cyberfortify.co/blog/post-%d\n", i)
+	}
+	fmt.Fprintf(&sb, "auth token %s against 203.0.113.5\n", secret)
+	in := sb.String()
+
+	out := term.redact(in)
+
+	assert.NotContains(t, out, secret, "the secret value must be masked")
+	assert.Contains(t, out, "https://cyberfortify.co/blog/post-1", "URLs must survive")
+	assert.Contains(t, out, "203.0.113.5", "IPs must survive")
+	// The output must not be collapsed: only the secret (28 bytes) is removed.
+	assert.GreaterOrEqual(t, len(out), len(in)-len(secret)-len("§*Scan Credential*§"),
+		"scan output must not be gutted by generic rules")
 }

@@ -154,6 +154,12 @@ type flowToolsExecutor struct {
 	primaryLID     string
 	functions      *Functions
 	replacer       anonymizer.Replacer
+	// secretReplacer masks only the actual secret VALUES (infra secrets + per-flow
+	// scan credentials), not the 278 generic PII/URL/domain rules in `replacer`.
+	// The terminal tool uses it for agent-facing output: the full replacer mangled
+	// legitimate scan output (one rule collapsed a 48 KB file to 2 KB), which made
+	// agents believe files were corrupt and re-read them endlessly.
+	secretReplacer anonymizer.Replacer
 
 	// targetCredential, when set, is written to SecretCredentialPath inside the
 	// primary container on Prepare so an authenticated-engagement agent can read
@@ -329,36 +335,53 @@ func NewFlowToolsExecutor(
 		return nil, fmt.Errorf("failed to load all patterns: %v", err)
 	}
 
-	// combine with config secret patterns
-	allPatterns.Patterns = append(allPatterns.Patterns, cfg.GetSecretPatterns()...)
-
-	// seed per-flow secrets (scan credentials) so they are redacted in
-	// anonymized output, mirroring config.GetSecretPatterns construction.
+	// secretPatterns are the actual secret VALUES: the app's own infra secrets
+	// (DB URL, API keys, ...) plus per-flow scan credentials. These -- and only
+	// these -- are what must never reach the agent or observability.
+	secretPatterns := append([]patterns.Pattern(nil), cfg.GetSecretPatterns()...)
 	for _, secret := range extraSecrets {
 		trimmed := strings.TrimSpace(secret)
 		if trimmed == "" {
 			continue
 		}
-		allPatterns.Patterns = append(allPatterns.Patterns, patterns.Pattern{
+		secretPatterns = append(secretPatterns, patterns.Pattern{
 			Name:  "Scan Credential",
 			Regex: "(?P<replace>" + regexp.QuoteMeta(trimmed) + ")",
 		})
 	}
 
+	// Full replacer: generic rules + secret values. Used for long-term sinks
+	// (vector-store writes, search logs) where masking target PII before it
+	// leaves the box is intended.
+	allPatterns.Patterns = append(allPatterns.Patterns, secretPatterns...)
 	replacer, err := anonymizer.NewReplacer(allPatterns.Regexes(), allPatterns.Names())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create replacer: %v", err)
 	}
 
+	// Secrets-only replacer for the terminal tool's agent-facing output. It masks
+	// the secret values without the generic rules, so a scan's own output (file
+	// contents, URLs, domains) reaches the agent intact. Nil when there are no
+	// secrets to mask; terminal.redact is a no-op on a nil replacer.
+	var secretReplacer anonymizer.Replacer
+	if len(secretPatterns) > 0 {
+		sp := &patterns.Patterns{Patterns: secretPatterns}
+		secretReplacer, err = anonymizer.NewReplacer(sp.Regexes(), sp.Names())
+		if err != nil {
+			return nil, fmt.Errorf("failed to create secret replacer: %v", err)
+		}
+	}
+
 	return &flowToolsExecutor{
-		db:          db,
-		docker:      docker,
-		functions:   functions,
-		replacer:    replacer,
-		cfg:         cfg,
-		flowID:      flowID,
-		definitions: make(map[string]llms.FunctionDefinition),
-		handlers:    make(map[string]ExecutorHandler),
+		db:             db,
+		docker:         docker,
+		functions:      functions,
+		replacer:       replacer,
+		secretReplacer: secretReplacer,
+		cfg:            cfg,
+		flowID:         flowID,
+		definitions:    make(map[string]llms.FunctionDefinition),
+		handlers:       make(map[string]ExecutorHandler),
 	}, nil
 }
 
@@ -598,7 +621,7 @@ func (fte *flowToolsExecutor) GetAssistantExecutor(cfg AssistantExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	definitions := []llms.FunctionDefinition{
@@ -870,7 +893,7 @@ func (fte *flowToolsExecutor) GetInstallerExecutor(cfg InstallerExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -972,7 +995,7 @@ func (fte *flowToolsExecutor) GetCoderExecutor(cfg CoderExecutorConfig) (Context
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -1088,7 +1111,7 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -1352,7 +1375,7 @@ func (fte *flowToolsExecutor) GetGeneratorExecutor(cfg GeneratorExecutorConfig) 
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -1418,7 +1441,7 @@ func (fte *flowToolsExecutor) GetRefinerExecutor(cfg RefinerExecutorConfig) (Con
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -1480,7 +1503,7 @@ func (fte *flowToolsExecutor) GetMemoristExecutor(cfg MemoristExecutorConfig) (C
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
@@ -1549,7 +1572,7 @@ func (fte *flowToolsExecutor) GetEnricherExecutor(cfg EnricherExecutorConfig) (C
 		container.LocalID.String,
 		fte.docker,
 		fte.tlp,
-		fte.replacer,
+		fte.secretReplacer,
 	)
 
 	ce := &customExecutor{
