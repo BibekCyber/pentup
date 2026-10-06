@@ -956,6 +956,25 @@ func (fte *flowToolsExecutor) GetCoderExecutor(cfg CoderExecutorConfig) (Context
 		return nil, fmt.Errorf("searcher handler is required")
 	}
 
+	container, err := fte.db.GetFlowPrimaryContainer(context.Background(), fte.flowID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container %d: %w", fte.flowID, err)
+	}
+
+	// The coder reads and runs code directly in the container. Without these it
+	// could only delegate to the installer to echo file contents back as prose,
+	// which is lossy and token-bound, so it looped re-requesting them.
+	term := NewTerminalTool(
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		container.ID,
+		container.LocalID.String,
+		fte.docker,
+		fte.tlp,
+		fte.replacer,
+	)
+
 	ce := &customExecutor{
 		flowID:    fte.flowID,
 		taskID:    cfg.TaskID,
@@ -970,6 +989,8 @@ func (fte *flowToolsExecutor) GetCoderExecutor(cfg CoderExecutorConfig) (Context
 			registryDefinitions[MaintenanceToolName],
 			registryDefinitions[MemoristToolName],
 			registryDefinitions[SearchToolName],
+			registryDefinitions[TerminalToolName],
+			registryDefinitions[FileToolName],
 		},
 		handlers: map[string]ExecutorHandler{
 			CodeResultToolName:  cfg.CodeResult,
@@ -977,6 +998,8 @@ func (fte *flowToolsExecutor) GetCoderExecutor(cfg CoderExecutorConfig) (Context
 			MaintenanceToolName: cfg.Installer,
 			MemoristToolName:    cfg.Memorist,
 			SearchToolName:      cfg.Searcher,
+			TerminalToolName:    term.Handle,
+			FileToolName:        term.Handle,
 		},
 		barriers: map[string]struct{}{
 			CodeResultToolName: {},

@@ -150,6 +150,8 @@ var PromptVariables = map[PromptType][]string{
 		"AdviceToolName",
 		"MemoristToolName",
 		"MaintenanceToolName",
+		"TerminalToolName",
+		"FileToolName",
 		"SummarizationToolName",
 		"SummarizedContentPrefix",
 		"DockerImage",
