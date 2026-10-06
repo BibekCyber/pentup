@@ -11,12 +11,14 @@ type FileOp string
 const (
 	ReadFile   FileOp = "read_file"
 	UpdateFile FileOp = "update_file"
+	EditFile   FileOp = "edit_file"
 )
 
 type FileAction struct {
-	Action  FileOp `json:"action" jsonschema:"required,enum=read_file,enum=update_file" jsonschema_description:"Action to perform with the code. 'read_file' - Returns the content of the file. 'update_file' - Updates the content of the file"`
-	Content string `json:"content" jsonschema_description:"Content to write to the file"`
-	Path    string `json:"path" jsonschema:"required" jsonschema_description:"Path to the file to read or update"`
+	Action  FileOp `json:"action" jsonschema:"required,enum=read_file,enum=update_file,enum=edit_file" jsonschema_description:"Action to perform. 'read_file' - returns the file content. 'update_file' - overwrites the whole file with 'content'. 'edit_file' - applies the unified diff in 'diff' to the existing file, leaving the rest untouched; prefer it for small changes to large files instead of rewriting them."`
+	Content string `json:"content,omitempty" jsonschema_description:"update_file only: the complete new file content (not a diff)."`
+	Diff    string `json:"diff,omitempty" jsonschema_description:"edit_file only: unified-diff hunk(s) — a '@@ ... @@' header then ' '/'-'/'+' lines. Keep at least one unchanged context line so the location is unambiguous; context and removed lines must match the file's current content verbatim (read_file first). Header line numbers are only a hint — the line text is what must match."`
+	Path    string `json:"path" jsonschema:"required" jsonschema_description:"Path to the file to read, update, or edit"`
 	Message string `json:"message" jsonschema:"required,title=File action message" jsonschema_description:"Not so long message which explain what do you want to read or to write to the file and explain written content to send to the user in user's language only"`
 }
 

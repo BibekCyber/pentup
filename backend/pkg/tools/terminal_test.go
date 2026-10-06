@@ -47,6 +47,10 @@ type contextAwareMockDockerClient struct {
 	copyStream io.ReadCloser
 	copyStat   container.PathStat
 
+	// copiedTar, when set, captures whatever WriteFile sends to CopyToContainer
+	// so edit_file/write tests can inspect the bytes actually written.
+	copiedTar *bytes.Buffer
+
 	// Set by ContainerExecAttach to track if ctx was canceled during attach
 	ctxWasCanceled bool
 }
@@ -102,7 +106,10 @@ func (m *contextAwareMockDockerClient) ContainerExecAttach(ctx context.Context, 
 func (m *contextAwareMockDockerClient) ContainerExecInspect(_ context.Context, _ string) (container.ExecInspect, error) {
 	return m.inspectResp, nil
 }
-func (m *contextAwareMockDockerClient) CopyToContainer(_ context.Context, _ string, _ string, _ io.Reader, _ container.CopyToContainerOptions) error {
+func (m *contextAwareMockDockerClient) CopyToContainer(_ context.Context, _ string, _ string, content io.Reader, _ container.CopyToContainerOptions) error {
+	if m.copiedTar != nil && content != nil {
+		_, _ = io.Copy(m.copiedTar, content)
+	}
 	return nil
 }
 func (m *contextAwareMockDockerClient) CopyFromContainer(_ context.Context, _ string, _ string) (io.ReadCloser, container.PathStat, error) {
@@ -326,4 +333,65 @@ func TestTerminalRedactMasksSecretsNotScanOutput(t *testing.T) {
 	// The output must not be collapsed: only the secret (28 bytes) is removed.
 	assert.GreaterOrEqual(t, len(out), len(in)-len(secret)-len("§*Scan Credential*§"),
 		"scan output must not be gutted by generic rules")
+}
+
+// tarOf builds a single-entry tar archive (what CopyFromContainer returns).
+func tarOf(t *testing.T, name, content string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	require.NoError(t, tw.WriteHeader(&tar.Header{Name: name, Size: int64(len(content)), Mode: 0o600}))
+	_, err := tw.Write([]byte(content))
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+	return buf.Bytes()
+}
+
+// fileFromTar returns the first regular file's content from a tar archive.
+func fileFromTar(t *testing.T, raw []byte) string {
+	t.Helper()
+	tr := tar.NewReader(bytes.NewReader(raw))
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		if h.FileInfo().IsDir() {
+			continue
+		}
+		var b bytes.Buffer
+		_, err = io.Copy(&b, tr)
+		require.NoError(t, err)
+		return b.String()
+	}
+	return ""
+}
+
+// TestEditFileAppliesDiffThroughHandle proves the edit_file action is wired end
+// to end: Handle routes it to EditFile, which reads the file, applies the diff,
+// and writes the merged result back -- so an agent can change part of a large
+// file without resending the whole thing.
+func TestEditFileAppliesDiffThroughHandle(t *testing.T) {
+	orig := "line1\nline2\nline3\n"
+	diff := "@@ -1,3 +1,3 @@\n line1\n-line2\n+LINE2\n line3\n"
+
+	captured := &bytes.Buffer{}
+	mock := &contextAwareMockDockerClient{
+		isRunning:  true,
+		copyStream: io.NopCloser(bytes.NewReader(tarOf(t, "f.txt", orig))),
+		copyStat:   container.PathStat{Size: int64(len(orig)), Mode: 0o600},
+		copiedTar:  captured,
+	}
+	term := NewTerminalTool(1, nil, nil, 1, "lid", mock, &contextTestTermLogProvider{}, nil)
+
+	args := []byte(`{"action":"edit_file","path":"/tmp/f.txt","diff":` + fmt.Sprintf("%q", diff) + `,"message":"edit"}`)
+	res, err := term.Handle(context.Background(), FileToolName, args)
+	require.NoError(t, err)
+	assert.Contains(t, res, "applied")
+
+	want, _, derr := ApplyUnifiedDiff(orig, diff)
+	require.NoError(t, derr)
+	assert.Equal(t, want, fileFromTar(t, captured.Bytes()), "the merged content must be written back")
+	assert.Contains(t, want, "LINE2", "diff must have been applied")
 }
