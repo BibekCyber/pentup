@@ -267,6 +267,22 @@ type Config struct {
 	DomainClassifierProvider string `env:"DOMAIN_CLASSIFIER_PROVIDER" envDefault:"openai"`
 	// Identifies the recon probe in outbound requests so target owners can recognise it.
 	DomainReconUserAgent string `env:"DOMAIN_RECON_USER_AGENT" envDefault:"PentAGI/1.0 (+https://pentagi.com)"`
+
+	// === Scan Target Checks ===
+	// Before a scan is created the target is validated and probed
+	// (DNS -> TCP -> TLS -> HTTP) to confirm it is a real, testable address.
+	TargetCheckEnabled bool `env:"TARGET_CHECK_ENABLED" envDefault:"true"`
+	// Repeat the check inside createScan, so a client that skips the wizard
+	// cannot create a scan against a malformed or off-limits target.
+	TargetCheckEnforce bool `env:"TARGET_CHECK_ENFORCE" envDefault:"true"`
+	// Permit RFC1918/CGNAT/ULA targets, for deployments that assess internal
+	// networks. Loopback and cloud metadata stay blocked either way.
+	TargetCheckAllowPrivate bool `env:"TARGET_CHECK_ALLOW_PRIVATE" envDefault:"false"`
+	// Extra CIDRs this server refuses to probe (e.g. its own public address).
+	TargetCheckDenyCIDRs []string `env:"TARGET_CHECK_DENY_CIDRS" envSeparator:","`
+	// Per user: checks allowed back to back, then one per interval.
+	TargetCheckRateBurst           int `env:"TARGET_CHECK_RATE_BURST" envDefault:"20"`
+	TargetCheckRateIntervalSeconds int `env:"TARGET_CHECK_RATE_INTERVAL_SECONDS" envDefault:"3"`
 }
 
 func NewConfig() (*Config, error) {
