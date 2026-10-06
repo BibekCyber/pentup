@@ -25,8 +25,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -114,11 +114,16 @@ func NewGraphqlService(
 
 			return ctx, &initPayload, nil
 		},
-		Upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) (allowed bool) {
-				return ov.validateOrigin(r.Header.Get("Origin"), r.Host)
+		Implementation: originCheckedWebsocket{
+			allow: ov.validateOrigin,
+			inner: transport.CoderWebsocketImplementation{
+				AcceptOptions: coderws.AcceptOptions{
+					// Origin is verified by allow below, which applies this
+					// deployment's CORS configuration rather than a pattern list.
+					InsecureSkipVerify: true,
+					CompressionMode:    coderws.CompressionContextTakeover,
+				},
 			},
-			EnableCompression: true,
 		},
 	})
 
@@ -126,6 +131,27 @@ func NewGraphqlService(
 		srv:  srv,
 		play: playground.Handler("GraphQL", baseURL+"/graphql"),
 	}
+}
+
+// originCheckedWebsocket applies this deployment's origin policy before a
+// websocket is accepted. gqlgen no longer exposes an upgrader hook, so the
+// check that used to live on websocket.Upgrader.CheckOrigin sits here.
+type originCheckedWebsocket struct {
+	allow func(origin, host string) bool
+	inner transport.CoderWebsocketImplementation
+}
+
+func (o originCheckedWebsocket) Accept(
+	w http.ResponseWriter,
+	r *http.Request,
+	options transport.WebsocketAcceptOptions,
+) (transport.WebsocketConn, error) {
+	if !o.allow(r.Header.Get("Origin"), r.Host) {
+		// Only the error is returned: the caller writes the refusal itself, and
+		// writing one here too would mean two responses for one request.
+		return nil, fmt.Errorf("websocket origin %q not allowed", r.Header.Get("Origin"))
+	}
+	return o.inner.Accept(w, r, options)
 }
 
 // ServeGraphql is a function to perform graphql requests
