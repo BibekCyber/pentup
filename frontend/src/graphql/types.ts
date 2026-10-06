@@ -928,6 +928,7 @@ export type Query = {
     chatQuota: ChatQuota;
     chatSession?: Maybe<ChatSession>;
     chatSessions: Array<ChatSession>;
+    checkTarget: TargetCheckResult;
     domain?: Maybe<Domain>;
     domains: Array<Domain>;
     flow: Flow;
@@ -990,6 +991,10 @@ export type QueryChatMessagesArgs = {
 
 export type QueryChatSessionArgs = {
     sessionId: Scalars['ID']['input'];
+};
+
+export type QueryCheckTargetArgs = {
+    target: Scalars['String']['input'];
 };
 
 export type QueryDomainArgs = {
@@ -1305,6 +1310,56 @@ export type SubtaskExecutionStats = {
     totalDurationSeconds: Scalars['Float']['output'];
     totalToolcallsCount: Scalars['Int']['output'];
 };
+
+export type TargetCheckResult = {
+    cloudAccountId: Scalars['String']['output'];
+    cloudProvider: Scalars['String']['output'];
+    host: Scalars['String']['output'];
+    httpStatus: Scalars['Int']['output'];
+    input: Scalars['String']['output'];
+    kind: TargetKind;
+    message: Scalars['String']['output'];
+    ok: Scalars['Boolean']['output'];
+    outcome: TargetOutcome;
+    port: Scalars['Int']['output'];
+    service: Scalars['String']['output'];
+    steps: Array<TargetCheckStep>;
+};
+
+export enum TargetCheckStatus {
+    Fail = 'fail',
+    Ok = 'ok',
+    Skip = 'skip',
+    Warn = 'warn',
+}
+
+export type TargetCheckStep = {
+    detail: Scalars['String']['output'];
+    name: Scalars['String']['output'];
+    status: TargetCheckStatus;
+};
+
+export enum TargetKind {
+    CloudAccount = 'cloud_account',
+    Host = 'host',
+    Invalid = 'invalid',
+    Ip = 'ip',
+    Url = 'url',
+}
+
+export enum TargetOutcome {
+    AccountIdentifier = 'account_identifier',
+    BlockedDestination = 'blocked_destination',
+    CloudResourceNotFound = 'cloud_resource_not_found',
+    DnsError = 'dns_error',
+    DnsNotFound = 'dns_not_found',
+    DnsOnly = 'dns_only',
+    InvalidInput = 'invalid_input',
+    NoResponse = 'no_response',
+    Reachable = 'reachable',
+    Responding = 'responding',
+    Valid = 'valid',
+}
 
 export enum TargetType {
     Api = 'api',
@@ -2593,6 +2648,27 @@ export type CreateDomainMutationVariables = Exact<{
 }>;
 
 export type CreateDomainMutation = { createDomain: DomainFragmentFragment };
+
+export type CheckTargetQueryVariables = Exact<{
+    target: Scalars['String']['input'];
+}>;
+
+export type CheckTargetQuery = {
+    checkTarget: {
+        input: string;
+        ok: boolean;
+        kind: TargetKind;
+        outcome: TargetOutcome;
+        message: string;
+        host: string;
+        port: number;
+        service: string;
+        cloudProvider: string;
+        cloudAccountId: string;
+        httpStatus: number;
+        steps: Array<{ name: string; status: TargetCheckStatus; detail: string }>;
+    };
+};
 
 export type CreateScanMutationVariables = Exact<{
     input: CreateScanInput;
@@ -8603,6 +8679,75 @@ export type CreateDomainMutationOptions = Apollo.BaseMutationOptions<
     CreateDomainMutation,
     CreateDomainMutationVariables
 >;
+export const CheckTargetDocument = gql`
+    query checkTarget($target: String!) {
+        checkTarget(target: $target) {
+            input
+            ok
+            kind
+            outcome
+            message
+            host
+            port
+            service
+            cloudProvider
+            cloudAccountId
+            httpStatus
+            steps {
+                name
+                status
+                detail
+            }
+        }
+    }
+`;
+
+/**
+ * __useCheckTargetQuery__
+ *
+ * To run a query within a React component, call `useCheckTargetQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCheckTargetQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCheckTargetQuery({
+ *   variables: {
+ *      target: // value for 'target'
+ *   },
+ * });
+ */
+export function useCheckTargetQuery(
+    baseOptions: Apollo.QueryHookOptions<CheckTargetQuery, CheckTargetQueryVariables> &
+        ({ variables: CheckTargetQueryVariables; skip?: boolean } | { skip: boolean }),
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useQuery<CheckTargetQuery, CheckTargetQueryVariables>(CheckTargetDocument, options);
+}
+export function useCheckTargetLazyQuery(
+    baseOptions?: Apollo.LazyQueryHookOptions<CheckTargetQuery, CheckTargetQueryVariables>,
+) {
+    const options = { ...defaultOptions, ...baseOptions };
+    return Apollo.useLazyQuery<CheckTargetQuery, CheckTargetQueryVariables>(CheckTargetDocument, options);
+}
+// @ts-ignore
+export function useCheckTargetSuspenseQuery(
+    baseOptions?: Apollo.SuspenseQueryHookOptions<CheckTargetQuery, CheckTargetQueryVariables>,
+): Apollo.UseSuspenseQueryResult<CheckTargetQuery, CheckTargetQueryVariables>;
+export function useCheckTargetSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CheckTargetQuery, CheckTargetQueryVariables>,
+): Apollo.UseSuspenseQueryResult<CheckTargetQuery | undefined, CheckTargetQueryVariables>;
+export function useCheckTargetSuspenseQuery(
+    baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CheckTargetQuery, CheckTargetQueryVariables>,
+) {
+    const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+    return Apollo.useSuspenseQuery<CheckTargetQuery, CheckTargetQueryVariables>(CheckTargetDocument, options);
+}
+export type CheckTargetQueryHookResult = ReturnType<typeof useCheckTargetQuery>;
+export type CheckTargetLazyQueryHookResult = ReturnType<typeof useCheckTargetLazyQuery>;
+export type CheckTargetSuspenseQueryHookResult = ReturnType<typeof useCheckTargetSuspenseQuery>;
+export type CheckTargetQueryResult = Apollo.QueryResult<CheckTargetQuery, CheckTargetQueryVariables>;
 export const CreateScanDocument = gql`
     mutation createScan($input: CreateScanInput!) {
         createScan(input: $input) {
