@@ -61,6 +61,11 @@ func markReflectorRetry(ctx context.Context) context.Context {
 
 type repeatingDetector struct {
 	funcCalls []llms.FunctionCall
+	// lastResponse is what the tool answered on the last call that reached it,
+	// kept so a repeat can hand that answer back instead of replacing it with a
+	// notice. The answer is usually the only thing that explains the repetition
+	// -- a tool that does not exist says so, and the model never saw it.
+	lastResponse string
 }
 
 func (rd *repeatingDetector) detect(toolCall llms.ToolCall) bool {
@@ -78,12 +83,30 @@ func (rd *repeatingDetector) detect(toolCall llms.ToolCall) bool {
 	lastToolCall := rd.funcCalls[len(rd.funcCalls)-1]
 	if lastToolCall.Name != funcCall.Name || lastToolCall.Arguments != funcCall.Arguments {
 		rd.funcCalls = []llms.FunctionCall{funcCall}
+		rd.lastResponse = ""
 		return false
 	}
 
 	rd.funcCalls = append(rd.funcCalls, funcCall)
 
 	return len(rd.funcCalls) >= RepeatingToolCallThreshold
+}
+
+// repeatingToolResponse is what a repeated tool call is answered with. It hands
+// back the answer the tool actually gave, when there is one: replacing that
+// answer with a bare "please try another tool" notice costs the model the
+// diagnosis (e.g. the executor's own "not found in available tools list"), so
+// it is told it is repeating but never what was wrong.
+func repeatingToolResponse(funcName string, repeats int, previous string) string {
+	if previous == "" {
+		return fmt.Sprintf("tool call '%s' is repeating, please try another tool", funcName)
+	}
+
+	return fmt.Sprintf(
+		"you have called '%s' with identical arguments %d times and it answered the same way each "+
+			"time. Here is that answer again:\n\n%s\n\nIt will not change. Alter the arguments, "+
+			"use a different tool, or answer from what you already have.",
+		funcName, repeats, previous[:min(len(previous), repeatEchoLimit)])
 }
 
 func (rd *repeatingDetector) clearCallArguments(toolCall *llms.FunctionCall) llms.FunctionCall {

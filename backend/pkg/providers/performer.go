@@ -26,9 +26,12 @@ import (
 )
 
 const (
-	maxRetriesToCallSimpleChain    = 3
-	maxRetriesToCallAgentChain     = 3
-	maxRetriesToCallFunction       = 3
+	maxRetriesToCallSimpleChain = 3
+	maxRetriesToCallAgentChain  = 3
+	maxRetriesToCallFunction    = 3
+	// repeatEchoLimit caps the previous tool answer quoted back on a repeat, so
+	// echoing it cannot re-inflate a chain that is already being summarized.
+	repeatEchoLimit                = 4096
 	maxReflectorCallsPerChain      = 3
 	maxGeneralAgentChainIterations = 100
 	maxLimitedAgentChainIterations = 20
@@ -344,7 +347,7 @@ func (fp *flowProvider) execToolCall(
 			return "", errors.New(errMsg)
 		}
 
-		response := fmt.Sprintf("tool call '%s' is repeating, please try another tool", funcName)
+		response := repeatingToolResponse(funcName, len(detector.funcCalls), detector.lastResponse)
 
 		_, observation := obs.Observer.NewObservation(ctx)
 		observation.Event(
@@ -397,6 +400,9 @@ func (fp *flowProvider) execToolCall(
 				return "", fmt.Errorf("failed to fix tool call args: %w", err)
 			}
 		} else {
+			// Remember the answer so a later identical repeat can be shown what the
+			// tool actually said instead of a bare "stop repeating" notice.
+			detector.lastResponse = response
 			break
 		}
 	}

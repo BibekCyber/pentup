@@ -3,6 +3,7 @@ package providers
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1170,4 +1171,41 @@ func TestExecutionMonitorDetector_TotalCallsSequence(t *testing.T) {
 
 func mockToolCall(name string) llms.ToolCall {
 	return llms.ToolCall{FunctionCall: &llms.FunctionCall{Name: name}}
+}
+
+// TestRepeatingToolResponseEchoesPreviousAnswer covers the detector-echo port:
+// a repeated call is answered with the tool's actual previous answer (capped),
+// not a bare "stop repeating" notice that hides what went wrong.
+func TestRepeatingToolResponseEchoesPreviousAnswer(t *testing.T) {
+	// No prior answer -> the bare notice.
+	assert.Equal(t,
+		"tool call 'terminal' is repeating, please try another tool",
+		repeatingToolResponse("terminal", 3, ""),
+	)
+
+	// With a prior answer, it is quoted back so the model can see the diagnosis.
+	prev := "tool 'foo' not found in available tools list"
+	got := repeatingToolResponse("foo", 3, prev)
+	assert.Contains(t, got, prev)
+	assert.Contains(t, got, "identical arguments 3 times")
+	assert.Contains(t, got, "It will not change")
+
+	// The echoed answer is capped at repeatEchoLimit so it can't re-inflate the chain.
+	capped := repeatingToolResponse("foo", 3, strings.Repeat("x", repeatEchoLimit+1000))
+	assert.Equal(t, repeatEchoLimit, strings.Count(capped, "x"))
+}
+
+// TestRepeatingDetectorResetsLastResponseOnDifferentCall ensures a changed tool
+// call clears the remembered answer, so an echo never shows a stale response
+// from an unrelated earlier call.
+func TestRepeatingDetectorResetsLastResponseOnDifferentCall(t *testing.T) {
+	call := func(name, args string) llms.ToolCall {
+		return llms.ToolCall{FunctionCall: &llms.FunctionCall{Name: name, Arguments: args}}
+	}
+	d := &repeatingDetector{}
+	d.detect(call("terminal", `{"input":"ls"}`))
+	d.lastResponse = "ls output"
+
+	d.detect(call("file", `{"action":"read_file"}`))
+	assert.Empty(t, d.lastResponse, "a different call must clear the remembered response")
 }
