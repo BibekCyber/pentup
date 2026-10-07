@@ -28,12 +28,14 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 9.5,
         lineHeight: 1.5,
+        textAlign: 'justify',
     },
     intro: {
         color: CF_PDF.body,
         fontSize: 10,
         lineHeight: 1.6,
         marginBottom: 10,
+        textAlign: 'justify',
     },
     lead: {
         color: CF_PDF.body,
@@ -41,6 +43,7 @@ const styles = StyleSheet.create({
         lineHeight: 1.6,
         marginBottom: 6,
         marginTop: 4,
+        textAlign: 'justify',
     },
     table: {
         marginTop: 4,
@@ -85,7 +88,15 @@ const styles = StyleSheet.create({
         gap: 2,
         marginBottom: 2,
     },
+    tUrlColumn: {
+        gap: 2,
+    },
 });
+
+// A fixed asset-column width shared by the header and body rows. Flex ratios split
+// differently when one side is a padded cell and the other an unpadded column of
+// cells, which pushed the body's asset cell wider than its header.
+const ASSET_COL = '35%';
 
 const WEB_ACTIVITIES: { desc: string; label: string }[] = [
     {
@@ -150,6 +161,7 @@ const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
                 <View
                     key={activity.label}
                     style={styles.activityItem}
+                    wrap={false}
                 >
                     <Text style={styles.activityMarker}>•</Text>
                     <Text style={styles.activityText}>
@@ -164,27 +176,34 @@ const ScopeMethodologyPdf = ({ model }: ScopeMethodologyPdfProps) => {
             </Text>
             <View style={styles.table}>
                 <View style={styles.tHead}>
-                    <Text style={[styles.tHeadCell, { flex: 35 }]}>Assets</Text>
-                    <Text style={[styles.tHeadCell, { flex: 63 }]}>URLs</Text>
+                    <Text style={[styles.tHeadCell, { width: ASSET_COL }]}>Assets</Text>
+                    <Text style={[styles.tHeadCell, { flex: 1 }]}>URLs</Text>
                 </View>
-                {targets.map((target, i) => (
-                    <View
-                        key={target}
-                        style={styles.tRow}
-                    >
-                        <Text style={[styles.tCellFill, { flex: 35 }]}>{i === 0 ? engagementLabel : ''}</Text>
-                        {target.startsWith('http') ? (
-                            <Link
-                                src={target}
-                                style={[styles.tLink, { flex: 63 }]}
-                            >
-                                {target}
-                            </Link>
-                        ) : (
-                            <Text style={[styles.tCellFill, { flex: 63 }]}>{target}</Text>
+                {/* One asset cell spanning every URL row (a row-span), rather than a
+                    label on the first row and blank cells beneath it. */}
+                <View style={styles.tRow}>
+                    <Text style={[styles.tCellFill, { width: ASSET_COL }]}>{engagementLabel}</Text>
+                    <View style={[styles.tUrlColumn, { flex: 1 }]}>
+                        {targets.map((target) =>
+                            target.startsWith('http') ? (
+                                <Link
+                                    key={target}
+                                    src={target}
+                                    style={styles.tLink}
+                                >
+                                    {target}
+                                </Link>
+                            ) : (
+                                <Text
+                                    key={target}
+                                    style={styles.tCellFill}
+                                >
+                                    {target}
+                                </Text>
+                            ),
                         )}
                     </View>
-                ))}
+                </View>
             </View>
         </View>
     );

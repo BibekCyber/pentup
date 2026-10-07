@@ -11,6 +11,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         lineHeight: 1.6,
         marginBottom: 10,
+        textAlign: 'justify',
     },
 });
 

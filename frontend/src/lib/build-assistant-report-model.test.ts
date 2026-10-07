@@ -38,7 +38,16 @@ const mk = (type: MessageLogType, message = '', result = ''): AssistantLogFragme
 
 describe('buildAssistantReportModel', () => {
     it('groups one input + answer into a single section', () => {
-        const model = buildAssistantReportModel(flow, { title: 'A' }, [mk(MessageLogType.Input, 'Scan the site for me please.'), mk(MessageLogType.Answer, 'Done — here are the results.'), mk(MessageLogType.Done)], { generatedAt: 'now' });
+        const model = buildAssistantReportModel(
+            flow,
+            { title: 'A' },
+            [
+                mk(MessageLogType.Input, 'Scan the site for me please.'),
+                mk(MessageLogType.Answer, 'Done — here are the results.'),
+                mk(MessageLogType.Done),
+            ],
+            { generatedAt: 'now' },
+        );
 
         expect(model.sections).toHaveLength(1);
         expect(model.sections[0]?.title).toBe('Scan the site for me please.');
@@ -47,14 +56,34 @@ describe('buildAssistantReportModel', () => {
     });
 
     it('opens a new section on each input and closes on done', () => {
-        const model = buildAssistantReportModel(flow, null, [mk(MessageLogType.Input, 'First topic.'), mk(MessageLogType.Answer, 'A1'), mk(MessageLogType.Input, 'Second topic.'), mk(MessageLogType.Answer, 'A2')], { generatedAt: 'now' });
+        const model = buildAssistantReportModel(
+            flow,
+            null,
+            [
+                mk(MessageLogType.Input, 'First topic.'),
+                mk(MessageLogType.Answer, 'A1'),
+                mk(MessageLogType.Input, 'Second topic.'),
+                mk(MessageLogType.Answer, 'A2'),
+            ],
+            { generatedAt: 'now' },
+        );
 
         expect(model.sections).toHaveLength(2);
         expect(model.sections.map((section) => section.id)).toEqual(['conversation-1', 'conversation-2']);
     });
 
     it('prunes empty sections (input with no substantive output)', () => {
-        const model = buildAssistantReportModel(flow, null, [mk(MessageLogType.Input, 'Hello?'), mk(MessageLogType.Done), mk(MessageLogType.Input, 'Real question.'), mk(MessageLogType.Answer, 'Real answer.')], { generatedAt: 'now' });
+        const model = buildAssistantReportModel(
+            flow,
+            null,
+            [
+                mk(MessageLogType.Input, 'Hello?'),
+                mk(MessageLogType.Done),
+                mk(MessageLogType.Input, 'Real question.'),
+                mk(MessageLogType.Answer, 'Real answer.'),
+            ],
+            { generatedAt: 'now' },
+        );
 
         expect(model.sections).toHaveLength(1);
         expect(model.sections[0]?.title).toBe('Real question.');
@@ -64,7 +93,13 @@ describe('buildAssistantReportModel', () => {
         const model = buildAssistantReportModel(
             flow,
             null,
-            [mk(MessageLogType.Input, 'Run a scan.'), mk(MessageLogType.Thoughts, 'internal reasoning that must not appear'), mk(MessageLogType.Terminal, 'nmap', 'open ports'), mk(MessageLogType.Search, 'cve lookup', 'results'), mk(MessageLogType.Answer, 'Findings summarised.')],
+            [
+                mk(MessageLogType.Input, 'Run a scan.'),
+                mk(MessageLogType.Thoughts, 'internal reasoning that must not appear'),
+                mk(MessageLogType.Terminal, 'nmap', 'open ports'),
+                mk(MessageLogType.Search, 'cve lookup', 'results'),
+                mk(MessageLogType.Answer, 'Findings summarised.'),
+            ],
             { generatedAt: 'now' },
         );
 
@@ -86,7 +121,11 @@ describe('assistant report hardening', () => {
         const model = buildAssistantReportModel(
             flow,
             { title: 'Pentest' },
-            [mk(MessageLogType.Input, engagementInput), mk(MessageLogType.Report, 'Identified 3 critical issues.'), mk(MessageLogType.Done)],
+            [
+                mk(MessageLogType.Input, engagementInput),
+                mk(MessageLogType.Report, 'Identified 3 critical issues.'),
+                mk(MessageLogType.Done),
+            ],
             { generatedAt: 'now' },
         );
         const section = model.sections[0];
@@ -107,7 +146,11 @@ describe('assistant report hardening', () => {
         const model = buildAssistantReportModel(
             flow,
             { title: 'A' },
-            [mk(MessageLogType.Input, 'Pentest the app.'), mk(MessageLogType.Report, 'Identified issues.'), mk(MessageLogType.Done)],
+            [
+                mk(MessageLogType.Input, 'Pentest the app.'),
+                mk(MessageLogType.Report, 'Identified issues.'),
+                mk(MessageLogType.Done),
+            ],
             { findings, generatedAt: 'now' },
         );
 
@@ -128,7 +171,10 @@ describe('assistant report hardening', () => {
                 mk(MessageLogType.Input, 'Audit the login.'),
                 mk(MessageLogType.Answer, 'Let me explore the application structure first.'),
                 mk(MessageLogType.Answer, 'Found it! The login endpoint is /api/auth/login.'),
-                mk(MessageLogType.Answer, 'The login endpoint accepts unlimited authentication attempts with no rate limiting, enabling credential stuffing against any account.'),
+                mk(
+                    MessageLogType.Answer,
+                    'The login endpoint accepts unlimited authentication attempts with no rate limiting, enabling credential stuffing against any account.',
+                ),
                 mk(MessageLogType.Done),
             ],
             { generatedAt: 'now' },
@@ -148,5 +194,39 @@ describe('assistant sample fixture', () => {
         expect(assistantSampleReportModel.summary.findingsTotal).toBe(0);
         expect(assistantSampleLogs.length).toBeGreaterThan(0);
         expect(assistantSampleReportModel.sections[0]?.resultMarkdown).toContain('Strict-Transport-Security');
+    });
+});
+
+describe('buildAssistantReportModel target', () => {
+    const finding = (urls: string[]): Finding => ({
+        affectedUrls: urls,
+        id: 'f',
+        index: 0,
+        severity: 'low',
+        title: 'F',
+    });
+
+    it('never presents the assistant chat title as the target (flow-28 defect)', () => {
+        const model = buildAssistantReportModel(flow, { title: 'Penetration Test Retiremap App' }, [], {
+            findings: [finding(['app.staging.example.com', 'old.example.com'])],
+        });
+
+        expect(model.flow.target).toBeUndefined();
+    });
+
+    it('uses the scan target when provided', () => {
+        const model = buildAssistantReportModel(flow, { title: 'Penetration Test Retiremap App' }, [], {
+            target: ' https://app.retiremap.com.au ',
+        });
+
+        expect(model.flow.target).toBe('https://app.retiremap.com.au');
+    });
+
+    it('falls back to the single host the findings point at', () => {
+        const model = buildAssistantReportModel(flow, { title: 'Chat title' }, [], {
+            findings: [finding(['https://app.example.com/a', 'app.example.com', 'https://other.example.com/'])],
+        });
+
+        expect(model.flow.target).toBe('app.example.com');
     });
 });

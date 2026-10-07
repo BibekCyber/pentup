@@ -9,7 +9,13 @@ import { MessageLogType, StatusType } from '@/graphql/types';
 
 import type { Finding, ReportModel, ReportSection, ReportTocEntry } from './report-model';
 
-import { deriveInitialRecommendations, derivePositiveFindings, formatDuration, pluralize } from './build-report-model';
+import {
+    deriveInitialRecommendations,
+    derivePositiveFindings,
+    deriveTarget,
+    formatDuration,
+    pluralize,
+} from './build-report-model';
 import { emptySeverityCounts } from './report-model';
 
 const oneLine = (text: string, max = 140): string => {
@@ -123,6 +129,8 @@ interface BuildAssistantReportModelOptions {
     clientName?: string;
     findings?: readonly Finding[];
     generatedAt?: string;
+    // The scan's own target (the parent domain's name). Authoritative when present.
+    target?: string;
     targetType?: TargetType;
 }
 
@@ -248,7 +256,11 @@ export const buildAssistantReportModel = (
             : []),
     ];
 
-    const summaryTarget = assistant?.title ? `with the ${assistant.title}` : 'session';
+    // The assistant's title is an LLM-generated chat name ("Penetration Test Retiremap
+    // App"), not a host — never present it as the target. Prefer the scan's own target,
+    // else the host the findings point at most often.
+    const target = options.target?.trim() || deriveTarget(reportFindings);
+    const summaryTarget = target ? `session against ${target}` : 'session';
     const toolClause = toolCalls > 0 ? ` and ran ${toolCalls} tool ${pluralize(toolCalls, 'action')}` : '';
     const findingsClause = hasFindings
         ? ` and identified ${reportFindings.length} ${pluralize(reportFindings.length, 'finding')}`
@@ -270,7 +282,7 @@ export const buildAssistantReportModel = (
             id: flow?.id ?? '',
             startedAt: flow?.createdAt ? new Date(flow.createdAt).toISOString() : undefined,
             status: flow?.status ?? StatusType.Created,
-            target: assistant?.title || undefined,
+            target,
             targetType: options.targetType,
             title: flow?.title ?? 'Assistant Session',
         },

@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         lineHeight: 1.6,
         marginBottom: 10,
+        textAlign: 'justify',
     },
     subHeading: {
         color: CF_PDF.accentText,
@@ -78,6 +79,9 @@ interface ExecutiveSummaryPdfProps {
 
 const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
     const client = model.clientName?.trim() || 'the client';
+    // Paragraphs that open with the client name must start with a capital, including
+    // the "the client" fallback used when no client name was entered.
+    const Client = client.charAt(0).toUpperCase() + client.slice(1);
     const isCloud = model.flow.targetType === TargetType.Cloud;
     const asset = isCloud ? 'cloud infrastructure' : 'web application and associated APIs';
     const total = model.summary.findingsTotal;
@@ -105,7 +109,7 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
             <View style={reportPdfStyles.sectionDivider} />
 
             <Text style={styles.paragraph}>
-                {client} engaged CyberFortify to perform a penetration test of its {asset}. The assessment covered the
+                {Client} engaged CyberFortify to perform a penetration test of its {asset}. The assessment covered the
                 in-scope assets using the access, credentials, and information provided by {client}, and was conducted
                 within the agreed testing window.
             </Text>
@@ -124,23 +128,32 @@ const ExecutiveSummaryPdf = ({ model }: ExecutiveSummaryPdfProps) => {
                 recommended remediation actions to help {client} improve the security of its {asset} environment.
             </Text>
 
-            <Text style={styles.conclusionsHeading}>Conclusions and Recommendations</Text>
+            <Text
+                minPresenceAhead={40}
+                style={styles.conclusionsHeading}
+            >
+                Conclusions and Recommendations
+            </Text>
             <Text style={styles.paragraph}>
                 The assessment identified {weaknessClause} across the in-scope {asset}.
                 {total > 0 ? ` The most significant risks relate to ${listToProse(focusAreas.slice(0, 4))}.` : ''}
             </Text>
             <Text style={styles.paragraph}>
-                {client} should prioritise remediation based on severity, exploitability, and the potential exposure of
+                {Client} should prioritise remediation based on severity, exploitability, and the potential exposure of
                 sensitive user data. Addressing the {priorityClause}-risk findings first will significantly reduce the
                 likelihood of unauthorised access, session misuse, and sensitive data exposure across the environment.
             </Text>
 
-            <Text style={styles.subHeading}>Positive Findings:</Text>
-            <Bullets items={model.positiveFindings} />
+            <Bullets
+                heading={<Text style={styles.subHeading}>Positive Findings:</Text>}
+                items={model.positiveFindings}
+            />
 
             <View style={{ marginTop: 10 }}>
-                <Text style={styles.subHeading}>Initial Recommendations:</Text>
-                <Bullets items={model.initialRecommendations} />
+                <Bullets
+                    heading={<Text style={styles.subHeading}>Initial Recommendations:</Text>}
+                    items={model.initialRecommendations}
+                />
             </View>
         </View>
     );
