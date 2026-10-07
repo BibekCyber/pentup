@@ -34,19 +34,24 @@
 # thinking and thinking-turbo (2026-05-25).
 
 simple:
-  model: kimi-k2.6
-  temperature: 0.6
+  # Summarizer / chain-compaction profile (also flow title, language detection,
+  # image selection, and /chat). Moved from kimi-k2.6 to kimi-k2.7-code: it
+  # always reasons, so its deliberation goes to the thinking channel instead of
+  # leaking into the summary body ("Wait... Ah! I see {TRUNCATED}"), and the
+  # 32768 ceiling removes the 8192-token truncation that cut long summaries.
+  # k2.7-code requires temperature 1.0 and no `reasoning` block (thinking is
+  # always on); omitting it means type=enabled, keep=all.
+  model: kimi-k2.7-code
+  temperature: 1.0
   top_p: 0.95
   n: 1
-  max_tokens: 8192
-  reasoning:
-    mode: "off"
+  max_tokens: 32768
   extra_body:
     tool_choice: auto
   price:
     input: 0.95
     output: 4.00
-    cache_read: 0.16
+    cache_read: 0.19
 
 # The reporter emits the entire structured findings array in ONE response — the largest
 # payload any agent produces. It used to share the "simple" profile, whose 8192 ceiling
@@ -220,17 +225,20 @@ coder:
     cache_read: 0.19
 
 installer:
-  model: kimi-k2.6
+  # Moved from kimi-k2.6 to kimi-k2.7-code: the installer does the heavy file
+  # reading and consolidation and benefits from always-on reasoning and a larger
+  # ceiling. k2.7-code requires temperature 1.0 and no `reasoning` block.
+  model: kimi-k2.7-code
   temperature: 1.0
   top_p: 0.95
   n: 1
-  max_tokens: 16384
+  max_tokens: 20480
   extra_body:
     tool_choice: auto
   price:
     input: 0.95
     output: 4.00
-    cache_read: 0.16
+    cache_read: 0.19
 
 pentester:
   model: kimi-k2.7-code

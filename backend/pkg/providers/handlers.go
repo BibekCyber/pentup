@@ -270,6 +270,8 @@ func (fp *flowProvider) GetCoderHandler(ctx context.Context, taskID, subtaskID *
 				"AdviceToolName":          tools.AdviceToolName,
 				"MemoristToolName":        tools.MemoristToolName,
 				"MaintenanceToolName":     tools.MaintenanceToolName,
+				"TerminalToolName":        tools.TerminalToolName,
+				"FileToolName":            tools.FileToolName,
 				"SummarizationToolName":   cast.SummarizationToolName,
 				"SummarizedContentPrefix": strings.ReplaceAll(csum.SummarizedContentPrefix, "\n", "\\n"),
 				"DockerImage":             fp.image,

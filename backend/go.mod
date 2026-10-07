@@ -182,6 +182,7 @@ require (
 	github.com/richardlehane/msoleps v1.0.1 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	github.com/sergi/go-diff v1.3.1
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect

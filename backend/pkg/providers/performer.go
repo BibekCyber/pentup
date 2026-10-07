@@ -26,9 +26,12 @@ import (
 )
 
 const (
-	maxRetriesToCallSimpleChain    = 3
-	maxRetriesToCallAgentChain     = 3
-	maxRetriesToCallFunction       = 3
+	maxRetriesToCallSimpleChain = 3
+	maxRetriesToCallAgentChain  = 3
+	maxRetriesToCallFunction    = 3
+	// repeatEchoLimit caps the previous tool answer quoted back on a repeat, so
+	// echoing it cannot re-inflate a chain that is already being summarized.
+	repeatEchoLimit                = 4096
 	maxReflectorCallsPerChain      = 3
 	maxGeneralAgentChainIterations = 100
 	maxLimitedAgentChainIterations = 20
@@ -344,7 +347,7 @@ func (fp *flowProvider) execToolCall(
 			return "", errors.New(errMsg)
 		}
 
-		response := fmt.Sprintf("tool call '%s' is repeating, please try another tool", funcName)
+		response := repeatingToolResponse(funcName, len(detector.funcCalls), detector.lastResponse)
 
 		_, observation := obs.Observer.NewObservation(ctx)
 		observation.Event(
@@ -397,6 +400,9 @@ func (fp *flowProvider) execToolCall(
 				return "", fmt.Errorf("failed to fix tool call args: %w", err)
 			}
 		} else {
+			// Remember the answer so a later identical repeat can be shown what the
+			// tool actually said instead of a bare "stop repeating" notice.
+			detector.lastResponse = response
 			break
 		}
 	}
@@ -482,6 +488,20 @@ func (fp *flowProvider) callWithRetries(
 				if toolCall.FunctionCall == nil {
 					continue
 				}
+				// Repair invalid JSON arguments as they arrive from the LLM, before they
+				// reach the database or the provider API (a truncated "{" causes a 400).
+				// Escape stray control chars; if still invalid, fall back to {} so the
+				// tool-call fixer can regenerate them instead of failing the whole chain.
+				sanitizedArgs := cast.SanitizeJSONControlChars(toolCall.FunctionCall.Arguments)
+				if !json.Valid([]byte(sanitizedArgs)) {
+					logger.WithFields(logrus.Fields{
+						"tool_call_id": toolCall.ID,
+						"tool_name":    toolCall.FunctionCall.Name,
+						"raw_args":     toolCall.FunctionCall.Arguments[:min(200, len(toolCall.FunctionCall.Arguments))],
+					}).Warn("tool call has invalid JSON arguments, replacing with empty object so the tool-call fixer can regenerate them")
+					sanitizedArgs = "{}"
+				}
+				toolCall.FunctionCall.Arguments = sanitizedArgs
 				result.funcCalls = append(result.funcCalls, toolCall)
 			}
 		}

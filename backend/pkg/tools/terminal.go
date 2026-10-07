@@ -143,6 +143,9 @@ func (t *terminal) Handle(ctx context.Context, name string, args json.RawMessage
 		case UpdateFile:
 			result, err := t.WriteFile(ctx, t.flowID, action.Content, action.Path)
 			return t.wrapCommandResult(ctx, args, name, result, err)
+		case EditFile:
+			result, err := t.EditFile(ctx, t.flowID, action.Path, action.Diff)
+			return t.wrapCommandResult(ctx, args, name, result, err)
 		default:
 			logger.Error("unknown file action")
 			return "", fmt.Errorf("unknown file action: %s", action.Action)
@@ -355,12 +358,15 @@ func (t *terminal) ReadFile(ctx context.Context, flowID int64, path string) (str
 			return "", fmt.Errorf("file '%s' has invalid size %d", tarHeader.Name, tarHeader.Size)
 		}
 
-		var fileContent = make([]byte, tarHeader.Size)
-		_, err = tarReader.Read(fileContent)
-		if err != nil && err != io.EOF {
+		// Copy the whole entry rather than a single Read into a full-size buffer.
+		// tar.Reader.Read returns only what the underlying stream has to hand --
+		// typically the first chunk Docker sends -- and the previous code ignored
+		// that count and appended the entire buffer, so everything past the first
+		// chunk arrived as NUL bytes (later stripped, i.e. a silent truncation of
+		// large files around 32 KB). io.CopyN drains the entry in full.
+		if _, err := io.CopyN(&buffer, tarReader, tarHeader.Size); err != nil && err != io.EOF {
 			return "", fmt.Errorf("failed to read file '%s' content: %w", tarHeader.Name, err)
 		}
-		buffer.Write(fileContent)
 
 		if stats.Mode.IsDir() {
 			buffer.WriteString("\n\n")
@@ -432,6 +438,29 @@ func (t *terminal) WriteFile(ctx context.Context, flowID int64, content string, 
 	}
 
 	return fmt.Sprintf("Successfully wrote %d bytes to %s", len(content), path), nil
+}
+
+// EditFile applies a unified diff to an existing container file in place: it reads
+// the current content, merges the hunks (fuzzy-matched by content, not line
+// numbers), and writes the result back. It lets an agent change part of a large
+// file without re-sending the whole thing, which both saves tokens and avoids the
+// re-read loops that full-file round trips caused.
+func (t *terminal) EditFile(ctx context.Context, flowID int64, path, diff string) (string, error) {
+	current, err := t.ReadFile(ctx, flowID, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read '%s' for editing: %w", path, err)
+	}
+
+	updated, applied, err := ApplyUnifiedDiff(current, diff)
+	if err != nil {
+		return "", fmt.Errorf("failed to apply diff to '%s': %w", path, err)
+	}
+
+	if _, err := t.WriteFile(ctx, flowID, updated, path); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("Successfully applied %d hunk(s) to %s (%d bytes)", applied, path, len(updated)), nil
 }
 
 func PrimaryTerminalName(flowID int64) string {

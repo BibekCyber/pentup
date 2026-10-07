@@ -220,19 +220,21 @@ func TestKimi_DefaultProviderConfig_DisablesThinkingOnTheWireWhereReasoningIsOff
 		patch map[string]any
 		keep  string // the thinking.keep a configured extra_body must still carry
 	}{
-		{name: "the shipped simple agent", opt: pconfig.OptionsTypeSimple},
+		// simple and installer moved to kimi-k2.7-code (always reasons); they are
+		// covered by TestKimi_..._SendsADocumentedThinkingShapeFromK27CodeAgents.
+		// The reasoning-off agents below stay on kimi-k2.6.
 		{name: "the shipped simple json agent", opt: pconfig.OptionsTypeSimpleJSON},
 		{name: "the shipped reflector", opt: pconfig.OptionsTypeReflector},
 		{name: "the shipped searcher", opt: pconfig.OptionsTypeSearcher},
 		{name: "the shipped enricher", opt: pconfig.OptionsTypeEnricher},
 		{
-			name:  "an installer switched to reasoning mode off",
-			opt:   pconfig.OptionsTypeInstaller,
+			name:  "a k2.6 agent patched to reasoning mode off",
+			opt:   pconfig.OptionsTypeReflector,
 			patch: map[string]any{"reasoning": off},
 		},
 		{
-			name: "an installer switched to reasoning mode off beside a vendor thinking key",
-			opt:  pconfig.OptionsTypeInstaller,
+			name: "a k2.6 agent patched to reasoning mode off beside a vendor thinking key",
+			opt:  pconfig.OptionsTypeReflector,
 			patch: map[string]any{
 				"reasoning":  off,
 				"extra_body": map[string]any{"thinking": map[string]any{"keep": "all"}},
@@ -260,7 +262,7 @@ func TestKimi_DefaultProviderConfig_KeepsTemperatureOffTheWireForNonThinkingAgen
 		name string
 		opt  pconfig.ProviderOptionsType
 	}{
-		{name: "the shipped simple agent", opt: pconfig.OptionsTypeSimple},
+		// simple moved to kimi-k2.7-code and is no longer a non-thinking agent.
 		{name: "the shipped simple json agent", opt: pconfig.OptionsTypeSimpleJSON},
 		{name: "the shipped reflector", opt: pconfig.OptionsTypeReflector},
 		{name: "the shipped searcher", opt: pconfig.OptionsTypeSearcher},
@@ -301,5 +303,32 @@ func TestKimi_DefaultProviderConfig_SendsADocumentedThinkingShapeFromK27CodeAgen
 	}
 	if probed == 0 {
 		t.Fatal("no shipped agent runs kimi-k2.7-code")
+	}
+}
+
+// TestKimi_SummarizerAndInstaller_RunOnK27Code locks in the loop-fix model
+// change: the summarizer (simple profile) and the installer must run on
+// kimi-k2.7-code with a large output ceiling, not the weak kimi-k2.6 whose
+// 8192 cap truncated summaries and whose reasoning-off body leaked
+// deliberation into them.
+func TestKimi_SummarizerAndInstaller_RunOnK27Code(t *testing.T) {
+	pc, err := DefaultProviderConfig()
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+	for _, opt := range []pconfig.ProviderOptionsType{
+		pconfig.OptionsTypeSimple,
+		pconfig.OptionsTypeInstaller,
+	} {
+		ac := pc.AgentConfigForType(opt)
+		if ac == nil {
+			t.Fatalf("%s has no agent config", opt)
+		}
+		if ac.Model != "kimi-k2.7-code" {
+			t.Errorf("%s model = %q, want kimi-k2.7-code", opt, ac.Model)
+		}
+		if ac.MaxTokens < 20480 {
+			t.Errorf("%s max_tokens = %d, want >= 20480 to avoid output truncation", opt, ac.MaxTokens)
+		}
 	}
 }
