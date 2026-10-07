@@ -74,55 +74,88 @@ export const deriveSummaryNarrative = (model: ReportModel): string => {
 
 const IPV4_HOST = /^\d{1,3}(\.\d{1,3}){3}$/;
 
-// Assets listed in the report's Scope table, derived from the findings' affected URLs.
-// Tooling frequently probes a site through its raw backend IPs with a Host header, so a
-// single asset surfaces as several origins (http:// and https://, plus bare IPs). Emit
-// one entry per host, prefer https when a host appears under both schemes, and drop
-// raw-IP origins whenever a named host is in scope — those are the same asset reached
-// directly, and listing them reads as sloppy in a client-facing report.
-export const deriveScopeTargets = (findings: readonly Finding[], fallback?: string): string[] => {
+// A leading hostname (optionally with port) in a free-form reference such as
+// "app.example.com" or "example.com (DNS zone)". The reporter often lists bare hosts.
+const BARE_HOST = /^((?:[a-z0-9-]+\.)+[a-z]{2,}|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?(?=$|[\s/(])/i;
+
+// Parse an affected-URL reference into { host, scheme }. Bare hosts carry no scheme
+// (none is invented); anything else unparseable returns undefined.
+const parseScopeRef = (value: string): undefined | { host: string; scheme: string } => {
+    try {
+        const url = new URL(value);
+
+        if (url.host) {
+            return { host: url.host.toLowerCase(), scheme: url.protocol };
+        }
+    } catch {
+        // Not an absolute URL — try a bare host below.
+    }
+
+    const bare = BARE_HOST.exec(value);
+
+    return bare ? { host: `${bare[1]}${bare[2] ?? ''}`.toLowerCase(), scheme: '' } : undefined;
+};
+
+// Assets listed in the report's Scope table: the scan's own target first, then the
+// hosts derived from the findings' affected URLs. Tooling frequently probes a site
+// through its raw backend IPs with a Host header, so a single asset surfaces as several
+// origins (http:// and https://, plus bare IPs). Emit one entry per host, prefer https
+// when a host appears under several schemes, and drop raw-IP origins whenever a named
+// host is in scope — those are the same asset reached directly, and listing them reads
+// as sloppy in a client-facing report.
+export const deriveScopeTargets = (findings: readonly Finding[], primary?: string): string[] => {
     const byHost = new Map<string, string>();
     const unparsed: string[] = [];
+    const primaryValue = primary?.trim();
+    const primaryRef = primaryValue ? parseScopeRef(primaryValue) : undefined;
+    const rank = (scheme: string): number => ['', 'http:', 'https:'].indexOf(scheme);
+
+    const add = (value: string) => {
+        const ref = parseScopeRef(value);
+
+        if (!ref) {
+            if (!unparsed.includes(value)) {
+                unparsed.push(value);
+            }
+
+            return;
+        }
+
+        const previous = byHost.get(ref.host);
+
+        if (previous === undefined || rank(ref.scheme) > rank(previous)) {
+            byHost.set(ref.host, ref.scheme);
+        }
+    };
+
+    if (primaryValue) {
+        add(primaryValue);
+    }
 
     for (const finding of findings) {
         for (const raw of finding.affectedUrls ?? []) {
             const value = raw?.trim();
 
-            if (!value) {
-                continue;
-            }
-
-            let parsed: undefined | URL;
-
-            try {
-                parsed = new URL(value);
-            } catch {
-                parsed = undefined;
-            }
-
-            if (!parsed) {
-                if (!unparsed.includes(value)) {
-                    unparsed.push(value);
-                }
-
-                continue;
-            }
-
-            const previous = byHost.get(parsed.host);
-
-            if (!previous || (previous === 'http:' && parsed.protocol === 'https:')) {
-                byHost.set(parsed.host, parsed.protocol);
+            if (value) {
+                add(value);
             }
         }
     }
 
+    const format = ([host, scheme]: [string, string]) => (scheme ? `${scheme}//${host}` : host);
     const hosts = [...byHost.entries()];
     const named = hosts.filter(([host]) => !IPV4_HOST.test(host.split(':')[0] ?? host));
     const kept = named.length > 0 ? named : hosts;
-    const urls = kept.map(([host, scheme]) => `${scheme}//${host}`).sort();
-    const targets = [...urls, ...unparsed];
+    // The scan target is always listed, even if it is a raw IP alongside named hosts.
+    const primaryEntry = primaryRef ? hosts.find(([host]) => host === primaryRef.host) : undefined;
+    const others = kept
+        .filter((entry) => entry !== primaryEntry)
+        .map(format)
+        .sort();
+    const leading = primaryEntry ? [format(primaryEntry)] : primaryValue && !primaryRef ? [primaryValue] : [];
+    const targets = [...new Set([...leading, ...others, ...unparsed])];
 
-    return targets.length > 0 ? targets : [fallback || 'In-scope assets'];
+    return targets.length > 0 ? targets : ['In-scope assets'];
 };
 
 // Auto-derived executive-summary bullets. Kept factual and conservative — they are
@@ -181,6 +214,8 @@ interface BuildReportModelOptions {
     clientName?: string;
     executiveSummary?: { content: string; generatedAt: string };
     generatedAt?: string;
+    // The scan's own target (the parent domain's name). Authoritative when present.
+    target?: string;
     targetType?: TargetType;
 }
 
@@ -223,31 +258,36 @@ export const formatDuration = (startMs: number, endMs: number): string | undefin
     return `${seconds}s`;
 };
 
-const deriveTarget = (findings: Finding[]): string | undefined => {
+export const deriveTarget = (findings: readonly Finding[]): string | undefined => {
     const hostCounts = new Map<string, number>();
 
     for (const finding of findings) {
         for (const rawUrl of finding.affectedUrls ?? []) {
-            try {
-                const { hostname } = new URL(rawUrl);
+            const hostname = parseScopeRef(rawUrl.trim())?.host.replace(/:\d+$/, '');
+
+            if (hostname) {
                 hostCounts.set(hostname, (hostCounts.get(hostname) ?? 0) + 1);
-            } catch {
-                // Ignore non-URL affected references.
             }
         }
     }
 
     let target: string | undefined;
     let best = 0;
+    let tied = false;
 
     for (const [host, count] of hostCounts) {
         if (count > best) {
             best = count;
             target = host;
+            tied = false;
+        } else if (count === best) {
+            tied = true;
         }
     }
 
-    return target;
+    // Only a clear winner is a fallback target; on a tie, claim nothing rather than
+    // name an arbitrary host as "the" target.
+    return tied ? undefined : target;
 };
 
 const toReportSubItem = (subtask: SubtaskFragmentFragment): ReportSubItem => ({
@@ -354,7 +394,7 @@ export const buildReportModel = (
             id: flow?.id ?? '',
             startedAt: flow?.createdAt ? new Date(flow.createdAt).toISOString() : undefined,
             status: flow?.status ?? StatusType.Created,
-            target: deriveTarget(allFindings),
+            target: options.target?.trim() || deriveTarget(allFindings),
             targetType: options.targetType,
             title: flow?.title ?? 'Untitled Flow',
         },

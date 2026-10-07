@@ -273,6 +273,29 @@ describe('deriveScopeTargets', () => {
     it('falls back to the flow target when no findings carry URLs', () => {
         expect(deriveScopeTargets([], 'acme.test')).toEqual(['acme.test']);
     });
+
+    it('lists the scan target first and merges bare hosts with their URL form', () => {
+        // Flow-28 shape: the reporter emitted bare hostnames, not URLs.
+        expect(
+            deriveScopeTargets(
+                withUrls(['old.example.com', 'app.example.com', 'https://app.example.com/admin', 'b.example.com']),
+                'https://app.example.com',
+            ),
+        ).toEqual(['https://app.example.com', 'b.example.com', 'old.example.com']);
+    });
+
+    it('reduces annotated host references to the host', () => {
+        expect(
+            deriveScopeTargets(withUrls(['example.com (DNS zone)', 'example.com (DNS MX/TXT records)']), 'example.com'),
+        ).toEqual(['example.com']);
+    });
+
+    it('keeps the scan target even when it is a raw IP next to named hosts', () => {
+        expect(deriveScopeTargets(withUrls(['https://app.example.com/']), '10.0.0.5')).toEqual([
+            '10.0.0.5',
+            'https://app.example.com',
+        ]);
+    });
 });
 
 describe('isSeverityChangeMeaningful', () => {

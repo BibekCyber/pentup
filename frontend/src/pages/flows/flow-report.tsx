@@ -87,11 +87,15 @@ const FlowReport = () => {
     // A flow does not carry its own target type — it lives on the parent scan
     // (domain). Resolve it client-side from the cached domains list so the report
     // can state the engagement class (Web / Cloud); undefined is a safe fallback.
+    // The same domain also carries the scan's real target (its name), which is
+    // authoritative for the report's Target — flow and assistant titles are not hosts.
     const { data: domainsData } = useDomainsQuery({ errorPolicy: 'all', skip: !flowId || sample });
-    const targetType = useMemo(
-        () => domainsData?.domains.find((domain) => domain.flows.some((flow) => flow.id === flowId))?.targetType,
+    const scanDomain = useMemo(
+        () => domainsData?.domains.find((domain) => domain.flows.some((flow) => flow.id === flowId)),
         [domainsData?.domains, flowId],
     );
+    const targetType = scanDomain?.targetType;
+    const scanTarget = scanDomain?.name?.trim() || undefined;
 
     const { data: assistantsData, loading: assistantsLoading } = useAssistantsQuery({
         errorPolicy: 'all',
@@ -124,7 +128,7 @@ const FlowReport = () => {
         const findings = mapFindings(data.flow.findings);
 
         if (isAutomation) {
-            return buildReportModel(data.flow, tasks, findings, { targetType });
+            return buildReportModel(data.flow, tasks, findings, { target: scanTarget, targetType });
         }
 
         // Gate on the FIRST load only. A severity edit refetches these queries, and treating
@@ -139,11 +143,12 @@ const FlowReport = () => {
                 ? null
                 : buildAssistantReportModel(data.flow, assistants[0], logsData?.assistantLogs ?? [], {
                       findings: mapFindings(assistants[0]?.findings),
+                      target: scanTarget,
                       targetType,
                   });
         }
 
-        return buildReportModel(data.flow, [], findings, { targetType });
+        return buildReportModel(data.flow, [], findings, { target: scanTarget, targetType });
     }, [
         assistantSample,
         sample,
@@ -155,6 +160,7 @@ const FlowReport = () => {
         assistants,
         logsData,
         logsLoading,
+        scanTarget,
         targetType,
     ]);
 
