@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
         color: CF_PDF.body,
         fontSize: 9.5,
         lineHeight: 1.5,
+        textAlign: 'justify',
     },
     defItem: {
         flexDirection: 'row',
@@ -61,6 +62,7 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         lineHeight: 1.5,
         marginBottom: 8,
+        textAlign: 'justify',
     },
     // --- Criteria table (B) ---
     headCell: {
@@ -83,6 +85,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         lineHeight: 1.6,
         marginBottom: 8,
+        textAlign: 'justify',
     },
     // --- Simple bullet list (methodology) ---
     liItem: {
@@ -104,6 +107,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 9.5,
         lineHeight: 1.5,
+        textAlign: 'justify',
     },
     matrix: {
         marginBottom: 12,

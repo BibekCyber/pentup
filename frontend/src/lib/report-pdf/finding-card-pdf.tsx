@@ -33,6 +33,7 @@ const styles = StyleSheet.create({
         color: CF_PDF.body,
         fontSize: 9.5,
         lineHeight: 1.6,
+        textAlign: 'justify',
     },
     placeholder: {
         backgroundColor: '#f1f5f8',
@@ -128,23 +129,29 @@ const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
 
             {finding.description && (
                 <View>
-                    <Text style={styles.sectionLabel}>Description</Text>
+                    {/* Keep the label with at least the first lines of the paragraph. */}
+                    <Text
+                        minPresenceAhead={40}
+                        style={styles.sectionLabel}
+                    >
+                        Description
+                    </Text>
                     <Text style={styles.paragraph}>{finding.description}</Text>
                 </View>
             )}
 
             {finding.impact && finding.impact.length > 0 && (
-                <View>
-                    <Text style={styles.sectionLabel}>Business Impact</Text>
-                    <Bullets items={finding.impact} />
-                </View>
+                <Bullets
+                    heading={<Text style={styles.sectionLabel}>Business Impact</Text>}
+                    items={finding.impact}
+                />
             )}
 
             {finding.stepsToReproduce && finding.stepsToReproduce.length > 0 && (
-                <View>
-                    <Text style={styles.sectionLabel}>Steps to Reproduce</Text>
-                    <Bullets items={finding.stepsToReproduce} />
-                </View>
+                <Bullets
+                    heading={<Text style={styles.sectionLabel}>Steps to Reproduce</Text>}
+                    items={finding.stepsToReproduce}
+                />
             )}
 
             {finding.screenshots && finding.screenshots.length > 0 && (
@@ -169,20 +176,18 @@ const FindingCardPdf = ({ finding }: FindingCardPdfProps) => {
             )}
 
             {finding.recommendation && (
-                <View>
-                    <Text style={styles.sectionLabel}>Recommendation</Text>
-                    <Bullets items={toBullets(finding.recommendation)} />
-                </View>
+                <Bullets
+                    heading={<Text style={styles.sectionLabel}>Recommendation</Text>}
+                    items={toBullets(finding.recommendation)}
+                />
             )}
 
             {finding.references && finding.references.length > 0 && (
-                <View>
-                    <Text style={styles.sectionLabel}>References</Text>
-                    <Bullets
-                        items={finding.references}
-                        link
-                    />
-                </View>
+                <Bullets
+                    heading={<Text style={styles.sectionLabel}>References</Text>}
+                    items={finding.references}
+                    link
+                />
             )}
         </View>
     );

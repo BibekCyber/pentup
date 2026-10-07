@@ -10,7 +10,6 @@ import AppendixPdf from './appendix-pdf';
 import { CF_LOGO_DATA_URI, CF_PDF } from './cf-brand';
 import CoverConfidentiality from './confidentiality-pdf';
 import CoverPage from './cover-page';
-import DocumentHistoryPdf from './document-history-pdf';
 import ExecutiveSummaryPdf from './executive-summary-pdf';
 import FindingCardPdf from './finding-card-pdf';
 import FindingsSummaryPdf from './findings-summary-pdf';
@@ -80,10 +79,6 @@ const ReportDocument = ({ model }: ReportDocumentProps) => {
             </Sheet>
 
             <Sheet model={model}>
-                <DocumentHistoryPdf model={model} />
-            </Sheet>
-
-            <Sheet model={model}>
                 <ExecutiveSummaryPdf model={model} />
             </Sheet>
 
@@ -112,6 +107,7 @@ const ReportDocument = ({ model }: ReportDocumentProps) => {
                                     fontStyle: 'italic',
                                     lineHeight: 1.5,
                                     marginBottom: 12,
+                                    textAlign: 'justify',
                                 }}
                             >
                                 <Text style={{ fontFamily: 'Helvetica-Bold', fontStyle: 'normal' }}>Please note: </Text>

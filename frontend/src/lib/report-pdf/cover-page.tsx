@@ -2,9 +2,7 @@ import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import type { ReportModel } from '@/lib/report-model';
 
-import { getEngagementLabel } from '@/lib/target-type-colors';
-
-import { CF_LOGO_DATA_URI, CF_PDF } from './cf-brand';
+import { CF_LOGO_ON_DARK_DATA_URI, CF_PDF } from './cf-brand';
 
 // The CyberFortify cover gradient (navy -> mint), rebuilt as stacked colour bands.
 // react-pdf always paints <Image> above sibling text, so a background image can't
@@ -15,9 +13,9 @@ const FROM = [15, 48, 74]; // #0f304a navy
 const TO = [168, 216, 200]; // ~#a8d8c8 mint
 const GRADIENT_BANDS = Array.from({ length: BANDS }, (_, i) => {
     const t = i / (BANDS - 1);
-    const rgb = FROM.map((c, k) => Math.round(c + (TO[k] - c) * t));
+    const rgb = FROM.map((c, k) => Math.round(c + ((TO[k] ?? c) - c) * t));
 
-    return { color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`, top: (PAGE_H / BANDS) * i };
+    return { color: `rgb(${rgb.join(', ')})`, top: (PAGE_H / BANDS) * i };
 });
 const BAND_H = PAGE_H / BANDS + 1.5;
 
@@ -28,19 +26,29 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 0,
     },
-    byline: {
-        color: CF_PDF.navy,
+    // "COMMISSIONED BY" — small lime caps above the client name.
+    commissionedLabel: {
+        color: CF_PDF.lime,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 12,
-        letterSpacing: 0.4,
+        fontSize: 11,
+        letterSpacing: 0.6,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+    },
+    commissionedValue: {
+        color: CF_PDF.navyDeep,
+        fontFamily: 'Helvetica-Bold',
+        fontSize: 30,
+        lineHeight: 1.15,
     },
     confidential: {
         color: CF_PDF.navyDeep,
         fontSize: 8.5,
         lineHeight: 1.5,
-        marginTop: 6,
+        marginTop: 18,
         maxWidth: 380,
         opacity: 0.8,
+        textAlign: 'justify',
     },
     content: {
         flex: 1,
@@ -48,66 +56,43 @@ const styles = StyleSheet.create({
         paddingHorizontal: 56,
         paddingVertical: 56,
     },
-    kicker: {
-        color: CF_PDF.lime,
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 11,
-        letterSpacing: 3,
-        marginBottom: 12,
-        textTransform: 'uppercase',
-    },
+    // Transparent PNG straight on the gradient (no white panel); the cover variant
+    // has a white wordmark so it reads on the dark navy.
     logo: {
-        height: 52,
-        width: 74,
-    },
-    logoPanel: {
         alignSelf: 'flex-start',
-        backgroundColor: CF_PDF.white,
-        borderRadius: 8,
-        paddingHorizontal: 18,
-        paddingVertical: 14,
-    },
-    metaLabel: {
-        color: CF_PDF.white,
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 8,
-        letterSpacing: 0.5,
-        opacity: 0.8,
-        textTransform: 'uppercase',
-    },
-    metaValue: {
-        color: CF_PDF.white,
-        fontSize: 11,
-        marginTop: 2,
+        height: 102,
+        width: 150,
     },
     page: {
         flexDirection: 'column',
     },
-    rule: {
-        backgroundColor: CF_PDF.lime,
-        height: 3,
-        marginTop: 14,
-        width: 54,
-    },
-    title: {
-        color: CF_PDF.white,
+    reportTitle: {
+        color: CF_PDF.navy,
         fontFamily: 'Helvetica-Bold',
-        fontSize: 32,
-        lineHeight: 1.12,
+        fontSize: 26,
+        lineHeight: 1.25,
     },
 });
+
+// A URL target reads better on the cover as its bare host ("app.example.com").
+const displayTarget = (target: string): string => target.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/\/+$/, '');
 
 interface CoverPageProps {
     model: ReportModel;
 }
 
+// Laid out to the client's cover mock-up: logo top-left, "Commissioned by" + client
+// in the middle, the report title at the foot.
 const CoverPage = ({ model }: CoverPageProps) => {
-    const engagement = getEngagementLabel(model.flow.targetType);
-    const title = engagement || model.flow.target || model.flow.title;
-    const issued = new Date(model.generatedAt);
-    const issuedLabel = Number.isNaN(issued.getTime())
-        ? ''
-        : issued.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    const clientName = model.clientName?.trim();
+    const target = model.flow.target?.trim();
+    // No client name entered yet: show the assessed target instead of leaving a gap,
+    // relabelled — "Commissioned by <host>" would name the website as the client.
+    const headline = clientName
+        ? { label: 'Commissioned By', value: clientName.toUpperCase() }
+        : target
+          ? { label: 'Target', value: displayTarget(target) }
+          : null;
 
     return (
         <Page
@@ -122,44 +107,22 @@ const CoverPage = ({ model }: CoverPageProps) => {
             ))}
 
             <View style={styles.content}>
-                {/* Top block — white text over the dark navy end of the gradient. */}
+                <Image
+                    src={CF_LOGO_ON_DARK_DATA_URI}
+                    style={styles.logo}
+                />
+
                 <View>
-                    <View style={styles.logoPanel}>
-                        <Image
-                            src={CF_LOGO_DATA_URI}
-                            style={styles.logo}
-                        />
-                    </View>
-
-                    <View style={{ marginTop: 46 }}>
-                        <Text style={styles.kicker}>Penetration Testing Report</Text>
-                        <Text style={styles.title}>{title}</Text>
-                        <View style={styles.rule} />
-
-                        <View style={{ flexDirection: 'row', gap: 40, marginTop: 22 }}>
-                            {model.clientName?.trim() && (
-                                <View>
-                                    <Text style={styles.metaLabel}>Prepared For</Text>
-                                    <Text style={styles.metaValue}>{model.clientName.trim()}</Text>
-                                </View>
-                            )}
-                            {model.flow.target && (
-                                <View>
-                                    <Text style={styles.metaLabel}>Target</Text>
-                                    <Text style={styles.metaValue}>{model.flow.target}</Text>
-                                </View>
-                            )}
-                            <View>
-                                <Text style={styles.metaLabel}>Date Issued</Text>
-                                <Text style={styles.metaValue}>{issuedLabel}</Text>
-                            </View>
-                        </View>
-                    </View>
+                    {headline && (
+                        <>
+                            <Text style={styles.commissionedLabel}>{headline.label}</Text>
+                            <Text style={styles.commissionedValue}>{headline.value}</Text>
+                        </>
+                    )}
                 </View>
 
-                {/* Bottom block — dark text over the light mint end of the gradient. */}
                 <View>
-                    <Text style={styles.byline}>By CyberFortify</Text>
+                    <Text style={styles.reportTitle}>Penetration Test{'\n'}Report</Text>
                     <Text style={styles.confidential}>
                         Confidential. This report and its contents are intended solely for the named recipient.
                         Unauthorized disclosure, distribution, or reproduction is strictly prohibited.
