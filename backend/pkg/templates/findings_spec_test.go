@@ -40,9 +40,10 @@ func TestReporterTemplateRendersTheSharedFindingsSpec(t *testing.T) {
 		`"steps_to_reproduce"`,
 		`"recommendation"`,
 		`"references"`,
-		`"Expected:"`,
 		"Observed (summary):",
-		"/tmp, /work",
+		"/tmp or /work",
+		"One root cause is one",
+		"REQUIRED for every finding rated low or above",
 	} {
 		if !strings.Contains(rendered, required) {
 			t.Errorf("rendered reporter prompt is missing the %q requirement", required)
