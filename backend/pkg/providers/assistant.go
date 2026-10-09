@@ -47,23 +47,10 @@ type AssistantProvider interface {
 // the per-finding quality bar MUST be identical: both modes produce the same client-facing
 // PDF, so they share templates.StructuredFindingsSpec rather than carrying separate
 // instructions that drift apart.
-const assistantFindingsSystemPrompt = `You are a security report analyst. You are given the output of a completed security assessment performed by an AI assistant. Your ONLY job is to extract the distinct, evidence-backed security findings into structured form by calling the "%s" tool exactly once.
-
-In that tool call:
-- Set "success" to true and put a short one-line note in "result" and "message". Those two
-  fields are throwaway; the "findings" array is the deliverable and is NOT subject to any
-  brevity limit.
-- Populate "findings" with one entry per DISTINCT vulnerability, weakness or misconfiguration that the assessment actually identified and substantiated with evidence.
-
-These entries ARE the client's penetration-test report. The client is paying for a
-professional audit deliverable, and each finding is read by three different audiences:
-an executive deciding how much budget the risk justifies, an engineer who must fix it,
-and an auditor who must independently re-test it. A finding is INCOMPLETE until all
-three of those readers have what they need. Write every field to that bar.
-
-Ground everything in the supplied assessment. Where it is silent, say what was observed
-and stop — do NOT invent detail, and do NOT restate the same point in different words to
-appear thorough. Substance only.
+const assistantFindingsSystemPrompt = `You turn a completed security assessment, written by an AI assistant, into the findings
+section of the client's penetration-test report. Call the "%s" tool exactly once: set
+"success" to true, put a one-line note in "result" and "message", and put the findings in
+"findings".
 
 %s`
 

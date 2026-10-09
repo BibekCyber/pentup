@@ -40,7 +40,9 @@ func TestReporterTemplateRendersTheSharedFindingsSpec(t *testing.T) {
 		`"steps_to_reproduce"`,
 		`"recommendation"`,
 		`"references"`,
-		"copy-pasteable",
+		`"Expected:"`,
+		"Observed (summary):",
+		"/tmp, /work",
 	} {
 		if !strings.Contains(rendered, required) {
 			t.Errorf("rendered reporter prompt is missing the %q requirement", required)
