@@ -85,11 +85,11 @@ type Finding struct {
 	CVSS             *float64 `json:"cvss,omitempty" jsonschema:"title=CVSS score" jsonschema_description:"CVSS v3.1 base score from 0.1 to 10.0. Required for every finding rated low or above; omit for informational findings"`
 	CVE              string   `json:"cve,omitempty" jsonschema:"title=CVE identifier" jsonschema_description:"Associated CVE identifier (e.g. CVE-2021-44228) when applicable, otherwise omit"`
 	AffectedURLs     []string `json:"affected_urls,omitempty" jsonschema:"title=Affected URLs" jsonschema_description:"Affected URLs, endpoints, hosts or assets in plain text"`
-	Description      string   `json:"description,omitempty" jsonschema:"title=Details of vulnerability" jsonschema_description:"Three plain-text paragraphs separated by a blank line: what and where; what was observed (exact values) and the root cause; how it is exploited"`
+	Description      string   `json:"description,omitempty" jsonschema:"title=Details of vulnerability" jsonschema_description:"One plain-text paragraph: what the weakness is and where, what was observed (exact values) and why, and how it is exploited"`
 	Evidence         string   `json:"evidence,omitempty" jsonschema:"title=Evidence" jsonschema_description:"Commands and output lines copied exactly from the input, one per line; 'Observed (summary): ...' where the input has no raw output. Plain text"`
 	Impact           []string `json:"impact,omitempty" jsonschema:"title=Impact" jsonschema_description:"Concrete business or technical impacts if the vulnerability is exploited, one plain-text item per impact"`
-	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered steps; each item is one complete step: the exact command or request, then 'Expected:' and the confirming result in the same item"`
-	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"Three plain-text paragraphs separated by a blank line: the fix with the literal value to deploy; defence in depth; how to verify the fix"`
+	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered steps; each item is one complete step: what to do, the exact command or request, and the observed result that confirms it, in plain text"`
+	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"Concrete remediation guidance to fix the vulnerability, in plain text without markdown"`
 	References       []string `json:"references,omitempty" jsonschema:"title=References" jsonschema_description:"Reference URLs that support the finding (OWASP, CWE, vendor advisories)"`
 
 	// Analyst triage. These are written by the application when a human re-rates a

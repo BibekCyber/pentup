@@ -139,15 +139,54 @@ func StripAnalystFields(findings []Finding) []Finding {
 	return findings
 }
 
+// AlignSeverityToCVSS makes each model-generated finding's severity agree with its own CVSS
+// score, so the report never prints a score outside the band its severity label claims.
+//
+// The prompt already says the band decides, but the model sometimes keeps a subtask's label
+// ("low") next to a score it derived itself (5.3). The score comes from the base metrics, so
+// it wins. A score of 0.0 or below is dropped rather than printed: informational findings
+// carry no score, and a non-informational label with a zero score is left as labelled.
+func AlignSeverityToCVSS(findings []Finding) []Finding {
+	for i := range findings {
+		score := findings[i].CVSS
+		if score == nil {
+			continue
+		}
+
+		if *score <= 0 {
+			findings[i].CVSS = nil
+			continue
+		}
+
+		findings[i].Severity = severityForScore(*score)
+	}
+
+	return findings
+}
+
+func severityForScore(score float64) string {
+	switch {
+	case score >= severityBands["critical"].Min:
+		return "critical"
+	case score >= severityBands["high"].Min:
+		return "high"
+	case score >= severityBands["medium"].Min:
+		return "medium"
+	default:
+		return "low"
+	}
+}
+
 // PrepareFindingsForStorage is the single entry point every writer of MODEL-GENERATED
 // findings must use before persisting them.
 //
-// It combines the two invariants that are easy to forget individually and silently costly
-// to miss: the model may not assert an analyst decision, and a regeneration may not erase
-// one. Bundling them means a new writer gets both or neither, rather than half.
+// It combines the invariants that are easy to forget individually and silently costly to
+// miss: the model may not assert an analyst decision, its severity must agree with its own
+// CVSS score, and a regeneration may not erase an analyst decision. Bundling them means a
+// new writer gets all of them or none, rather than some.
 //
 // The analyst triage mutation does NOT use this: it is the one path that legitimately
 // writes an override.
 func PrepareFindingsForStorage(previous, incoming []Finding) []Finding {
-	return PreserveSeverityOverrides(previous, StripAnalystFields(incoming))
+	return PreserveSeverityOverrides(previous, AlignSeverityToCVSS(StripAnalystFields(incoming)))
 }
