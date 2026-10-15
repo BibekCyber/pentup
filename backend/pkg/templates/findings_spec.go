@@ -41,15 +41,14 @@ in any field. The client cannot open or use them; quote what they showed instead
 - "cve": include only when a specific CVE applies; otherwise omit.
 - "affected_urls": every concrete endpoint, host, parameter or asset affected.
 
-- "description": explain the weakness, the affected component or endpoint, and the
-  confirmed behaviour in plain language. Start with a short explanation. The 2-3 sentence
-  target is a preference, NOT a limit: add short sentences or paragraphs as needed to
-  retain the supported root cause, missing or failed control, affected scope, and
-  exploitability conditions and limitations. When the root cause is not established,
-  distinguish the observed behaviour from any hypothesis. Quote observed values
-  accurately. Do not repeat the title, add generic background, or put detailed commands,
-  output, impact or remediation here;
-  those belong in their own fields.
+- "description": explain the weakness, affected component, and confirmed behaviour in
+  plain language. Include the supported root cause, missing or failed control, affected
+  scope, and conditions that affect exploitation. Distinguish observations from
+  hypotheses and quote observed values accurately.
+  Use short sentences and readable paragraphs. Give enough detail for an engineer to
+  understand and fix the issue and an auditor to reproduce it. Do not impose a sentence
+  or word limit. Avoid repeated explanations and generic background. Keep detailed
+  commands, output, impact and remediation in their own fields.
 
 - "evidence": the concrete proof, one item per line. Copy commands and output lines exactly
   as they appear in the input; do not retype, reorder, complete or tidy them. Where the
@@ -57,12 +56,12 @@ in any field. The client cannot open or use them; quote what they showed instead
   "Observed (summary):" with that description of the result itself, never where a file
   was saved. Never reconstruct output that is not in the input.
 
-- "impact": an array of DISTINCT, evidence-supported consequences in short, complete
-  sentences. Name the concrete outcome and who or what it affects. Usually 1-3 items
-  are sufficient; do not fill a fixed quota or omit a distinct supported consequence
-  to meet that range. Distinguish demonstrated impact from conditional possibilities
-  and state the conditions explicitly. Never add generic reputation, compliance or
-  business claims unsupported by the evidence.
+- "impact": an array of DISTINCT technical or business consequences supported by the
+  evidence. Name the concrete outcome and who or what it affects. Evidence determines
+  the number of items; do not add speculative consequences to fill the section or omit
+  a supported consequence for brevity. Distinguish demonstrated impact from conditional
+  possibilities and state the conditions explicitly. Never add generic reputation,
+  compliance or business claims unsupported by the evidence.
 
 - "steps_to_reproduce": an ordered array that lets a reader with no prior knowledge of
   this target reproduce the finding without guessing.
@@ -82,8 +81,6 @@ in any field. The client cannot open or use them; quote what they showed instead
   Include only actions and results supported by the supplied evidence. Do not invent
   navigation, commands, output or successful exploitation. If a required setup detail
   is unavailable, state the gap rather than guessing.
-  Example elements: "Run the following command in your terminal:\ncurl -sI https://target.example/"
-  and "Check the response: it is HTTP/2 200 and contains no Content-Security-Policy header."
 
 - "recommendation": a single string containing implementation-ready remediation,
   with one short instruction per line, in this order:
@@ -108,11 +105,48 @@ in any field. The client cannot open or use them; quote what they showed instead
   in doubt, cite the canonical landing page for the standard rather than guessing a deep
   link, and give fewer references rather than an invented one.
 
-### Preserve technical depth
+### Example: preserve observations and limitations
 
-Length targets are preferences, not limits. Preserve all material technical
-details and differences between tested cases. State uncertainty explicitly;
-never claim broader coverage or exploitation than the evidence demonstrates.
+This synthetic example illustrates structure, not wording or length to repeat in every
+finding. Its hosts and credentials are placeholders; never copy its facts into a report.
+
+Input:
+An authorized standard test user logs in to https://app.example/ and copies the bearer
+token from the browser's Network panel. The API authenticates requests with that token.
+The following requests and responses were recorded using the same token:
+POST https://app.example/api/logout -> HTTP 200, Content-Type: text/html
+GET https://app.example/api/session -> HTTP 200, {"authenticated":true}
+The UI logout workflow, token expiry and server framework were not tested or established.
+The supplied CVSS v3.1 base score is 4.3. Reference: https://cwe.mitre.org/data/definitions/613.html
+
+Example finding JSON:
+{
+  "title": "Bearer token remains valid after the tested logout request",
+  "severity": "medium",
+  "cvss": 4.3,
+  "affected_urls": ["https://app.example/api/logout", "https://app.example/api/session"],
+  "description": "The API accepts the same bearer token after a standard user sends a POST request to /api/logout. That request returns HTTP 200 with HTML content, and a subsequent GET to /api/session returns HTTP 200 with authenticated set to true. The session endpoint uses the token to authenticate requests, so this sequence shows that the tested logout request did not terminate token-based access. The evidence does not establish whether the logout handler is missing, incorrectly routed, or failing to invalidate the token. Testing covered these two endpoints only. The application's UI logout workflow and token expiry were not tested, so the result does not establish that every logout method fails or that access persists indefinitely.",
+  "evidence": "POST https://app.example/api/logout -> HTTP 200, Content-Type: text/html\nGET https://app.example/api/session -> HTTP 200, {\"authenticated\":true}",
+  "steps_to_reproduce": [
+    "Log in to https://app.example/ with an authorized standard test account.",
+    "Copy its bearer token from an authenticated request in your browser's Network panel. Replace <TEST_TOKEN> in the commands below with that value.",
+    "In your terminal, send the logout request:\ncurl -i -X POST https://app.example/api/logout -H 'Authorization: Bearer <TEST_TOKEN>'",
+    "Observe HTTP 200 with Content-Type: text/html.",
+    "Request the session endpoint using the same token:\ncurl -i https://app.example/api/session -H 'Authorization: Bearer <TEST_TOKEN>'",
+    "Observe HTTP 200 and authenticated set to true. The token is still accepted after the tested logout request."
+  ],
+  "impact": ["A person holding this bearer token can retain authenticated access to the session endpoint after the tested logout request. The duration and access to other endpoints were not established."],
+  "recommendation": "Confirm the intended logout route and its server-side handler.\nEnsure that successful logout invalidates the associated session or token in the API's authentication layer. The server framework was not established, so the exact configuration must be confirmed.\nRepeat the sequence using the intended logout workflow and verify that the old token is rejected by protected endpoints.",
+  "references": ["https://cwe.mitre.org/data/definitions/613.html"]
+}
+
+### Writing style and technical depth
+
+Write directly about this target. Avoid stock openings, repeated transitions and
+formulaic phrases such as "The root cause is". Use "systemic" only when the testing
+supports that scope. Preserve all material technical details and differences between
+tested cases. State uncertainty explicitly; never claim broader coverage or exploitation
+than the evidence demonstrates.
 
 ### Coverage and final check
 
@@ -126,7 +160,7 @@ Before emitting, check that the reader can identify the issue, follow each actio
 recognize the confirming observation without guessing. Keep the finding accurate when
 evidence is missing: state material gaps, and never invent missing details to satisfy
 completeness. Check the supplied evidence against the whole finding: no material tested
-case, technical detail or uncertainty may disappear to satisfy a sentence or item target.
+case, technical detail or uncertainty may disappear merely to make the report shorter.
 Keep detailed proof in evidence and avoid repeating it across fields.
 
 Rules:
