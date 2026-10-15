@@ -42,11 +42,13 @@ in any field. The client cannot open or use them; quote what they showed instead
 - "affected_urls": every concrete endpoint, host, parameter or asset affected.
 
 - "description": explain the weakness, the affected component or endpoint, and the
-  confirmed behaviour in plain language. Aim for 2-3 short sentences, adding detail only
-  when needed to preserve an important condition or limitation. Include the technical
-  root cause only when supported by evidence; otherwise describe the observed behaviour
-  without guessing. Quote observed values accurately. Do not repeat the title, add
-  generic background, or put detailed commands, output, impact or remediation here;
+  confirmed behaviour in plain language. Start with a short explanation. The 2-3 sentence
+  target is a preference, NOT a limit: add short sentences or paragraphs as needed to
+  retain the supported root cause, missing or failed control, affected scope, and
+  exploitability conditions and limitations. When the root cause is not established,
+  distinguish the observed behaviour from any hypothesis. Quote observed values
+  accurately. Do not repeat the title, add generic background, or put detailed commands,
+  output, impact or remediation here;
   those belong in their own fields.
 
 - "evidence": the concrete proof, one item per line. Copy commands and output lines exactly
@@ -106,6 +108,31 @@ in any field. The client cannot open or use them; quote what they showed instead
   in doubt, cite the canonical landing page for the standard rather than guessing a deep
   link, and give fewer references rather than an invented one.
 
+### Preserve technical depth across the finding
+
+Simplify the wording, not the technical substance. Distribute detail across the existing
+fields instead of compressing it away or forcing every topic into one paragraph:
+- In description, retain the component's relevant purpose, the supported root cause
+  and missing or failed control, and conditions affecting exploitability (for example
+  user role, network position, environment or configuration). Explain whether the
+  observed scope is isolated or shared; never claim systemic coverage from one test.
+- In affected_urls, retain every confirmed affected endpoint, host, parameter or asset.
+  Keep differences in behaviour between tested routes or methods in steps or evidence;
+  do not replace several tested cases with a vague claim such as "logout is broken".
+- In steps_to_reproduce, retain the attack sequence and required capabilities, account
+  roles, setup and dependencies. Preserve complete methods, URLs, headers, parameters
+  and payloads, using the credential placeholders required above.
+- In evidence, retain the exact supplied proof needed to substantiate the finding,
+  including meaningful status codes, response values, versions, timings and comparisons
+  with expected or unaffected behaviour when available. Do not replace raw proof with
+  a summary merely to save space.
+- In impact and recommendation, retain distinct supported consequences, target-specific
+  fixes, where to apply them, and how to verify closure.
+These are evidence-dependent requirements, not a quota to fill. If the input does not
+establish a root cause, control failure, broader scope or exploitation condition, state
+the material uncertainty rather than inventing it. Do not imply an end-to-end exploit
+was demonstrated when only one part of the attack path was tested.
+
 ### Coverage and final check
 
 Report EVERY distinct issue the evidence supports, each as its own entry. Report only
@@ -117,7 +144,9 @@ omit a prerequisite, or remove an important limitation merely to reduce length.
 Before emitting, check that the reader can identify the issue, follow each action and
 recognize the confirming observation without guessing. Keep the finding accurate when
 evidence is missing: state material gaps, and never invent missing details to satisfy
-completeness. Keep detailed proof in evidence and avoid repeating it across fields.
+completeness. Check the supplied evidence against the whole finding: no material tested
+case, technical detail or uncertainty may disappear to satisfy a sentence or item target.
+Keep detailed proof in evidence and avoid repeating it across fields.
 
 Rules:
 - Write string fields as plain text, without Markdown headings, emphasis, code fences
