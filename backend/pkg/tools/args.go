@@ -78,18 +78,19 @@ type SubtaskPatch struct {
 
 // Finding is a single structured security finding emitted by the reporter agent
 // alongside the markdown task result. It powers the report's finding cards and the
-// severity summary, so all string fields must be plain prose (no markdown markup).
+// severity summary. String fields use plain text (no markdown markup), with line
+// breaks for commands and remediation instructions.
 type Finding struct {
 	Title            string   `json:"title" jsonschema:"required,title=Finding title" jsonschema_description:"Short descriptive title of the vulnerability or weakness in plain text without markdown"`
 	Severity         string   `json:"severity" jsonschema:"required,enum=critical,enum=high,enum=medium,enum=low,enum=informational,title=Severity" jsonschema_description:"Must equal the band of the cvss score: critical (9.0-10.0), high (7.0-8.9), medium (4.0-6.9), low (0.1-3.9); informational when there is no exploitable impact"`
 	CVSS             *float64 `json:"cvss,omitempty" jsonschema:"title=CVSS score" jsonschema_description:"CVSS v3.1 base score from 0.1 to 10.0. Required for every finding rated low or above; omit for informational findings"`
 	CVE              string   `json:"cve,omitempty" jsonschema:"title=CVE identifier" jsonschema_description:"Associated CVE identifier (e.g. CVE-2021-44228) when applicable, otherwise omit"`
 	AffectedURLs     []string `json:"affected_urls,omitempty" jsonschema:"title=Affected URLs" jsonschema_description:"Affected URLs, endpoints, hosts or assets in plain text"`
-	Description      string   `json:"description,omitempty" jsonschema:"title=Details of vulnerability" jsonschema_description:"One plain-text paragraph: what the weakness is and where, what was observed (exact values) and why, and how it is exploited"`
+	Description      string   `json:"description,omitempty" jsonschema:"title=Details of vulnerability" jsonschema_description:"Brief plain-text explanation, usually 2-3 short sentences: the weakness, affected component and confirmed behaviour; include root cause only when supported, and preserve important conditions and limitations"`
 	Evidence         string   `json:"evidence,omitempty" jsonschema:"title=Evidence" jsonschema_description:"Commands and output lines copied exactly from the input, one per line; 'Observed (summary): ...' where the input has no raw output. Plain text"`
-	Impact           []string `json:"impact,omitempty" jsonschema:"title=Impact" jsonschema_description:"Concrete business or technical impacts if the vulnerability is exploited, one plain-text item per impact"`
-	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered steps; each item is one complete step: what to do, the exact command or request, and the observed result that confirms it, in plain text"`
-	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"Concrete remediation guidance to fix the vulnerability, in plain text without markdown"`
+	Impact           []string `json:"impact,omitempty" jsonschema:"title=Impact" jsonschema_description:"Distinct evidence-supported consequences, one short plain-text sentence per item; distinguish demonstrated impact from conditional possibilities; no fixed item count"`
+	StepsToReproduce []string `json:"steps_to_reproduce,omitempty" jsonschema:"title=Steps to reproduce" jsonschema_description:"Ordered plain-text steps: setup once, then one action per item; put exact commands or requests on a separate line and follow with the confirming observation, in a separate item when clearer; preserve prerequisites and limitations"`
+	Recommendation   string   `json:"recommendation,omitempty" jsonschema:"title=Remediation" jsonschema_description:"One plain-text string with one short instruction per line: primary fix and where to apply it, necessary supporting controls, then a verification action and expected result"`
 	References       []string `json:"references,omitempty" jsonschema:"title=References" jsonschema_description:"Reference URLs that support the finding (OWASP, CWE, vendor advisories)"`
 
 	// Analyst triage. These are written by the application when a human re-rates a

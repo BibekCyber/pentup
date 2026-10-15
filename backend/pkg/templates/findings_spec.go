@@ -9,14 +9,9 @@ package templates
 // Keeping one copy matters: the two paths previously carried independent instructions, so
 // depth improvements made for automation silently did not apply to assistant reports.
 //
-// The wording keeps the original prompt's per-field checklists, which produce findings of
-// the length and shape of the client's reference report (one-paragraph description, about
-// five impact and recommendation bullets), and adds only targeted fixes measured on real
-// reporter inputs (docs/research/reporter-prompt-v3.md): CVSS required with the band
-// deciding severity, no sandbox paths or internal proxies, evidence copied or marked
-// "Observed (summary):", steps that state their observed result, confirmed findings only,
-// one root cause per finding, no generic impact bullets added to reach a count, and
-// recommendations that name where to make each change on the target's stack.
+// Keep findings concise and actionable without losing exact evidence, prerequisites,
+// target-specific remediation, or distinct confirmed issues. The same writing rules
+// apply to automation and assistant reports.
 const StructuredFindingsSpec = `### Who reads a finding
 
 These entries ARE the client's penetration-test report. The client is paying for a
@@ -46,23 +41,13 @@ in any field. The client cannot open or use them; quote what they showed instead
 - "cve": include only when a specific CVE applies; otherwise omit.
 - "affected_urls": every concrete endpoint, host, parameter or asset affected.
 
-- "description": a complete technical account written as ONE paragraph of flowing prose
-  (not a list) that covers ALL SEVEN of the following, quoting observed values exactly as
-  they appear in the input:
-  (a) what the weakness is and which specific component, endpoint, parameter or
-      configuration in THIS target carries it, and what that component is there to do;
-  (b) the underlying technical root cause — the design or implementation decision that
-      produces the flaw, not merely the symptom it shows;
-  (c) how it manifested during testing, citing the concrete observed values (status
-      codes, header names, tokens, versions, response bodies, timings) from the evidence;
-  (d) why the controls that should have prevented this did not — the missing, disabled
-      or incorrectly ordered check — or that no such control exists at all;
-  (e) the realistic attack path: what an adversary does, in what order, to turn this into
-      an actual compromise, and what capability or position they must hold first;
-  (f) how widespread it is across the target: which endpoints, hosts or instances share
-      the weakness, and whether it is systemic or isolated to one place;
-  (g) the conditions that widen or limit exploitability (authentication required, network
-      position, configuration dependent, production versus development).
+- "description": explain the weakness, the affected component or endpoint, and the
+  confirmed behaviour in plain language. Aim for 2-3 short sentences, adding detail only
+  when needed to preserve an important condition or limitation. Include the technical
+  root cause only when supported by evidence; otherwise describe the observed behaviour
+  without guessing. Quote observed values accurately. Do not repeat the title, add
+  generic background, or put detailed commands, output, impact or remediation here;
+  those belong in their own fields.
 
 - "evidence": the concrete proof, one item per line. Copy commands and output lines exactly
   as they appear in the input; do not retype, reorder, complete or tidy them. Where the
@@ -70,56 +55,50 @@ in any field. The client cannot open or use them; quote what they showed instead
   "Observed (summary):" with that description of the result itself, never where a file
   was saved. Never reconstruct output that is not in the input.
 
-- "impact": an array of 4-5 DISTINCT consequences. Give each consequence its own array
-  element, and make each element a complete sentence that names all three of:
-  the concrete outcome an attacker achieves; WHO or WHAT it affects (which data, which
-  users, which systems, at what scale); and the realistic situation in which it plays
-  out. Cover genuinely different dimensions — direct technical compromise, exposure of
-  data or accounts, onward or lateral abuse, operational and business disruption, and
-  regulatory or contractual exposure where it genuinely applies — rather than restating
-  one consequence five ways. Every consequence must follow from this weakness on this
-  target; never add a generic one (reputation, compliance friction, security maturity,
-  how easy the fix is) just to reach the count. Never a bare fragment such as
-  "data exposure".
+- "impact": an array of DISTINCT, evidence-supported consequences in short, complete
+  sentences. Name the concrete outcome and who or what it affects. Usually 1-3 items
+  are sufficient; do not fill a fixed quota or omit a distinct supported consequence
+  to meet that range. Distinguish demonstrated impact from conditional possibilities
+  and state the conditions explicitly. Never add generic reputation, compliance or
+  business claims unsupported by the evidence.
 
-- "steps_to_reproduce": an ordered array that lets an auditor with NO prior knowledge of
-  this target reproduce the finding from scratch. Give each step its own array element,
-  and make each step self-contained by including:
-  the precondition or setup the step assumes (credentials, tooling, prior step's output);
-  the exact action — a copy-pasteable command or request, with the real endpoint, method,
-  headers, parameters and payload, plus how to obtain any non-standard tool used; and the
-  specific result that confirms the issue at that step (status code, response body,
-  timing, or behaviour), stated in the same element as its command. Include the initial
-  setup step and the final confirming observation; a step such as "test the endpoint" is
-  unacceptable. Use only tools a client auditor has (curl, a browser, dig, openssl, nmap,
-  Burp Suite). Example element: "Request the home page headers with curl -sI
-  https://target.example/; the response is HTTP/2 200 and contains no
-  Content-Security-Policy header."
+- "steps_to_reproduce": an ordered array that lets a reader with no prior knowledge of
+  this target reproduce the finding without guessing.
+  State required access, credentials and tools once in the initial setup step, including
+  how to obtain any non-standard tool used. Then give one action per array element.
+  Use direct verbs: Open, Click, Enter, Copy, Send, Run, Check.
+  For UI actions, name the page, control and value to enter.
+  For terminal actions, say where to run the command and put the exact copy-pasteable
+  command or request on a separate line within the same element. Preserve the real
+  endpoint, method, required headers, parameters and payload. Use explicit placeholders
+  for credentials and explain how an authorized tester obtains those values; never
+  expose live credentials in the report.
+  Follow the relevant action with a short confirming observation (status code, response
+  body, timing or behaviour). Use a separate array element for the observation when
+  that improves readability. Include the final observation that confirms the issue.
+  Use client-accessible tools such as curl, a browser, dig, openssl, nmap or Burp Suite.
+  Include only actions and results supported by the supplied evidence. Do not invent
+  navigation, commands, output or successful exploitation. If a required setup detail
+  is unavailable, state the gap rather than guessing.
+  Example elements: "Run the following command in your terminal:\ncurl -sI https://target.example/"
+  and "Check the response: it is HTTP/2 200 and contains no Content-Security-Policy header."
 
-- "recommendation": implementation-ready remediation in prose, covering, in this order:
+- "recommendation": a single string containing implementation-ready remediation,
+  with one short instruction per line, in this order:
   (1) the PRIMARY fix — the exact configuration, code pattern, header, policy or control
-      to apply, with the specific recommended value or setting, and where it belongs in
-      the stack;
-  (2) the supporting defence-in-depth controls that reduce the risk if the primary fix
-      fails or is delayed;
-  (3) how to VERIFY the fix actually closes the issue — the concrete re-test to run and
-      the result that proves closure.
-  Name the concrete place to make each change on the stack observed on this target (for
-  example the CDN dashboard setting, the server or framework config file, or the plugin),
-  and give the primary fix, the defence-in-depth controls and the verification each their
-  own sentences.
-  Never "follow best practices" without naming the practice and how to apply it here.
+      to apply, with the recommended value or setting and where it belongs in the stack;
+  (2) any necessary supporting defence-in-depth controls;
+  (3) a concrete verification action and the expected result that proves closure.
+  Name the place to make each change on the stack observed on this target. Do not
+  invent a framework, config file or vendor setting when the stack is unknown; state
+  the control needed and the implementation detail that must be confirmed.
+  Avoid generic advice such as "follow best practices" and repeated explanations.
 
-- "references": an array of 4-5 authoritative sources a remediating engineer would
-  actually open. Give each its own array element as a COMPLETE URL (never a bare
-  identifier such as "CWE-613"), and include one of each of these kinds wherever it
-  applies to the finding:
-  the specific CWE entry (https://cwe.mitre.org/data/definitions/<id>.html);
-  the applicable OWASP Top 10 category page;
-  the matching OWASP Cheat Sheet or Web Security Testing Guide test;
-  the vendor, framework, standard or RFC documentation for the exact control you
-  recommended in "recommendation";
-  and the CVE or security advisory when one applies to this finding.
+- "references": an array of directly relevant, authoritative sources a remediating
+  engineer would actually open. Give each its own array element as a COMPLETE URL
+  (never a bare identifier such as "CWE-613"). Choose the applicable CWE, OWASP guidance,
+  official vendor or framework documentation, standard, RFC, or CVE/security advisory.
+  Do not add references to meet a fixed count.
   Cite ONLY canonical documentation whose URL you are certain of — CWE, OWASP, NVD/CVE,
   IETF/RFC, NIST, or the official vendor or framework documentation. NEVER cite videos,
   blog posts, forums, tutorials or search results, and NEVER construct a URL whose exact
@@ -127,25 +106,25 @@ in any field. The client cannot open or use them; quote what they showed instead
   in doubt, cite the canonical landing page for the standard rather than guessing a deep
   link, and give fewer references rather than an invented one.
 
-### Coverage is not traded against depth
+### Coverage and final check
 
-Report EVERY distinct issue the evidence supports, each as its own entry, AND write each
-one to the full standard above. Report only weaknesses the testing confirmed on the
-target; a version or scanner match that testing could not confirm is not a finding. Never drop a finding, merge two distinct findings, or
-shorten fields to save room — a report that omits a real issue has failed the client even
-if the findings it does contain are excellent.
+Report EVERY distinct issue the evidence supports, each as its own entry. Report only
+weaknesses the testing confirmed on the target; an unconfirmed version or scanner match
+is not a finding. Never drop a confirmed finding or merge distinct issues for brevity.
+Remove repetition while preserving proof and reproducibility. Never shorten a command,
+omit a prerequisite, or remove an important limitation merely to reduce length.
 
-### Completeness check before you emit
-
-For every finding, confirm each field satisfies every element listed above. If a field is
-missing a required element, add the missing substance. If you cannot add it because the
-evidence does not support it, leave it out and keep the finding accurate — accuracy always
-outranks completeness. Depth must come from real analysis of the evidence, never from
-padding, hedging or repetition.
+Before emitting, check that the reader can identify the issue, follow each action and
+recognize the confirming observation without guessing. Keep the finding accurate when
+evidence is missing: state material gaps, and never invent missing details to satisfy
+completeness. Keep detailed proof in evidence and avoid repeating it across fields.
 
 Rules:
-- Every string field MUST be plain prose with NO markdown markup (no **, ##, ` + "`" + ` or list
-  markers) — these render as styled report cards, not markdown.
+- Write string fields as plain text, without Markdown headings, emphasis, code fences
+  or list markers; report renderers provide their own styling and numbering. Preserve
+  literal syntax inside commands and evidence. Use line breaks to separate commands
+  from instructions in steps_to_reproduce and instructions in recommendation. In JSON,
+  encode those line breaks as \n within the string; do not change the field types.
 - "impact", "steps_to_reproduce", "references" and "affected_urls" are JSON ARRAYS: one
   item per element, never several joined into a single string.
 - Only include findings genuinely supported by evidence in this task; never invent or pad.
