@@ -174,7 +174,7 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
                                     <span className="text-foreground/70 min-w-4 font-medium tabular-nums">
                                         {i + 1}.
                                     </span>
-                                    <span className="min-w-0 flex-1">{step}</span>
+                                    <span className="min-w-0 flex-1 break-words whitespace-pre-wrap">{step}</span>
                                 </li>
                             ))}
                         </ol>
@@ -228,7 +228,7 @@ const FindingCard = ({ finding, index }: FindingCardProps) => {
                         <div className="border-st-finished/30 bg-st-finished/10 flex gap-2 rounded-md border p-3">
                             <ShieldCheck className="text-st-finished mt-0.5 size-4 shrink-0" />
                             <Markdown
-                                className="text-foreground/90"
+                                className="text-foreground/90 min-w-0 flex-1 break-words whitespace-pre-wrap"
                                 disableHeadingIds
                             >
                                 {finding.recommendation}
