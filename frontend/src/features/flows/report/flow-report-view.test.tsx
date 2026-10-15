@@ -38,6 +38,28 @@ describe('FlowReportView', () => {
         expect(html.length).toBeGreaterThan(3000);
     });
 
+    it.each([
+        ['automation', sampleReportModel],
+        ['assistant', assistantSampleReportModel],
+    ])('preserves multiline instructions in the %s report', (_, baseModel) => {
+        const step = 'Send the request:\ncurl -i https://example.test/api/session\nConfirm HTTP 401.';
+        const recommendation = 'Invalidate the session.\nReject the old token.\nRepeat the request.';
+        const html = renderToStaticMarkup(
+            <FlowReportView
+                model={{
+                    ...baseModel,
+                    findings: [{ ...sampleReportModel.findings[0]!, recommendation, stepsToReproduce: [step] }],
+                }}
+            />,
+        );
+
+        // Both text nodes and their whitespace styling must survive the report tree.
+        expect(html).toMatch(/<span class="[^"]*whitespace-pre-wrap[^"]*">Send the request:\ncurl -i/);
+        expect(html).toContain(step);
+        expect(html).toMatch(/class="[^"]*whitespace-pre-wrap[^"]*"><p>Invalidate the session\.\nReject/);
+        expect(html).toContain(recommendation);
+    });
+
     it('renders the empty state for a flow with no content', () => {
         const empty = { ...sampleReportModel, findings: [], sections: [] };
         const html = renderToStaticMarkup(<FlowReportView model={empty} />);
