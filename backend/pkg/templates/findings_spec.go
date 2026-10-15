@@ -108,30 +108,11 @@ in any field. The client cannot open or use them; quote what they showed instead
   in doubt, cite the canonical landing page for the standard rather than guessing a deep
   link, and give fewer references rather than an invented one.
 
-### Preserve technical depth across the finding
+### Preserve technical depth
 
-Simplify the wording, not the technical substance. Distribute detail across the existing
-fields instead of compressing it away or forcing every topic into one paragraph:
-- In description, retain the component's relevant purpose, the supported root cause
-  and missing or failed control, and conditions affecting exploitability (for example
-  user role, network position, environment or configuration). Explain whether the
-  observed scope is isolated or shared; never claim systemic coverage from one test.
-- In affected_urls, retain every confirmed affected endpoint, host, parameter or asset.
-  Keep differences in behaviour between tested routes or methods in steps or evidence;
-  do not replace several tested cases with a vague claim such as "logout is broken".
-- In steps_to_reproduce, retain the attack sequence and required capabilities, account
-  roles, setup and dependencies. Preserve complete methods, URLs, headers, parameters
-  and payloads, using the credential placeholders required above.
-- In evidence, retain the exact supplied proof needed to substantiate the finding,
-  including meaningful status codes, response values, versions, timings and comparisons
-  with expected or unaffected behaviour when available. Do not replace raw proof with
-  a summary merely to save space.
-- In impact and recommendation, retain distinct supported consequences, target-specific
-  fixes, where to apply them, and how to verify closure.
-These are evidence-dependent requirements, not a quota to fill. If the input does not
-establish a root cause, control failure, broader scope or exploitation condition, state
-the material uncertainty rather than inventing it. Do not imply an end-to-end exploit
-was demonstrated when only one part of the attack path was tested.
+Length targets are preferences, not limits. Preserve all material technical
+details and differences between tested cases. State uncertainty explicitly;
+never claim broader coverage or exploitation than the evidence demonstrates.
 
 ### Coverage and final check
 
