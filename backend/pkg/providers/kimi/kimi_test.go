@@ -220,9 +220,7 @@ func TestKimi_DefaultProviderConfig_DisablesThinkingOnTheWireWhereReasoningIsOff
 		patch map[string]any
 		keep  string // the thinking.keep a configured extra_body must still carry
 	}{
-		// simple and installer moved to kimi-k2.7-code (always reasons); they are
-		// covered by TestKimi_..._SendsADocumentedThinkingShapeFromK27CodeAgents.
-		// The reasoning-off agents below stay on kimi-k2.6.
+		{name: "the shipped simple agent", opt: pconfig.OptionsTypeSimple},
 		{name: "the shipped simple json agent", opt: pconfig.OptionsTypeSimpleJSON},
 		{name: "the shipped reflector", opt: pconfig.OptionsTypeReflector},
 		{name: "the shipped searcher", opt: pconfig.OptionsTypeSearcher},
@@ -262,7 +260,7 @@ func TestKimi_DefaultProviderConfig_KeepsTemperatureOffTheWireForNonThinkingAgen
 		name string
 		opt  pconfig.ProviderOptionsType
 	}{
-		// simple moved to kimi-k2.7-code and is no longer a non-thinking agent.
+		{name: "the shipped simple agent", opt: pconfig.OptionsTypeSimple},
 		{name: "the shipped simple json agent", opt: pconfig.OptionsTypeSimpleJSON},
 		{name: "the shipped reflector", opt: pconfig.OptionsTypeReflector},
 		{name: "the shipped searcher", opt: pconfig.OptionsTypeSearcher},
@@ -306,29 +304,30 @@ func TestKimi_DefaultProviderConfig_SendsADocumentedThinkingShapeFromK27CodeAgen
 	}
 }
 
-// TestKimi_SummarizerAndInstaller_RunOnK27Code locks in the loop-fix model
-// change: the summarizer (simple profile) and the installer must run on
-// kimi-k2.7-code with a large output ceiling, not the weak kimi-k2.6 whose
-// 8192 cap truncated summaries and whose reasoning-off body leaked
-// deliberation into them.
-func TestKimi_SummarizerAndInstaller_RunOnK27Code(t *testing.T) {
+// Keep upstream models without restoring the small output ceilings that truncated
+// earlier summaries. Reporter remains an independent profile.
+func TestKimi_UtilityModelsRetainLargeOutputCeilings(t *testing.T) {
 	pc, err := DefaultProviderConfig()
 	if err != nil {
-		t.Fatalf("config: %v", err)
+		t.Fatal(err)
 	}
-	for _, opt := range []pconfig.ProviderOptionsType{
-		pconfig.OptionsTypeSimple,
-		pconfig.OptionsTypeInstaller,
+	for _, tc := range []struct {
+		opt    pconfig.ProviderOptionsType
+		tokens int
+	}{
+		{pconfig.OptionsTypeSimple, 32768},
+		{pconfig.OptionsTypeInstaller, 20480},
+		{pconfig.OptionsTypeReporter, 32768},
 	} {
-		ac := pc.AgentConfigForType(opt)
-		if ac == nil {
-			t.Fatalf("%s has no agent config", opt)
+		body := kimiWireBody(t, tc.opt, nil)
+		if got := body["max_completion_tokens"]; got != float64(tc.tokens) {
+			t.Errorf("%s wire max_completion_tokens = %v, want %d", tc.opt, got, tc.tokens)
 		}
-		if ac.Model != "kimi-k2.7-code" {
-			t.Errorf("%s model = %q, want kimi-k2.7-code", opt, ac.Model)
+		if got := body["model"]; got != "moonshot/kimi-k2.6" {
+			t.Errorf("%s model = %v", tc.opt, got)
 		}
-		if ac.MaxTokens < 20480 {
-			t.Errorf("%s max_tokens = %d, want >= 20480 to avoid output truncation", opt, ac.MaxTokens)
+		if ac := pc.AgentConfigForType(tc.opt); ac == nil || ac.MaxTokens != tc.tokens {
+			t.Errorf("%s config = %+v", tc.opt, ac)
 		}
 	}
 }
