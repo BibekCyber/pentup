@@ -5,8 +5,7 @@ on:
     branches: [main]
 
 env:
-  REGISTRY: registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}
-  IMAGE_NAME: pentagi
+  IMAGE: local/pentagi:${{ github.sha }}
 
 jobs:
   build_and_deploy:
@@ -14,42 +13,53 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      
-      - name: Connect to DigitalOcean
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          
-      - name: Login to DOCR (Registry)
-        run: doctl registry login
 
-      - name: Build the Code into a Docker Image & Push
+      - name: Build the Code into a Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          load: true
+          tags: ${{ env.IMAGE }}
+
+      - name: Pack the Image into a File
+        run: docker save "${{ env.IMAGE }}" | gzip > pentagi-image.tar.gz
+
+      - name: Copy the Image to the Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: pentagi-image.tar.gz
+          target: /opt/pentagi/deploy
 
       - name: Update the Server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e
             cd /opt/pentagi
-            docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
-            
+            gunzip -c deploy/pentagi-image.tar.gz | docker load
+            rm -f deploy/pentagi-image.tar.gz
+
             # Tell the server to use this exact new version
             if grep -q '^PENTAGI_IMAGE=' .env; then
-              sed -i "s|^PENTAGI_IMAGE=.*|PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" .env
+              sed -i "s|^PENTAGI_IMAGE=.*|PENTAGI_IMAGE=${{ env.IMAGE }}|" .env
             else
-              echo "PENTAGI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> .env
+              echo "PENTAGI_IMAGE=${{ env.IMAGE }}" >> .env
             fi
-            
-            # Pull and Restart the Server - THIS MIGRATES THE DATABASE automatically!
-            docker compose pull
-            docker compose up -d pentagi pgvector scraper
 
-            # Clean up old data to save disk space
-            docker image prune -af --filter "until=48h"
+            # Restart ONLY the app (this runs the database migrations automatically).
+            # The database and scraper images are never re-pulled here, so an
+            # upstream "latest" change can never break the database.
+            docker compose up -d pentagi
+
+            # Remove old app versions only (keeps Kali, scraper and database images)
+            docker images --format '{{.Repository}}:{{.Tag}}' \
+              | grep -E '^(local/pentagi|registry\.digitalocean\.com/.+/pentagi):' \
+              | grep -v ':${{ github.sha }}$' \
+              | xargs -r docker rmi || true
+            docker image prune -f
