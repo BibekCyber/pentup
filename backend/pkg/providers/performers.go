@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -964,11 +963,6 @@ func (fp *flowProvider) performSimpleChain(
 	msgChainType database.MsgchainType,
 	systemTmpl, userTmpl string,
 ) (string, error) {
-	var (
-		resp *llms.ContentResponse
-		err  error
-	)
-
 	startTime := time.Now()
 
 	chain := []llms.MessageContent{
@@ -976,26 +970,11 @@ func (fp *flowProvider) performSimpleChain(
 		llms.TextParts(llms.ChatMessageTypeHuman, userTmpl),
 	}
 
-	for idx := 0; idx <= maxRetriesToCallSimpleChain; idx++ {
-		if idx == maxRetriesToCallSimpleChain {
-			return "", fmt.Errorf("failed to call simple chain: %w", err)
-		}
-
-		resp, err = fp.CallEx(ctx, opt, chain, nil)
-		if err == nil {
-			break
-		} else {
-			if errors.Is(err, context.Canceled) {
-				return "", err
-			}
-
-			select {
-			case <-ctx.Done():
-				return "", ctx.Err()
-			case <-time.After(time.Second * 5):
-			default:
-			}
-		}
+	resp, err := retryTransient(ctx, delayBetweenRetries, func() (*llms.ContentResponse, error) {
+		return fp.CallEx(ctx, opt, chain, nil)
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to call simple chain: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
@@ -1047,5 +1026,8 @@ func (fp *flowProvider) performSimpleChain(
 		SubtaskID:       database.Int64ToNullInt64(subtaskID),
 	})
 
+	if err != nil {
+		return "", fmt.Errorf("failed to store simple chain: %w", err)
+	}
 	return strings.Join(parts, "\n\n"), nil
 }

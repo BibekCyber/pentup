@@ -856,6 +856,9 @@ func (fp *flowProvider) GetSummarizeResultHandler(taskID, subtaskID *int64) tool
 		ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "providers.flowProvider.getSummarizeResultHandler")
 		defer span.End()
 
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
 		ctx, observation := obs.Observer.NewObservation(ctx)
 		summarizerAgent := observation.Agent(
 			langfuse.WithAgentName("chain summarizer"),
@@ -868,14 +871,25 @@ func (fp *flowProvider) GetSummarizeResultHandler(taskID, subtaskID *int64) tool
 		)
 		ctx, _ = summarizerAgent.Observation(ctx)
 
+		currentTime := getCurrentTime()
 		systemSummarizerTmpl, err := fp.prompter.RenderTemplate(templates.PromptTypeSummarizer, map[string]any{
 			"TaskID":                  taskID,
 			"SubtaskID":               subtaskID,
-			"CurrentTime":             getCurrentTime(),
+			"CurrentTime":             currentTime,
 			"SummarizedContentPrefix": strings.ReplaceAll(csum.SummarizedContentPrefix, "\n", "\\n"),
 		})
 		if err != nil {
 			return "", wrapErrorEndAgentSpan(ctx, summarizerAgent, "failed to get summarizer template", err)
+		}
+
+		// Hash the full input before truncation, together with stable prompt and
+		// provider settings. The clock changes on every call but not its meaning.
+		cacheKey := fp.summaryCacheKey(result, strings.ReplaceAll(systemSummarizerTmpl, currentTime, "<current_time>"))
+		if fp.summarizerCache != nil {
+			if cached, ok := fp.summarizerCache.Get(cacheKey); ok {
+				summarizerAgent.End(langfuse.WithAgentStatus("cached"), langfuse.WithAgentOutput(cached))
+				return cached, nil
+			}
 		}
 
 		// TODO: here need to summarize result by chunks in iterations
@@ -901,6 +915,9 @@ func (fp *flowProvider) GetSummarizeResultHandler(taskID, subtaskID *int64) tool
 			langfuse.WithAgentLevel(langfuse.ObservationLevelDebug),
 		)
 
+		if fp.summarizerCache != nil && strings.TrimSpace(summary) != "" {
+			fp.summarizerCache.Add(cacheKey, summary)
+		}
 		return summary, nil
 	}
 }

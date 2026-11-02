@@ -20,6 +20,7 @@ import (
 	"pentagi/pkg/templates"
 	"pentagi/pkg/tools"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/vxcontrol/langchaingo/llms"
 	"github.com/vxcontrol/langchaingo/llms/reasoning"
@@ -151,7 +152,8 @@ type flowProvider struct {
 	msgLog   tools.MsgLogProvider
 	streamCb StreamMessageHandler
 
-	summarizer csum.Summarizer
+	summarizer      csum.Summarizer
+	summarizerCache *lru.Cache[[32]byte, string]
 
 	maxGACallsLimit int
 	maxLACallsLimit int

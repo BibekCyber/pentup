@@ -515,6 +515,9 @@ func (fp *flowProvider) callWithRetries(
 	}
 
 	for idx := 0; idx <= maxRetriesToCallAgentChain; idx++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if idx == maxRetriesToCallAgentChain {
 			reflectorResult, err := fp.performCallerReflector(
 				ctx, optAgentType, chainID, taskID, subtaskID, chain, executor, executionContext, errs,
@@ -563,6 +566,12 @@ func (fp *flowProvider) callWithRetries(
 		}
 
 		resp, err = fp.CallWithTools(ctx, optAgentType, chain, executor.Tools(), streamCb)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || isDeterministicError(err) {
+			return nil, fmt.Errorf("failed to call agent chain: %w", errors.Join(append(errs, err)...))
+		}
 		if err == nil {
 			err = fillResult(resp)
 		}
