@@ -667,7 +667,7 @@ func (fw *flowWorker) Finish(ctx context.Context) error {
 	ctx, span := obs.Observer.NewSpan(ctx, obs.SpanKindInternal, "controller.flowWorker.Finish")
 	defer span.End()
 
-	if err := fw.finish(); err != nil {
+	if err := fw.finish(ctx); err != nil {
 		return err
 	}
 
@@ -797,7 +797,7 @@ func (fw *flowWorker) switchProvider(ctx context.Context, prv provider.Provider)
 	return nil
 }
 
-func (fw *flowWorker) finish() error {
+func (fw *flowWorker) finish(ctx context.Context) error {
 	if err := fw.ctx.Err(); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return nil
@@ -805,11 +805,32 @@ func (fw *flowWorker) finish() error {
 		return fmt.Errorf("flow %d stop failed: %w", fw.flowCtx.FlowID, err)
 	}
 
+	// fw.input is never closed: PutInput may still be sending on it, and a send on
+	// a closed channel panics. The worker exits on fw.ctx instead.
 	fw.cancel()
-	close(fw.input)
-	fw.wg.Wait()
+	if err := waitGroupCtx(ctx, fw.wg); err != nil {
+		return fmt.Errorf("flow %d worker did not stop: %w", fw.flowCtx.FlowID, err)
+	}
 
 	return nil
+}
+
+// waitGroupCtx waits for wg like wg.Wait, but gives up once ctx is done, so a
+// goroutine that never exits cannot hold a finish forever. On timeout the
+// goroutine waiting on wg is left behind.
+func waitGroupCtx(ctx context.Context, wg *sync.WaitGroup) error {
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (fw *flowWorker) worker() {
@@ -853,7 +874,21 @@ func (fw *flowWorker) worker() {
 	}
 
 	// process user input in regular job
-	for flin := range fw.input {
+	for {
+		var flin flowInput
+		select {
+		case <-fw.ctx.Done():
+			return
+		case flin = <-fw.input:
+		}
+
+		// select picks at random when both cases are ready: never start work for
+		// a flow that is already being finished.
+		if err := fw.ctx.Err(); err != nil {
+			flin.done <- err
+			return
+		}
+
 		if task, err := fw.processInput(flin); err != nil {
 			if errors.Is(err, context.Canceled) {
 				getLogger(flin.input, task).Info("flow are going to be stopped by user")

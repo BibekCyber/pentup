@@ -480,6 +480,13 @@ func (aw *assistantWorker) worker() {
 		case <-aw.ctx.Done():
 			return
 		case ain := <-aw.input:
+			// select picks at random when both cases are ready: never start a turn
+			// for an assistant that is already being finished.
+			if err := aw.ctx.Err(); err != nil {
+				ain.done <- err
+				return
+			}
+
 			err := perform(aw.ctx, ain.input, ain.useAgents)
 			if err != nil {
 				aw.logger.WithError(err).Error("failed to perform assistant chain")
@@ -671,8 +678,9 @@ func (aw *assistantWorker) Finish(ctx context.Context) error {
 	}
 
 	aw.cancel()
-	close(aw.input)
-	aw.wg.Wait()
+	if err := waitGroupCtx(ctx, aw.wg); err != nil {
+		return fmt.Errorf("assistant %d flow %d worker did not stop: %w", aw.id, aw.flowID, err)
+	}
 
 	if err := aw.SetStatus(ctx, database.AssistantStatusFinished); err != nil {
 		aw.logger.WithError(err).Error("failed to set assistant status to finished")

@@ -1,14 +1,12 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"slices"
 	"strconv"
 
 	"pentagi/pkg/controller"
-	"pentagi/pkg/database"
 	"pentagi/pkg/graph/subscriptions"
 	"pentagi/pkg/providers"
 	"pentagi/pkg/providers/provider"
@@ -446,22 +444,40 @@ func (s *FlowService) PatchFlow(c *gin.Context) {
 		return
 	}
 
-	fw, err := s.fc.GetFlow(c, int64(flow.ID))
-	if err != nil {
-		logger.FromContext(c).WithError(err).Errorf("error getting flow by id in flow controller")
-		response.Error(c, response.ErrInternal, err)
-		return
+	// stop, finish and rename go through the controller so they are serialized
+	// with each other and a finish takes the flow out of service; only input
+	// needs the worker itself. finish also works on a flow that is not loaded.
+	var fw controller.FlowWorker
+	if patchFlow.Action == "input" {
+		fw, err = s.fc.GetFlow(c, int64(flow.ID))
+		if err != nil {
+			if errors.Is(err, controller.ErrFlowNotFound) {
+				response.Error(c, response.ErrFlowsNotFound, err)
+				return
+			}
+			logger.FromContext(c).WithError(err).Errorf("error getting flow by id in flow controller")
+			response.Error(c, response.ErrInternal, err)
+			return
+		}
 	}
 
 	switch patchFlow.Action {
 	case "stop":
-		if err := fw.Stop(c); err != nil {
+		if err := s.fc.StopFlow(c, int64(flow.ID)); err != nil {
+			if errors.Is(err, controller.ErrFlowNotFound) || errors.Is(err, controller.ErrFlowNotLoaded) {
+				response.Error(c, response.ErrFlowsNotFound, err)
+				return
+			}
 			logger.FromContext(c).WithError(err).Errorf("error stopping flow")
 			response.Error(c, response.ErrInternal, err)
 			return
 		}
 	case "finish":
-		if err := fw.Finish(c); err != nil {
+		if err := s.fc.FinishFlow(c, int64(flow.ID)); err != nil {
+			if errors.Is(err, controller.ErrFlowNotFound) {
+				response.Error(c, response.ErrFlowsNotFound, err)
+				return
+			}
 			logger.FromContext(c).WithError(err).Errorf("error finishing flow")
 			response.Error(c, response.ErrInternal, err)
 			return
@@ -496,7 +512,11 @@ func (s *FlowService) PatchFlow(c *gin.Context) {
 			response.Error(c, response.ErrFlowsInvalidRequest, nil)
 			return
 		}
-		if err := fw.Rename(c, *patchFlow.Name); err != nil {
+		if err := s.fc.RenameFlow(c, int64(flow.ID), *patchFlow.Name); err != nil {
+			if errors.Is(err, controller.ErrFlowNotFound) || errors.Is(err, controller.ErrFlowNotLoaded) {
+				response.Error(c, response.ErrFlowsNotFound, err)
+				return
+			}
 			logger.FromContext(c).WithError(err).Errorf("error renaming flow")
 			response.Error(c, response.ErrInternal, err)
 			return
@@ -571,86 +591,17 @@ func (s *FlowService) DeleteFlow(c *gin.Context) {
 		return
 	}
 
-	if err := s.fc.FinishFlow(c, int64(flow.ID)); err != nil {
-		logger.FromContext(c).WithError(err).Errorf("error stopping flow")
-		response.Error(c, response.ErrInternal, err)
-		return
-	}
-
-	var containers []models.Container
-	err = s.db.Model(&containers).Where("flow_id = ?", flow.ID).Find(&containers).Error
-	if err != nil {
-		logger.FromContext(c).WithError(err).Errorf("error getting flow containers")
-		response.Error(c, response.ErrInternal, err)
-		return
-	}
-
-	if err = s.db.Scopes(scope).Delete(&flow).Error; err != nil {
-		logger.FromContext(c).WithError(err).Errorf("error deleting flow by id")
-		if gorm.IsRecordNotFoundError(err) {
+	// The controller finishes and soft-deletes the flow in one teardown, so
+	// nothing can reload it in between, and publishes FlowUpdated + FlowDeleted.
+	if err := s.fc.DeleteFlow(c, int64(flow.ID)); err != nil {
+		if errors.Is(err, controller.ErrFlowNotFound) {
 			response.Error(c, response.ErrFlowsNotFound, err)
-		} else {
-			response.Error(c, response.ErrInternal, err)
+			return
 		}
-		return
-	}
-
-	flowDB, err := convertFlowToDatabase(flow)
-	if err != nil {
-		logger.FromContext(c).WithError(err).Errorf("error converting flow to database")
+		logger.FromContext(c).WithError(err).Errorf("error deleting flow by id")
 		response.Error(c, response.ErrInternal, err)
 		return
-	}
-
-	containersDB := make([]database.Container, 0, len(containers))
-	for _, container := range containers {
-		containersDB = append(containersDB, convertContainerToDatabase(container))
-	}
-
-	if s.ss != nil {
-		publisher := s.ss.NewFlowPublisher(int64(flow.UserID), int64(flow.ID))
-		publisher.FlowUpdated(c, flowDB, containersDB)
-		publisher.FlowDeleted(c, flowDB, containersDB)
 	}
 
 	response.Success(c, http.StatusOK, flow)
-}
-
-func convertFlowToDatabase(flow models.Flow) (database.Flow, error) {
-	functions, err := json.Marshal(flow.Functions)
-	if err != nil {
-		return database.Flow{}, err
-	}
-
-	return database.Flow{
-		ID:                 int64(flow.ID),
-		Status:             database.FlowStatus(flow.Status),
-		Title:              flow.Title,
-		Model:              flow.Model,
-		ModelProviderName:  flow.ModelProviderName,
-		Language:           flow.Language,
-		Functions:          functions,
-		UserID:             int64(flow.UserID),
-		CreatedAt:          database.TimeToNullTime(flow.CreatedAt),
-		UpdatedAt:          database.TimeToNullTime(flow.UpdatedAt),
-		DeletedAt:          database.PtrTimeToNullTime(flow.DeletedAt),
-		TraceID:            database.PtrStringToNullString(flow.TraceID),
-		ModelProviderType:  database.ProviderType(flow.ModelProviderType),
-		ToolCallIDTemplate: flow.ToolCallIDTemplate,
-	}, nil
-}
-
-func convertContainerToDatabase(container models.Container) database.Container {
-	return database.Container{
-		ID:        int64(container.ID),
-		Type:      database.ContainerType(container.Type),
-		Name:      container.Name,
-		Image:     container.Image,
-		Status:    database.ContainerStatus(container.Status),
-		LocalID:   database.StringToNullString(container.LocalID),
-		LocalDir:  database.StringToNullString(container.LocalDir),
-		FlowID:    int64(container.FlowID),
-		CreatedAt: database.TimeToNullTime(container.CreatedAt),
-		UpdatedAt: database.TimeToNullTime(container.UpdatedAt),
-	}
 }
