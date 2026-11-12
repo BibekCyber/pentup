@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"pentagi/pkg/config"
 	"pentagi/pkg/crypt"
@@ -81,21 +82,72 @@ type FlowController interface {
 	GetFlow(ctx context.Context, flowID int64) (FlowWorker, error)
 	StopFlow(ctx context.Context, flowID int64) error
 	FinishFlow(ctx context.Context, flowID int64) error
-	// DeleteFlow performs the full teardown of a single flow: it releases the
-	// in-memory worker (which releases its Docker container) and drops it from
-	// the worker map, soft-deletes the flow row, then publishes FlowUpdated +
-	// FlowDeleted. Safe to call for flows that were never loaded (e.g. already
-	// finished/failed): the worker step is skipped when the flow is not in the
-	// map. Used both by the single-flow delete resolver and the domain cascade.
+	// DeleteFlow performs the full teardown of a single flow: it closes the flow
+	// through FinishFlow (which releases its worker and Docker containers, also
+	// for flows that were never loaded), soft-deletes the flow row, then
+	// publishes FlowUpdated + FlowDeleted. Used both by the single-flow delete
+	// resolver and the domain cascade.
 	DeleteFlow(ctx context.Context, flowID int64) error
 	RenameFlow(ctx context.Context, flowID int64, title string) error
+}
+
+// flowFinishTimeout bounds closing a flow once it is detached from the request
+// context. It is generous because it covers stopping and removing the sandbox
+// containers, and only exists so a stuck docker daemon cannot pin the goroutine
+// forever.
+const flowFinishTimeout = 5 * time.Minute
+
+// flowLeftoversTimeout bounds closing what the worker did not hold in memory.
+// It is separate from flowFinishTimeout because those writes must still land
+// after a stuck sandbox has spent the whole finish budget.
+const flowLeftoversTimeout = 30 * time.Second
+
+// flowEntry is one flow's slot in the registry. fc.mx guards its fields; op is
+// held across a lifecycle call and must never be taken while fc.mx is held.
+type flowEntry struct {
+	op      chan struct{}
+	worker  FlowWorker
+	closing bool
+
+	// deleteOnClose makes the teardown soft-delete the flow before it gives up
+	// the slot, so nothing can reload the flow between its finish and delete.
+	deleteOnClose bool
+
+	// done is closed once the teardown of an unloaded flow has ended and its
+	// slot is gone; it is nil on a slot that holds a worker.
+	done chan struct{}
+}
+
+func newFlowEntry(worker FlowWorker) *flowEntry {
+	return &flowEntry{op: make(chan struct{}, 1), worker: worker}
+}
+
+func (e *flowEntry) acquire(ctx context.Context) bool {
+	select {
+	case e.op <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func (e *flowEntry) lock() {
+	e.op <- struct{}{}
+}
+
+func (e *flowEntry) release() {
+	<-e.op
+}
+
+func (e *flowEntry) available() bool {
+	return e.worker != nil && !e.closing
 }
 
 type flowController struct {
 	db     database.Querier
 	mx     *sync.Mutex
 	cfg    *config.Config
-	flows  map[int64]FlowWorker
+	flows  map[int64]*flowEntry
 	docker docker.DockerClient
 	provs  providers.ProviderController
 	subs   subscriptions.SubscriptionsController
@@ -119,7 +171,7 @@ func NewFlowController(
 		db:     db,
 		mx:     &sync.Mutex{},
 		cfg:    cfg,
-		flows:  make(map[int64]FlowWorker),
+		flows:  make(map[int64]*flowEntry),
 		docker: docker,
 		provs:  provs,
 		subs:   subs,
@@ -131,6 +183,77 @@ func NewFlowController(
 		vslc:   NewVectorStoreLogController(db),
 		sc:     NewScreenshotController(db),
 	}
+}
+
+// registerLocked puts a serving worker in flowID's slot. Callers hold fc.mx.
+func (fc *flowController) registerLocked(flowID int64, worker FlowWorker) {
+	fc.flows[flowID] = newFlowEntry(worker)
+}
+
+// unregisterLocked drops flowID's slot if it is still entry. Callers hold fc.mx.
+func (fc *flowController) unregisterLocked(flowID int64, entry *flowEntry) {
+	if fc.flows[flowID] == entry {
+		delete(fc.flows, flowID)
+	}
+}
+
+// lockSettled takes fc.mx once no teardown of an unloaded flow holds flowID's
+// slot, so a delete or a new assistant acts on the flow the teardown left and
+// not on containers still being removed. It returns with fc.mx held, or with
+// ctx's error and fc.mx released.
+func (fc *flowController) lockSettled(ctx context.Context, flowID int64) (*flowEntry, bool, error) {
+	for {
+		fc.mx.Lock()
+		entry, ok := fc.flows[flowID]
+		if !ok || entry.done == nil {
+			return entry, ok, nil
+		}
+		done := entry.done
+		fc.mx.Unlock()
+
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		}
+	}
+}
+
+func (fc *flowController) entryOf(flowID int64) (*flowEntry, bool) {
+	fc.mx.Lock()
+	defer fc.mx.Unlock()
+
+	entry, ok := fc.flows[flowID]
+	if !ok || !entry.available() {
+		return nil, false
+	}
+
+	return entry, true
+}
+
+// claim hands out a flow with its lifecycle lock already held: the caller must
+// release it with defer entry.release().
+func (fc *flowController) claim(ctx context.Context, flowID int64) (*flowEntry, FlowWorker, bool) {
+	entry, ok := fc.entryOf(flowID)
+	if !ok {
+		return nil, nil, false
+	}
+
+	if !entry.acquire(ctx) {
+		return nil, nil, false
+	}
+
+	fc.mx.Lock()
+	still := fc.flows[flowID] == entry && entry.available()
+	worker := entry.worker
+	fc.mx.Unlock()
+
+	if !still {
+		entry.release()
+		return nil, nil, false
+	}
+
+	return entry, worker, true
 }
 
 func (fc *flowController) LoadFlows(ctx context.Context) error {
@@ -170,7 +293,9 @@ func (fc *flowController) LoadFlows(ctx context.Context) error {
 			continue
 		}
 
-		fc.flows[flow.ID] = fw
+		fc.mx.Lock()
+		fc.registerLocked(flow.ID, fw)
+		fc.mx.Unlock()
 	}
 
 	// Re-derive each parent scan's status from its child flows. Flow statuses can
@@ -227,7 +352,7 @@ func (fc *flowController) CreateFlow(
 		return nil, fmt.Errorf("failed to create flow worker: %w", err)
 	}
 
-	fc.flows[fw.GetFlowID()] = fw
+	fc.registerLocked(fw.GetFlowID(), fw)
 
 	return fw, nil
 }
@@ -354,7 +479,7 @@ func (fc *flowController) CreateFlowForDomain(
 		return nil, fmt.Errorf("failed to create flow worker for domain %d: %w", domainID, err)
 	}
 
-	fc.flows[fw.GetFlowID()] = fw
+	fc.registerLocked(fw.GetFlowID(), fw)
 
 	if err := fc.db.SetFlowDomain(ctx, database.SetFlowDomainParams{
 		ID:         fw.GetFlowID(),
@@ -430,12 +555,29 @@ func (fc *flowController) CreateAssistant(
 	functions *tools.Functions,
 	credential *flowCredential,
 ) (AssistantWorker, error) {
-	fc.mx.Lock()
+	// For an existing flow, wait out the teardown of an unloaded flow so the
+	// assistant acts on what it left, and refuse a loaded flow that is being
+	// finished rather than join a worker that is going away.
+	var (
+		entry  *flowEntry
+		loaded bool
+	)
+	if flowID == 0 {
+		fc.mx.Lock()
+	} else {
+		var err error
+		if entry, loaded, err = fc.lockSettled(ctx, flowID); err != nil {
+			return nil, err
+		}
+	}
 	defer fc.mx.Unlock()
+
+	if loaded && entry.closing {
+		return nil, ErrFlowNotFound
+	}
 
 	var (
 		fw  FlowWorker
-		ok  bool
 		err error
 	)
 
@@ -471,7 +613,7 @@ func (fc *flowController) CreateAssistant(
 			return fmt.Errorf("failed to create flow worker: %w", err)
 		}
 
-		fc.flows[fw.GetFlowID()] = fw
+		fc.registerLocked(fw.GetFlowID(), fw)
 		flowID = fw.GetFlowID()
 		fw.SetStatus(ctx, database.FlowStatusWaiting)
 
@@ -492,7 +634,7 @@ func (fc *flowController) CreateAssistant(
 			return fmt.Errorf("failed to load flow %d: %w", flowID, err)
 		}
 
-		fc.flows[flowID] = fw
+		fc.registerLocked(flowID, fw)
 
 		return nil
 	}
@@ -501,7 +643,8 @@ func (fc *flowController) CreateAssistant(
 		if err := newFlow(); err != nil {
 			return nil, err
 		}
-	} else if fw, ok = fc.flows[flowID]; ok {
+	} else if loaded {
+		fw = entry.worker
 		status, err := fw.GetStatus(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get flow %d status: %w", flowID, err)
@@ -520,6 +663,19 @@ func (fc *flowController) CreateAssistant(
 			return nil, fmt.Errorf("flow %d is in unknown status: %s", flowID, status)
 		}
 	} else {
+		// GetFlow skips soft-deleted rows, while loadFlow's status update does
+		// not: check first so a deleted flow is never revived.
+		flow, err := fc.db.GetFlow(ctx, flowID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, ErrFlowNotFound
+			}
+			return nil, fmt.Errorf("failed to get flow %d: %w", flowID, err)
+		}
+		if flow.Status == database.FlowStatusCreated {
+			return nil, fmt.Errorf("flow %d is not completed", flowID)
+		}
+
 		if err := loadFlow(); err != nil {
 			return nil, err
 		}
@@ -554,12 +710,13 @@ func (fc *flowController) CreateAssistant(
 
 func (fc *flowController) ListFlows(ctx context.Context) []FlowWorker {
 	fc.mx.Lock()
-	defer fc.mx.Unlock()
-
-	flows := make([]FlowWorker, 0)
-	for _, flow := range fc.flows {
-		flows = append(flows, flow)
+	flows := make([]FlowWorker, 0, len(fc.flows))
+	for _, entry := range fc.flows {
+		if entry.available() {
+			flows = append(flows, entry.worker)
+		}
 	}
+	fc.mx.Unlock()
 
 	sort.Slice(flows, func(i, j int) bool {
 		return flows[i].GetFlowID() < flows[j].GetFlowID()
@@ -569,28 +726,22 @@ func (fc *flowController) ListFlows(ctx context.Context) []FlowWorker {
 }
 
 func (fc *flowController) GetFlow(ctx context.Context, flowID int64) (FlowWorker, error) {
-	fc.mx.Lock()
-	defer fc.mx.Unlock()
-
-	flow, ok := fc.flows[flowID]
+	entry, ok := fc.entryOf(flowID)
 	if !ok {
 		return nil, ErrFlowNotFound
 	}
 
-	return flow, nil
+	return entry.worker, nil
 }
 
 func (fc *flowController) StopFlow(ctx context.Context, flowID int64) error {
-	fc.mx.Lock()
-	defer fc.mx.Unlock()
-
-	flow, ok := fc.flows[flowID]
+	entry, flow, ok := fc.claim(ctx, flowID)
 	if !ok {
-		return ErrFlowNotFound
+		return fc.missingFlowError(ctx, flowID)
 	}
+	defer entry.release()
 
-	err := flow.Stop(ctx)
-	if err != nil {
+	if err := flow.Stop(ctx); err != nil {
 		return fmt.Errorf("failed to stop flow %d: %w", flowID, err)
 	}
 
@@ -598,45 +749,137 @@ func (fc *flowController) StopFlow(ctx context.Context, flowID int64) error {
 }
 
 func (fc *flowController) FinishFlow(ctx context.Context, flowID int64) error {
-	fc.mx.Lock()
-	defer fc.mx.Unlock()
-
-	flow, ok := fc.flows[flowID]
-	if !ok {
-		return ErrFlowNotFound
-	}
-
-	err := flow.Finish(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to finish flow %d: %w", flowID, err)
-	}
-
-	delete(fc.flows, flowID)
-
-	return nil
+	return fc.closeFlow(ctx, flowID, flowFinishTimeout, false)
 }
 
 func (fc *flowController) DeleteFlow(ctx context.Context, flowID int64) error {
-	// Grab the worker under the lock, but run the (potentially slow, Docker-
-	// bound) Finish outside of it so we never block other flow operations while
-	// releasing the container. Drop it from the map afterwards under the lock.
-	fc.mx.Lock()
-	fw, ok := fc.flows[flowID]
-	fc.mx.Unlock()
+	return fc.closeFlow(ctx, flowID, flowFinishTimeout, true)
+}
 
-	if ok {
-		if err := fw.Finish(ctx); err != nil {
-			return fmt.Errorf("failed to finish flow %d: %w", flowID, err)
-		}
-
-		fc.mx.Lock()
-		delete(fc.flows, flowID)
-		fc.mx.Unlock()
+// closeFlow finishes a flow, and soft-deletes it when del is set, without
+// holding fc.mx across the teardown, so a flow that is slow to stop never
+// blocks the other flows on the server. While the teardown runs the slot stays
+// in the registry marked closing: GetFlow, claim and ListFlows stop handing out
+// the worker and CreateAssistant refuses the flow. A second finish of a loaded
+// flow returns at once rather than run the teardown again, and a delete that
+// arrives meanwhile is carried out by the teardown in progress once it ends.
+func (fc *flowController) closeFlow(ctx context.Context, flowID int64, budget time.Duration, del bool) error {
+	entry, loaded, err := fc.lockSettled(ctx, flowID)
+	if err != nil {
+		return err
 	}
 
+	if loaded && entry.closing {
+		if del {
+			entry.deleteOnClose = true
+		}
+		fc.mx.Unlock()
+		return nil
+	}
+
+	if !loaded {
+		// A closing slot rather than fc.mx guards the teardown: other flows stay
+		// served, and no assistant reloads this one while its containers go.
+		entry = newFlowEntry(nil)
+		entry.done = make(chan struct{})
+		fc.flows[flowID] = entry
+	}
+	entry.closing = true
+	entry.deleteOnClose = entry.deleteOnClose || del
+	fc.mx.Unlock()
+
+	teardownErr := fc.tearDownFlow(ctx, flowID, entry, budget)
+
+	settleCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), flowLeftoversTimeout)
+	defer cancel()
+
+	return fc.settleClosedFlow(settleCtx, flowID, entry, teardownErr)
+}
+
+// tearDownFlow stops the flow's worker, if it has one, and closes what the flow
+// left open: tasks, subtasks, assistants, containers and the flow status. It is
+// detached from the request, so a client that disconnects cannot leave the flow
+// half closed.
+func (fc *flowController) tearDownFlow(ctx context.Context, flowID int64, entry *flowEntry, budget time.Duration) error {
+	if entry.worker == nil {
+		unloadedCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), budget)
+		defer cancel()
+
+		return fc.finishUnloadedFlow(unloadedCtx, flowID)
+	}
+
+	// Wait for a stop or rename already in progress on this flow.
+	entry.lock()
+	defer entry.release()
+
+	finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), budget)
+	defer cancel()
+
+	finishErr := entry.worker.Finish(finishCtx)
+
+	leftoversCtx, cancelLeftovers := context.WithTimeout(context.WithoutCancel(ctx), flowLeftoversTimeout)
+	defer cancelLeftovers()
+
+	if finishErr != nil {
+		// The worker did not close the flow (a sandbox that would not stop, or a
+		// worker that did not exit within the budget): close what it left, so the
+		// flow does not stay running with no worker behind it.
+		return errors.Join(
+			fmt.Errorf("failed to finish flow %d: %w", flowID, finishErr),
+			fc.finishUnloadedFlow(leftoversCtx, flowID),
+		)
+	}
+
+	return fc.finishFlowLeftovers(leftoversCtx, flowID)
+}
+
+// settleClosedFlow ends a teardown: it soft-deletes the flow if a delete was
+// asked for, then gives up the slot. deleteOnClose is checked under the same
+// lock that drops the slot, so a delete arriving during the teardown is either
+// carried out here or finds the slot gone and runs a teardown of its own.
+func (fc *flowController) settleClosedFlow(ctx context.Context, flowID int64, entry *flowEntry, teardownErr error) error {
+	defer func() {
+		if entry.done != nil {
+			close(entry.done)
+		}
+	}()
+
+	fc.mx.Lock()
+	if !entry.deleteOnClose {
+		fc.unregisterLocked(flowID, entry)
+		fc.mx.Unlock()
+		return teardownErr
+	}
+	fc.mx.Unlock()
+
+	err := fc.deleteClosedFlow(ctx, flowID, teardownErr)
+
+	fc.mx.Lock()
+	fc.unregisterLocked(flowID, entry)
+	fc.mx.Unlock()
+
+	return err
+}
+
+// deleteClosedFlow soft-deletes a flow after its teardown. A teardown error does
+// not stop the delete of a flow that ended up closed, so a passing database or
+// docker error cannot orphan a scan's child flows; a flow still open is kept so
+// the delete can be retried.
+func (fc *flowController) deleteClosedFlow(ctx context.Context, flowID int64, teardownErr error) error {
 	flow, err := fc.db.GetFlow(ctx, flowID)
 	if err != nil {
-		return fmt.Errorf("failed to get flow %d: %w", flowID, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrFlowNotFound
+		}
+		return errors.Join(teardownErr, fmt.Errorf("failed to get flow %d: %w", flowID, err))
+	}
+
+	if teardownErr != nil {
+		if flow.Status != database.FlowStatusFinished && flow.Status != database.FlowStatusFailed {
+			return teardownErr
+		}
+		logrus.WithContext(ctx).WithError(teardownErr).WithField("flow_id", flowID).
+			Warn("deleting a closed flow despite an error while tearing it down")
 	}
 
 	containers, err := fc.db.GetFlowContainers(ctx, flowID)
@@ -656,13 +899,11 @@ func (fc *flowController) DeleteFlow(ctx context.Context, flowID int64) error {
 }
 
 func (fc *flowController) RenameFlow(ctx context.Context, flowID int64, title string) error {
-	fc.mx.Lock()
-	defer fc.mx.Unlock()
-
-	flow, ok := fc.flows[flowID]
+	entry, flow, ok := fc.claim(ctx, flowID)
 	if !ok {
-		return ErrFlowNotFound
+		return fc.missingFlowError(ctx, flowID)
 	}
+	defer entry.release()
 
 	return flow.Rename(ctx, title)
 }

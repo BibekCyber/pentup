@@ -233,7 +233,7 @@ func (r *mutationResolver) RenameFlow(ctx context.Context, flowID int64, title s
 	}).Debug("rename flow")
 
 	err = r.Controller.RenameFlow(ctx, flowID, title)
-	if errors.Is(err, controller.ErrFlowNotFound) {
+	if errors.Is(err, controller.ErrFlowNotFound) || errors.Is(err, controller.ErrFlowNotLoaded) {
 		// if flow worker not found, update flow title in DB and notify about it
 		flow, err := r.DB.UpdateFlowTitle(ctx, database.UpdateFlowTitleParams{
 			ID:    flowID,
